@@ -3,6 +3,7 @@
 DESIGN: ``frozen=True`` 불변 dataclass(DECISION-5.1). 누락된 필드는
 명시적 KeyError로 빠르게 실패시켜 데이터 오류를 조기 발견.
 """
+
 from __future__ import annotations
 
 import json

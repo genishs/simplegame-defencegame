@@ -2,6 +2,7 @@
 
 EXPECTED: team-member-2가 5개 스테이지 카드 + 잠금/해금 표시 + 별 표시 구현.
 """
+
 from __future__ import annotations
 
 from src.scenes.base_scene import BaseScene
@@ -14,9 +15,7 @@ class StageSelectScene(BaseScene):
         canvas = self.app.canvas
         w = canvas.winfo_width() or self.app.scaler.canvas_w
         h = canvas.winfo_height() or self.app.scaler.canvas_h
-        canvas.create_rectangle(
-            0, 0, w, h, fill="#101820", outline="", tags=(self._tag, "bg")
-        )
+        canvas.create_rectangle(0, 0, w, h, fill="#101820", outline="", tags=(self._tag, "bg"))
         canvas.create_text(
             w / 2,
             h * 0.3,

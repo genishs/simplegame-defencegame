@@ -1,4 +1,5 @@
 """Pathing 단위 테스트 (tk 비의존)."""
+
 from __future__ import annotations
 
 import math
@@ -49,9 +50,7 @@ def test_advance_already_done() -> None:
 
 def test_diagonal_movement_unit_vector() -> None:
     # 대각선 (1,1) 방향 7.07 거리, speed=√2 * 1 → 1 만큼 이동해 (1,1) 위치 도달해야 함.
-    new_pos, reached = step_toward(
-        (0.0, 0.0), (10.0, 10.0), speed=math.sqrt(2.0), dt=1.0
-    )
+    new_pos, reached = step_toward((0.0, 0.0), (10.0, 10.0), speed=math.sqrt(2.0), dt=1.0)
     assert reached is False
     assert abs(new_pos[0] - 1.0) < 1e-9
     assert abs(new_pos[1] - 1.0) < 1e-9

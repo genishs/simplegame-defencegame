@@ -6,6 +6,7 @@ DESIGN: 모든 엔티티는 ``canvas_id``를 보유하고, ``update(dt)``로 시
 
 EXPECTED: team-member-1이 ObjectPool 본 구현. 현 단계는 시그니처만.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -37,7 +38,7 @@ class Entity:
         """매 틱 시뮬레이션 갱신. 서브클래스 override."""
         raise NotImplementedError
 
-    def draw(self, canvas: "tk.Canvas", scaler: "Scaler") -> None:
+    def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         """캔버스 아이템의 좌표만 갱신. 생성/삭제 금지(풀에서 처리)."""
         raise NotImplementedError
 

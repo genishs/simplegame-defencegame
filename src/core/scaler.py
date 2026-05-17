@@ -5,6 +5,7 @@ DESIGN: DECISION-3.1. 좌표는 ``canvas.scale``, 이미지는 사이즈별 재�
 ``tkinter`` import 없이 동작해 단위 테스트 가능하다.
 EXPECTED: lead가 골격 + 테스트 통과 보장. 추가 폰트 폴백 등은 ui 팀.
 """
+
 from __future__ import annotations
 
 from src.core.settings import BASE_HEIGHT, BASE_WIDTH

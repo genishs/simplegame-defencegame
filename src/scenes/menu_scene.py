@@ -3,6 +3,7 @@
 DESIGN: 골격 단계에서는 단순 텍스트 + 두 개의 클릭 가능 텍스트 버튼.
 EXPECTED: team-member-2가 ``ui/widgets.py``의 Button을 적용하여 리뉴얼.
 """
+
 from __future__ import annotations
 
 from src.core.settings import APP_TITLE
@@ -22,9 +23,7 @@ class MenuScene(BaseScene):
         w = canvas.winfo_width() or self.app.scaler.canvas_w
         h = canvas.winfo_height() or self.app.scaler.canvas_h
 
-        canvas.create_rectangle(
-            0, 0, w, h, fill="#1a1410", outline="", tags=(self._tag, "bg")
-        )
+        canvas.create_rectangle(0, 0, w, h, fill="#1a1410", outline="", tags=(self._tag, "bg"))
         canvas.create_text(
             w / 2,
             h * 0.25,

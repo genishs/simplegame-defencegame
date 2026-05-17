@@ -2,6 +2,7 @@
 
 EXPECTED: team-member-2가 모달 캔버스 오버레이 + 배경 dim + 버튼 2~3개로 구현.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -15,7 +16,7 @@ class PauseDialog:
 
     TAG: str = "dialog_pause"
 
-    def __init__(self, app: "App") -> None:
+    def __init__(self, app: App) -> None:
         self.app = app
 
     def show(self) -> None:
@@ -34,7 +35,7 @@ class ResultDialog:
 
     TAG: str = "dialog_result"
 
-    def __init__(self, app: "App") -> None:
+    def __init__(self, app: App) -> None:
         self.app = app
 
     def show(self, victory: bool, stars: int = 0) -> None:

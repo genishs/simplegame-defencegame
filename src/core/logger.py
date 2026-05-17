@@ -3,6 +3,7 @@
 DESIGN: stdlib ``logging``만 사용. 개발 모드(``DEFGAME_DEV=1``)는 DEBUG,
 운영은 INFO. 파일 핸들러 추가는 추후 확장.
 """
+
 from __future__ import annotations
 
 import logging

@@ -6,6 +6,7 @@ DESIGN: 경로는 ``(x, y)`` 튜플 리스트. 적은 ``waypoint_idx``를 보유
 이 모듈은 ``tkinter``를 import하지 않으므로 pytest 단위 테스트 가능.
 EXPECTED: lead가 핵심 함수 + 테스트 / team-member-1이 enemy.update와 결선.
 """
+
 from __future__ import annotations
 
 import math

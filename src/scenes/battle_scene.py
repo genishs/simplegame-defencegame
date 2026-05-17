@@ -9,6 +9,7 @@ DESIGN:
 
 EXPECTED: team-member-1이 entities + combat, team-member-2가 wave + spawn + HUD.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -32,7 +33,7 @@ class BattleScene(BaseScene):
 
     SCENE_TAG = "battle"
 
-    def __init__(self, app: "App", stage_id: str = "stage_01") -> None:
+    def __init__(self, app: App, stage_id: str = "stage_01") -> None:
         super().__init__(app)
         self._log = get_logger(__name__)
         self.stage_id = stage_id
@@ -75,9 +76,7 @@ class BattleScene(BaseScene):
             self.stage = None
 
         # 배경.
-        canvas.create_rectangle(
-            0, 0, w, h, fill="#0c1410", outline="", tags=(self._tag, "bg")
-        )
+        canvas.create_rectangle(0, 0, w, h, fill="#0c1410", outline="", tags=(self._tag, "bg"))
 
         # 경로 라인(베이스 좌표 → 스크린).
         if self.stage is not None:

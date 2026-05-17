@@ -2,6 +2,7 @@
 
 EXPECTED: team-member-1이 직선/포물선 궤적 + 명중 판정 + 풀 회수.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -36,6 +37,6 @@ class Projectile(Entity):
         # TODO(team-member-1): 직선 이동, 타깃 도달 판정, 데미지 적용.
         return
 
-    def draw(self, canvas: "tk.Canvas", scaler: "Scaler") -> None:
+    def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         # TODO(team-member-1): coords 갱신.
         return

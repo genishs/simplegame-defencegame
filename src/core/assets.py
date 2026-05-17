@@ -4,6 +4,7 @@ DESIGN: ``PhotoImage``는 GC되면 빈 이미지가 되므로 모듈 캐시가 �
 유지. 같은 이미지의 다른 사이즈는 ``name@WxH`` 키로 분리 캐시.
 EXPECTED: lead 골격 / team-member-2가 사운드 추가(OPEN-1 결정 후).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -25,7 +26,7 @@ class AssetManager:
     리소스가 아직 없으므로 ``has_image()``로 가드한다.
     """
 
-    def __init__(self, images_dir: "Path | None" = None) -> None:
+    def __init__(self, images_dir: Path | None = None) -> None:
         self._dir = images_dir or (ASSETS_ROOT / "images")
         self._photo_cache: dict[str, Any] = {}
         self._raw_cache: dict[str, Any] = {}

@@ -2,6 +2,7 @@
 
 EXPECTED: team-member-1이 짧은 수명(0.5~1.0s) 타이머 + 알파/회색조 페이드.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -28,6 +29,6 @@ class Effect(Entity):
         if self.elapsed_s >= self.lifetime_s:
             self.alive = False
 
-    def draw(self, canvas: "tk.Canvas", scaler: "Scaler") -> None:
+    def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         # TODO(team-member-1): alpha/fade 적용.
         return

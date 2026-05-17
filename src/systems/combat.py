@@ -4,6 +4,7 @@ DESIGN: ``calc_damage(atk, armor)``는 순수 함수로 단위 테스트 핵심.
 GDD: 방어력 1당 1 데미지 감쇄. 최소 1 데미지 보장(0 데미지는 게임성 저해).
 EXPECTED: team-member-1이 ``CombatSystem.update``로 사거리 검색 + 발사 트리거.
 """
+
 from __future__ import annotations
 
 

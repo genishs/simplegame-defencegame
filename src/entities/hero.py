@@ -4,6 +4,7 @@ EXPECTED:
 - team-member-1이 ult 게이지, 스킬 트리거, 페이즈 보스 메커닉(GDD §2.6) 채움.
 - 4페이즈 전환은 hp 임계치 + 발행 이벤트(``hero.phase_changed``).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -33,7 +34,7 @@ class Hero(Entity):
         # TODO(team-member-1): ult 충전, 페이즈 전환 판정, 자동 공격.
         return
 
-    def draw(self, canvas: "tk.Canvas", scaler: "Scaler") -> None:
+    def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         # TODO(team-member-1): canvas_id의 coords 갱신 + ult 게이지 표시.
         return
 

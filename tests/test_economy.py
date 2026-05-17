@@ -1,4 +1,5 @@
 """Economy 단위 테스트 (tk 비의존)."""
+
 from __future__ import annotations
 
 import pytest

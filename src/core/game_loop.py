@@ -3,6 +3,7 @@
 DESIGN: 가변 dt, 50ms 클램프(스파이크 방지). ``stop()`` 시 다음 스케줄을
 취소하지 않고 ``_running`` 플래그로 다음 틱에서 빠져나오는 구조.
 """
+
 from __future__ import annotations
 
 import time
@@ -21,7 +22,7 @@ TickCallback = Callable[[float], None]
 class GameLoop:
     """root.after를 사용한 단일 시뮬·렌더 루프."""
 
-    def __init__(self, root: "tk.Misc", on_tick: TickCallback) -> None:
+    def __init__(self, root: tk.Misc, on_tick: TickCallback) -> None:
         self.root = root
         self.on_tick = on_tick
         self._prev: float = time.perf_counter()

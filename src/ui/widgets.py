@@ -4,6 +4,7 @@ DESIGN: tkinter 표준 위젯(Button 등)은 Canvas 위에서 어색하므로,
 캔버스 rect + text + tag_bind 조합으로 게임 풍 버튼을 만든다.
 EXPECTED: team-member-2가 hover/disabled 상태 추가.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def make_text_button(
-    canvas: "tk.Canvas",
+    canvas: tk.Canvas,
     cx: float,
     cy: float,
     label: str,
@@ -39,9 +40,7 @@ def make_text_button(
         width=2,
         tags=(tag,),
     )
-    text_id = canvas.create_text(
-        cx, cy, text=label, fill=text_color, font=font, tags=(tag,)
-    )
+    text_id = canvas.create_text(cx, cy, text=label, fill=text_color, font=font, tags=(tag,))
 
     def _hit(_event) -> None:  # type: ignore[no-untyped-def]
         on_click()
@@ -52,7 +51,7 @@ def make_text_button(
 
 
 def make_progress_bar(
-    canvas: "tk.Canvas",
+    canvas: tk.Canvas,
     x: float,
     y: float,
     w: float,

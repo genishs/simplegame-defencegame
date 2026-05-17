@@ -5,6 +5,7 @@ DESIGN: 도메인 이벤트(예: ``enemy.killed``, ``wave.cleared``)는 문자�
 스레드 안전성은 보장하지 않는다(tkinter 메인 스레드 단일 호출 전제).
 EXPECTED: lead 기본 구현, team-member-1/2가 이벤트명을 추가/구독.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

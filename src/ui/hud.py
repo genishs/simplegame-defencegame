@@ -4,12 +4,12 @@ EXPECTED: team-member-2가 자원 3종(곡식·인구·화살) + 웨이브 번�
 화면 상단에 캔버스 텍스트로 그린다. 이벤트 ``gold.changed``, ``wave.started``
 구독.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import tkinter as tk
 
     from src.core.app import App
 
@@ -19,7 +19,7 @@ class HUD:
 
     TAG: str = "hud"
 
-    def __init__(self, app: "App") -> None:
+    def __init__(self, app: App) -> None:
         self.app = app
         self._text_ids: dict[str, int] = {}
 

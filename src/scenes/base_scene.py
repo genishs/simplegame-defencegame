@@ -6,6 +6,7 @@ DESIGN: 씬은 lifecycle 4 단계(build/update/render/teardown)와 1 콜백
 태그로 일괄 ``delete``.
 EXPECTED: lead 골격. 팀원은 메서드를 override.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -25,7 +26,7 @@ class BaseScene:
     #: 서브클래스가 override. ``app.canvas.delete(tag)``에 사용된다.
     SCENE_TAG: str = "scene"
 
-    def __init__(self, app: "App") -> None:
+    def __init__(self, app: App) -> None:
         self.app = app
         self._tag: str = self.SCENE_TAG
 

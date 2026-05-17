@@ -4,6 +4,7 @@ DESIGN: tk 바인딩은 BattleScene이 직접 등록(이미 ``Escape``, ``space`
 이 모듈은 마우스 좌표 변환 + 등록된 콜백 호출의 헬퍼.
 EXPECTED: team-member-2가 빌드 UI(클릭으로 유닛 배치) 구현 시 사용.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 class InputRouter:
     """canvas 마우스 좌표를 베이스 좌표로 변환한 뒤 핸들러에 전달."""
 
-    def __init__(self, scaler: "Scaler") -> None:
+    def __init__(self, scaler: Scaler) -> None:
         self.scaler = scaler
         self._on_click: Callable[[float, float], None] | None = None
         self._on_motion: Callable[[float, float], None] | None = None

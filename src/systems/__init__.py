@@ -2,4 +2,5 @@
 
 규칙: ``tkinter`` import 금지(테스트 가능성 보존). DECISION-4.1.
 """
+
 from __future__ import annotations

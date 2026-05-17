@@ -4,6 +4,7 @@ DESIGN: 변경 빈도가 낮은 상수는 모듈 레벨로, 런타임 사용자 
 ``Settings`` dataclass 인스턴스(추후 JSON 영속화)로 분리한다.
 EXPECTED: lead가 골격 작성 / 팀원이 새 상수를 추가하는 정도로 충분.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

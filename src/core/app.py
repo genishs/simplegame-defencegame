@@ -4,6 +4,7 @@ DESIGN: ``App``은 root Tk를 받아 글로벌 서비스(events/assets/scaler/so
 구성하고, 현재 활성 씬에게 ``update(dt)``를 위임한다. 씬 전환은 단순
 "이전 씬 teardown → 새 씬 build" 모델.
 """
+
 from __future__ import annotations
 
 import tkinter as tk
@@ -132,7 +133,7 @@ class App:
             # 한 프레임 예외가 게임 전체를 종료시키지 않도록 격리.
             self._log.exception("scene tick failed")
 
-    def _on_configure(self, event: "tk.Event[tk.Canvas]") -> None:
+    def _on_configure(self, event: tk.Event[tk.Canvas]) -> None:
         if event.widget is not self.canvas:
             return
         ratio_x, ratio_y = self.scaler.update(event.width, event.height)

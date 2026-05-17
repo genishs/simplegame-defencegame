@@ -2,6 +2,7 @@
 
 EXPECTED: team-member-1이 ``UnitDef``로부터 인스턴스화 + 사거리 내 타깃팅 + 쿨다운.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 class Ally(Entity):
     """배치 가능한 아군 유닛."""
 
-    def __init__(self, x: float, y: float, unit_def: "UnitDef") -> None:
+    def __init__(self, x: float, y: float, unit_def: UnitDef) -> None:
         super().__init__(x, y, hp=unit_def.hp)
         self.unit_def = unit_def
         self.cooldown: float = 0.0
@@ -29,6 +30,6 @@ class Ally(Entity):
         if self.cooldown > 0:
             self.cooldown -= dt
 
-    def draw(self, canvas: "tk.Canvas", scaler: "Scaler") -> None:
+    def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         # TODO(team-member-1): coords 동기화 + 사거리 미리보기.
         return

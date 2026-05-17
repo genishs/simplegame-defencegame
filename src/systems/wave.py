@@ -4,6 +4,7 @@ DESIGN: ``WaveDef`` 리스트를 받아 ``delay_s``만큼 대기 후 ``spawns``�
 ``spawn_callback``으로 외부(BattleScene/엔티티 풀)에 적 생성을 위임.
 EXPECTED: team-member-2가 spawn_callback 본 구현 + 보스 스폰 + force_next.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

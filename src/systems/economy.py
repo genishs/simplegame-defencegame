@@ -4,6 +4,7 @@ DESIGN: GDD DECISION-02. 자원은 정수. 음수 방지는 ``can_spend`` + ``sp
 2단 인터페이스로 강제. 단위 테스트 가능하도록 모든 함수는 순수.
 EXPECTED: lead 골격 + 기본 산수 / team-member-2가 곡식 생산소, 인구 캡 추가.
 """
+
 from __future__ import annotations
 
 
