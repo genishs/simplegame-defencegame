@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "units": {
+    "archer": {
+      "name": "고구려 궁수",
+      "cost": 50,
+      "hp": 60,
+      "atk": 12,
+      "atk_speed": 1.2,
+      "range": 320,
+      "projectile": "arrow",
+      "sprite": "ally_archer",
+      "size": [48, 64]
+    },
+    "spear": {
+      "name": "고구려 창병",
+      "cost": 40,
+      "hp": 120,
+      "atk": 10,
+      "atk_speed": 0.9,
+      "range": 60,
+      "sprite": "ally_spear",
+      "size": [48, 64]
+    }
+  }
+}
