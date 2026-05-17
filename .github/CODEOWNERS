@@ -1,0 +1,5 @@
+# CODEOWNERS
+# 본 프로젝트의 모든 변경은 SCM(@genishs)의 승인이 필요합니다.
+# 자세한 정책은 docs/05_branching_release_strategy.md 참조.
+
+*       @genishs

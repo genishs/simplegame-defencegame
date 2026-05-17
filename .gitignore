@@ -1,0 +1,71 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 가상환경
+.venv/
+venv/
+env/
+ENV/
+
+# 테스트/캐시
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# 빌드 산출물 (PyInstaller 등)
+build/
+dist/
+*.spec
+*.egg-info/
+*.egg
+
+# 실행 파일 / 패키지
+*.exe
+*.zip
+*.tar.gz
+*.7z
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# ===== 환경/시크릿 =====
+.env
+.env.*
+*.local
+*.secret
+*.key
+*.pem
+credentials.json
+secrets.json
+
+# ===== 로그/임시 =====
+*.log
+logs/
+tmp/
+temp/
+
+# ===== 프로젝트 별 =====
+# 게임 저장 파일 (사용자 데이터 — 추후 정책 결정)
+saves/
+*.save

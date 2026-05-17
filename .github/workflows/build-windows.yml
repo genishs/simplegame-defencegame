@@ -1,0 +1,67 @@
+name: Build Windows (release/win64/dev)
+
+on:
+  push:
+    branches:
+      - 'release/win64/dev'
+  workflow_dispatch:
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: PyInstaller build (windows-latest)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) {
+            pip install -r requirements.txt
+          } else {
+            Write-Host "requirements.txt not found; continuing."
+          }
+          pip install pyinstaller
+
+      - name: Guard - check entry point exists
+        id: guard
+        shell: pwsh
+        run: |
+          if (Test-Path "src/main.py") {
+            "entry=src/main.py" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif (Test-Path "main.py") {
+            "entry=main.py" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "::warning::No entry point (src/main.py or main.py) found. Skipping build (Phase 1 expected)."
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: PyInstaller build
+        if: steps.guard.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          pyinstaller --onefile --name AnsiseongDefense --noconfirm ${{ steps.guard.outputs.entry }}
+
+      - name: Upload artifact
+        if: steps.guard.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnsiseongDefense-windows-x64-dev
+          path: dist/AnsiseongDefense.exe
+          retention-days: 7
+          if-no-files-found: error
