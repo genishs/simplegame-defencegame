@@ -17,6 +17,10 @@ if TYPE_CHECKING:
     from src.core.scaler import Scaler
 
 
+class PoolExhausted(Exception):
+    """ObjectPool의 capacity가 가득 차서 새 객체를 만들 수 없을 때."""
+
+
 class Entity:
     """모든 엔티티의 베이스.
 
@@ -44,25 +48,89 @@ class Entity:
 
 
 class ObjectPool:
-    """Canvas item id 재사용 풀 (DECISION-A).
+    """Entity 객체 재사용 풀 (DECISION-A).
 
-    TODO(team-member-1): 본 구현. 현 단계는 인터페이스만 noted.
-    설계 스케치는 ``docs/04`` §2.1 참고.
+    Canvas item id 기반 재사용 패턴을 Entity 레벨로 추상화한다.
+    ``canvas``가 None이면 헤드리스(pytest) 환경으로 간주해 canvas 호출을 건너뛴다.
+
+    Attributes:
+        stats: ``created`` / ``reused`` / ``released`` / ``exhausted`` 카운터.
     """
 
-    def __init__(self, canvas: Any, factory, capacity: int) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, canvas: Any, factory: Any, capacity: int) -> None:
         self._canvas = canvas
-        self._factory = factory
-        self._free: list[int] = []
+        self._factory = factory  # () -> Entity
+        self._free: list[Any] = []
         self._capacity = capacity
-        self._created: int = 0
+        self._active: list[Any] = []  # 활성 객체 목록 (id() 대신 직접 참조)
+        self.stats: dict[str, int] = {
+            "created": 0,
+            "reused": 0,
+            "released": 0,
+            "exhausted": 0,
+        }
 
-    def acquire(self) -> int:
-        """비활성 아이템 id를 반환. 풀이 비면 factory로 새로 생성."""
-        # TODO(team-member-1): state="normal"로 활성화 + capacity 가드.
-        raise NotImplementedError
+    # ------------------------------------------------------------------
+    # 공개 인터페이스
+    # ------------------------------------------------------------------
 
-    def release(self, iid: int) -> None:
-        """아이템을 풀에 반환 (state="hidden")."""
-        # TODO(team-member-1): 구현.
-        raise NotImplementedError
+    @property
+    def free_count(self) -> int:
+        """현재 풀에 대기 중인(비활성) 객체 수."""
+        return len(self._free)
+
+    @property
+    def active_count(self) -> int:
+        """현재 활성 객체 수."""
+        return len(self._active)
+
+    def acquire(self, state: str = "normal") -> Any:
+        """비활성 객체를 꺼내거나 새로 생성해 반환.
+
+        Args:
+            state: Canvas itemconfig 상태 문자열 (기본 ``"normal"``).
+
+        Returns:
+            활성화된 Entity 인스턴스.
+
+        Raises:
+            PoolExhausted: capacity를 초과하고 재사용 가능한 객체도 없을 때.
+        """
+        if self._free:
+            obj = self._free.pop()
+            obj.alive = True
+            if self._canvas is not None and obj.canvas_id is not None:
+                self._canvas.itemconfig(obj.canvas_id, state=state)
+            self._active.append(obj)
+            self.stats["reused"] += 1
+            return obj
+
+        if len(self._active) >= self._capacity:
+            self.stats["exhausted"] += 1
+            raise PoolExhausted(
+                f"ObjectPool capacity={self._capacity} exhausted; " f"active={len(self._active)}"
+            )
+
+        obj = self._factory()
+        obj.alive = True
+        if self._canvas is not None and obj.canvas_id is not None:
+            self._canvas.itemconfig(obj.canvas_id, state=state)
+        self._active.append(obj)
+        self.stats["created"] += 1
+        return obj
+
+    def release(self, obj: Any) -> None:
+        """객체를 비활성화하고 풀에 반환.
+
+        Args:
+            obj: ``acquire``로 받았던 Entity 인스턴스.
+        """
+        obj.alive = False
+        if self._canvas is not None and obj.canvas_id is not None:
+            self._canvas.itemconfig(obj.canvas_id, state="hidden")
+        try:
+            self._active.remove(obj)
+        except ValueError:
+            pass
+        self._free.append(obj)
+        self.stats["released"] += 1
