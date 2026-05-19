@@ -6,6 +6,7 @@
   "starting_gold": 400,
   "starting_population": 14,
   "lives": 20,
+  "night_vision_radius_multiplier": 1.4,
   "paths": [
     {
       "id": "p_gorge",
@@ -27,45 +28,31 @@
     {
       "delay_s": 3.0,
       "spawns": [
-        { "type": "tang_scout", "count": 4, "interval_s": 1.0, "path": "p_gorge" }
+        { "type": "tang_scout", "count": 3, "interval_s": 1.3, "path": "p_gorge" }
       ]
     },
     {
       "delay_s": 10.0,
       "spawns": [
-        { "type": "tang_scout", "count": 5, "interval_s": 0.9, "path": "p_gorge" },
-        { "type": "tang_soldier", "count": 4, "interval_s": 0.8, "path": "p_flank" }
+        { "type": "tang_scout", "count": 3, "interval_s": 1.2, "path": "p_gorge" },
+        { "type": "tang_soldier", "count": 3, "interval_s": 1.0, "path": "p_flank" }
       ]
     },
     {
       "delay_s": 10.0,
       "spawns": [
-        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_gorge" },
-        { "type": "tang_archer", "count": 4, "interval_s": 0.9, "path": "p_flank" }
-      ]
-    },
-    {
-      "delay_s": 11.0,
-      "spawns": [
-        { "type": "tang_scout", "count": 6, "interval_s": 0.8, "path": "p_flank" },
-        { "type": "tang_soldier", "count": 5, "interval_s": 0.7, "path": "p_gorge" }
-      ]
-    },
-    {
-      "delay_s": 11.0,
-      "spawns": [
-        { "type": "tang_heavy_infantry", "count": 4, "interval_s": 1.2, "path": "p_gorge" },
-        { "type": "tang_archer", "count": 5, "interval_s": 0.8, "path": "p_flank" }
+        { "type": "tang_soldier", "count": 4, "interval_s": 0.9, "path": "p_gorge" },
+        { "type": "tang_archer", "count": 3, "interval_s": 1.2, "path": "p_flank" }
       ]
     },
     {
       "delay_s": 12.0,
       "boss": "tang_night_raider",
       "spawns": [
-        { "type": "tang_scout", "count": 5, "interval_s": 0.7, "path": "p_gorge" },
-        { "type": "tang_soldier", "count": 4, "interval_s": 0.8, "path": "p_flank" }
+        { "type": "tang_scout", "count": 3, "interval_s": 0.9, "path": "p_gorge" },
+        { "type": "tang_soldier", "count": 3, "interval_s": 1.0, "path": "p_flank" }
       ]
     }
   ],
-  "reward": { "gold": 300, "grain": 150, "unlock": "stage_04" }
+  "reward": { "gold": 300, "grain": 220, "unlock": "stage_04" }
 }
