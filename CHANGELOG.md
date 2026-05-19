@@ -4,6 +4,49 @@
 
 ## [Unreleased]
 
+### Phase 4 R3 — 정리 라운드 (2026-05-19, DECISION-SCM-P4F-001~002)
+
+> Phase 4 종료 라운드. PR #45(QA cleanup) + PR #46(잠재 결함 #43/#44 정식 해결) 통합 머지 완료. develop@6e108a4.
+> `v0.3.0` GA 승격은 여전히 보류 — 사용자 시각 검수(CAT-01~07) + DPI 매트릭스(1920×1080·100%/125%) 통과 후 별도 SCM 라운드(DECISION-SCM-P4-004 유지).
+
+#### Added
+- **WaveSystem boss path 다단 fallback (Issue #43, PR #46, DECISION-DL-P5P-001)**:
+  - `WaveDef.boss_path` 옵션 필드 추가 + schema validator 갱신
+  - `WaveSystem._resolve_boss_path()` 우선순위: `wave.boss_path` → `spawns[0].path` → `load(paths=)` 첫 path → `world['waypoints']` 첫 키 → `"p_main"` 호환 fallback
+  - stage JSON 무변경 — stage_03/04/05 보스 wave 자동 해결
+  - `tests/test_wave_boss_path.py` (13건): WV-01~05 회귀 매트릭스 자동 가드
+- **Projectile swept-circle 충돌 (Issue #44, PR #46, DECISION-DL-P5P-002)**:
+  - `Projectile.update`: 발사체 segment + 타겟 segment 동기 swept-circle 최단거리 판정
+  - `PathingSystem.update`: enemy `_prev_x/_prev_y` 매 틱 갱신
+  - hit_radius=12 유지 — 게임플레이 균형 영향 0
+  - `tests/test_combat_sweep.py` (11건): CB-01~05 회귀 매트릭스 자동 가드
+- **pytest markers 일관 적용 (PR #45, DECISION-QA-P4M-001~003)**:
+  - `tests/test_regression_p4.py`, `tests/test_clear_rate_simulation.py`, `tests/test_sound_simpleaudio.py`, `tests/test_tutorial_scene.py`, `tests/test_stage_balance.py` 5건에 `regression_p4`/`slow`/`audio` 일관 적용
+  - 신규 테스트 `tests/test_wave_boss_path.py`, `tests/test_combat_sweep.py`도 `regression_p4` 적용 (SCM 후속 보완)
+  - `.github/workflows/ci.yml` 3-step 분리: fast(`-m "not slow"`) → audio(`-m audio`) → full
+- **v0.3.0 GA 체크리스트 발행 (PR #45)**: `docs/qa/v0_3_0_ga_checklist.md` — 자동 가드 8/8 ✓ + 사용자 검수 0/7 ☐ + DPI 0/2 ☐. 사용자 복귀 시 검수 후 ☐→✓ 전환 절차 명시
+- **Phase 4 종료 보고서**: `docs/qa/phase4_completion_report.md` — R1/R2/R3 산출물 종합
+
+#### Changed
+- 회귀 매트릭스 v2.2 → v2.3: WV-01~05 + CB-01~05 신규 등록 (55→64 시나리오), markers 표 갱신
+- pytest 누적 **448 passed** (Phase 4 R2 종료 시점 424 → +24, 회귀 0). `-m slow` 별도 시 BL-07 5/5 통과
+
+#### Fixed
+- Issue #43: WaveSystem 보스 path_id `"p_main"` 하드코딩 → 다단 fallback (BL-07 시뮬레이터 workaround 정식 코드화)
+- Issue #44: Projectile hit_radius 오버슈트 → swept-circle 판정 (시뮬레이터 DPS 모델과 게임플레이 정합)
+
+#### Closed Issues
+- #43 WaveSystem 보스 path 하드코딩 (PR #46)
+- #44 Projectile hit_radius 오버슈트 (PR #46)
+
+#### Merged PRs
+- #45 — qa(phase4-cleanup): markers + 매트릭스 v2.2 + GA 체크리스트 (squash → develop@4c86ea6)
+- #46 — fix(phase 5 준비): Issue #43 보스 path + Issue #44 swept-circle (squash → develop@6e108a4)
+
+#### Decisions (DECISION-SCM-P4F-*)
+- **001**: PR #45 → PR #46 머지 순서 — markers/체크리스트 baseline 안착 후 잠재 결함 해결 PR 적용
+- **002**: SCM 페르소나 사용량 한도 도달로 R3 마무리(README/CHANGELOG/신규 테스트 markers 보완)를 메인 세션이 직접 develop에 commit. DECISION-SCM-P4B-003(사용자 부재 자율 권한 위임 범위)과 정합
+
 ### Phase 4 R2 — 후반 라운드 통합 머지 (2026-05-19, DECISION-SCM-P4B-001~003)
 
 > Phase 4 후반 라운드. PR #41(BL-07 클리어율 자동화) + PR #42(simpleaudio SFX 백엔드) 통합 머지 완료. develop@b5b9f2c.

@@ -14,7 +14,11 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from src.entities.projectile import Projectile
+
+pytestmark = pytest.mark.regression_p4
 
 # ---------------------------------------------------------------------------
 # 헬퍼: prev/cur 좌표 모두 갖는 타겟

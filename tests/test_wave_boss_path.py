@@ -18,8 +18,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from src.data.loader import PathDef, WaveDef, WaveSpawn, load_stage
 from src.systems.wave import WaveSystem
+
+pytestmark = pytest.mark.regression_p4
 
 # ---------------------------------------------------------------------------
 # 헬퍼

@@ -27,14 +27,14 @@
 
 ## 현재 진행 상태
 
-**Phase 3 완료 — `v0.3.0-rc.1` 사전 릴리즈 (2026-05-19). Phase 4 R1+R2 머지 완료 (2026-05-19, develop@b5b9f2c).**
+**Phase 3 완료 — `v0.3.0-rc.1` 사전 릴리즈 (2026-05-19). Phase 4 R1+R2+R3 머지 완료, 자동 가드 8/8 — `v0.3.0` GA는 사용자 검수 대기 (2026-05-19, develop@6e108a4).**
 
 | Phase | 내용 | 상태 |
 |---|---|---|
 | 1 | 사전 기획 — 역사 검토, 컨셉, 디자인 문서, 기술 아키텍처, SCM/CI 구축 | ✅ 완료 (v0.1.0, 2026-05-17) |
 | 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | ✅ 완료 (v0.2.0, 2026-05-19) |
 | 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 + 수직 슬라이스 + 회귀 매트릭스 | ✅ 완료 (`v0.3.0-rc.1`, 2026-05-19) |
-| 4 | 기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 (사용자 검수 CAT-01~07 통과 시 `v0.3.0` GA 승격) | 🚧 진행 중 (R1+R2 완료: #26 튜토리얼, #27 난이도, #29 simpleaudio, #38 AU-07, #39 BL-07) |
+| 4 | 기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 + 잠재 결함 해결 (자동 가드 완료, 사용자 검수 CAT-01~07 통과 시 `v0.3.0` GA 승격) | ✅ 자동 가드 완료 (R1+R2+R3: #26 #27 #29 #38 #39 #43 #44, 사용자 검수 대기) |
 | 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | ⏳ 예정 |
 
 ### Phase 3 세부 진행
@@ -56,7 +56,16 @@
   - simpleaudio SFX 백엔드 시범 도입 (#29 / PR #42, DECISION-AUDIO-012) — 8 placeholder WAV + AU-07 자동화, ubuntu CI `libasound2-dev` step 추가
   - pytest markers 4종(`regression_p4`, `slow`, `audio`, `network`) 정식 등록, 경고 0건
   - pytest 누적 **424 passed** (Phase 4 R1 종료 시점 396 → +28, 회귀 0)
-- **Phase 4 R3 (후속)**: 사용자 검수 CAT-01~07 + 결함 수렴 + 1920×1080 / 100%·125% DPI 매트릭스 + BGM 통합(#30).
+- **Phase 4 R3 — 완료 (2026-05-19)**:
+  - WaveSystem 보스 path 다단 fallback (#43 / PR #46, DECISION-DL-P5P-001)
+  - Projectile swept-circle 충돌 (#44 / PR #46, DECISION-DL-P5P-002) — BL-07 시뮬레이터 workaround 정식 코드화
+  - pytest markers 5+2 파일 일관 적용 + `ci.yml` 3-step 분리 (PR #45, DECISION-QA-P4M-001~003)
+  - 회귀 매트릭스 v2.2→v2.3 (55→64 시나리오, WV/CB 신규 10건)
+  - **`docs/qa/v0_3_0_ga_checklist.md`** 발행 — 자동 가드 8/8 ✓ / 사용자 검수 0/7 ☐ / DPI 0/2 ☐
+  - **`docs/qa/phase4_completion_report.md`** Phase 4 종료 보고서
+  - pytest 누적 **448 passed** (Phase 4 종료 시점, slow 별도 시 BL-07 5/5)
+- **GA 진입 (사용자 의존)**: CAT-01~07 + DPI 매트릭스 통과 후 별도 SCM 라운드에서 develop → main 머지 + `v0.3.0` 태그 + GitHub Release prerelease=false 갱신.
+- **Phase 5 백로그**: BGM 자산 수급 + 백엔드(#30).
 
 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md) 참조.
 
