@@ -269,11 +269,13 @@ def test_ending_scene_panels_cover_all_required_beats() -> None:
 
 # ---------------------------------------------------------------------------
 # 6. main.py 씬 등록 검증 — 4개 씬 등록 누락 방지
+# Phase 4 (Issue #26): "tutorial" 씬이 합류해 총 5개로 확장. 본 회귀는 누락 방지가
+# 목적이므로 핵심 4 + tutorial 모두 등록되었는지 검증한다.
 # ---------------------------------------------------------------------------
 
 
 def test_main_registers_all_four_scenes() -> None:
-    """main._register_scenes 가 menu/stage_select/battle/ending 4 씬을 모두 등록.
+    """main._register_scenes 가 menu/stage_select/battle/ending(+tutorial) 씬을 모두 등록.
 
     실제 Tk 없이 호출하기 위해 register_scene 만 검증하는 fake App 사용.
     """
@@ -286,7 +288,8 @@ def test_main_registers_all_four_scenes() -> None:
             recorded[name] = factory
 
     _register_scenes(_FakeApp())  # type: ignore[arg-type]
-    assert set(recorded.keys()) == {"menu", "stage_select", "battle", "ending"}
+    # 핵심 4 + Phase 4 합류한 tutorial.
+    assert {"menu", "stage_select", "battle", "ending", "tutorial"}.issubset(set(recorded.keys()))
 
 
 # ---------------------------------------------------------------------------

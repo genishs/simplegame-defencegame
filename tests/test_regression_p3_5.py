@@ -187,9 +187,19 @@ def test_menu_enter_key_triggers_goto_for_focused_button() -> None:
 
 
 def test_menu_enter_key_stage_select_button() -> None:
-    """MN-03(변형): 포커스가 2번(스테이지) 버튼일 때 Enter -> goto("stage_select")."""
+    """MN-03(변형): 포커스가 "스테이지" 버튼일 때 Enter -> goto("stage_select").
+
+    Phase 4 (Issue #26, DECISION-DL-P4-006): "튜토리얼" 항목이 인덱스 2 로 합류해
+    "스테이지" 는 인덱스 3 으로 밀린다. 본 회귀는 dest='stage_select' 라우팅 자체를
+    검증하는 것이 목적이므로 인덱스만 갱신한다.
+    """
+    from src.scenes.menu_scene import _BUTTONS
+
+    # "menu.stage_select" 라우팅 버튼의 현재 인덱스를 동적으로 조회 — 향후 메뉴
+    # 재배치에도 회귀가 따라오도록 한다.
+    stage_idx = next(i for i, b in enumerate(_BUTTONS) if b[0] == "menu.stage_select")
     scene = _make_menu_scene()
-    scene._focused_idx = 2  # "스테이지" -> dest="stage_select"
+    scene._focused_idx = stage_idx
     scene._on_enter_key(None)
     assert "stage_select" in scene.app._goto_calls
 

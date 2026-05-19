@@ -347,6 +347,18 @@ def validate_stage(raw: Any, *, source: str = "<stage>") -> None:
         reward = _require_dict(raw, "reward", path="", source=source)
         _validate_reward(reward, path="reward", source=source)
 
+    # night_vision_radius_multiplier 는 야간 스테이지 전용 옵션 필드.
+    # DECISION-PL-P4-014: 0.5~2.0 범위의 float. 존재할 때만 검증.
+    if "night_vision_radius_multiplier" in raw:
+        _require_number(
+            raw,
+            "night_vision_radius_multiplier",
+            path="",
+            source=source,
+            minimum=0.5,
+            maximum=2.0,
+        )
+
 
 def validate_units(raw: Any, *, source: str = "<units>") -> None:
     """``units.json`` 검증."""

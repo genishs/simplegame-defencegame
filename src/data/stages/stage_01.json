@@ -37,5 +37,5 @@
       ]
     }
   ],
-  "reward": { "gold": 200, "grain": 50, "unlock": "stage_02" }
+  "reward": { "gold": 200, "grain": 100, "unlock": "stage_02" }
 }
