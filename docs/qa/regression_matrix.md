@@ -1,9 +1,10 @@
-# 회귀 매트릭스 — Phase 4 (v2.2, 누적 모드)
+# 회귀 매트릭스 — Phase 4 (v2.3, 누적 모드)
 
 > v1 → v2 갱신: QA Lead (DECISION-PERSONA-002 활성화, 2026-05-19)
 > v2.1 갱신: SCM (PR #40/#41/#42 머지 후, DECISION-SCM-P4-002/003)
 > v2.2 갱신: QA Lead (Phase 4 cleanup markers, DECISION-QA-P4M-003/004) + Dev Lead (Phase 5 준비, DECISION-DL-P5P-001/002)
-> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 + Phase 5 준비 9건 추가 = **총 64 시나리오**
+> v2.3 갱신: Audio Engineer (Phase 5.1 BGM prep, Issue #30, DECISION-AUDIO-013) — BG-01~BG-04 추가
+> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 + Phase 5 준비 9건 추가 + Phase 5.1 BGM 4건 추가 = **총 68 시나리오**
 
 **DECISION-TL-P3-5-001**: 매트릭스 열 구성은 현행 씬/시스템 아키텍처(Menu·StageSelect·Battle·Ending·Font·DPI·Persistence·Audio) 8개 모듈 기준으로 설정. *(v1 유지)*
 **DECISION-TL-P3-5-002**: 자동 테스트 표기(✓)는 현재 `tests/` 디렉터리에 동작하는 케이스가 존재할 때만 표기. headless 불가 UI 테스트는 ✗ 로 표기. *(v1 유지)*
@@ -13,7 +14,7 @@
 **DECISION-QA-P4M-003**: v2.2 — BL-07 (PR #41) · AU-01~07 (PR #42) 머지로 자동화 ✓ 전환. pytest markers 일관 적용 (5개 파일) 완료.
 **DECISION-QA-P4M-004**: v2.2 — pytest markers 체계: `regression_p4` (71건) / `slow` (5건) / `audio` (18건) / `network` (0건, 미사용). CI 3-step 분리.
 
-마지막 갱신: 2026-05-19 | 기준 커밋: `020d0cf` | 작성: QA Lead (DECISION-QA-P4M-003/004)
+마지막 갱신: 2026-05-19 | 기준 커밋: `0773a5f` | 작성: QA Lead (DECISION-QA-P4M-003/004) | v2.3 갱신: Audio Engineer (DECISION-AUDIO-013)
 
 ---
 
@@ -193,6 +194,24 @@ pytest                            # 전체 424건 (slow 포함)
 
 ---
 
+## Phase 5.1 신규 시나리오 — [BG] BGM 재생 회귀 (Issue #30, DECISION-AUDIO-013)
+
+> BG-01~BG-04: Phase 5.1 BGM 백엔드(pygame.mixer) 구현 후 자동화 전환 예정.
+> 현재: 모두 ✗ (자동화 대기 — BGM 백엔드 미구현, play_bgm stub 상태).
+> `src/core/sound.py` play_bgm() Phase 5.1 구현 완료 시 ✓ 전환.
+
+| # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
+|---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
+| BG-01 | 메인 메뉴 진입 시 SoundManager.play_bgm("bgm.menu") 호출 — 예외 없음, BGM 시작 로그 확인 | ✗ | — | — | — | — | — | — | ✗ | — |
+| BG-02 | 스테이지 전환(stage_01→stage_02) 시 BGM 페이드 아웃·인 — stop_bgm(fade_out=1.0) 후 play_bgm(fade_in=1.0) 순서 보장 | — | — | ✗ | — | — | — | — | ✗ | — |
+| BG-03 | 일시정지(ESC) 시 BGM 볼륨 dimming — set_bgm_volume(0.2) 호출, 재개 시 원래 볼륨 복원 | — | — | ✗ | — | — | — | — | ✗ | — |
+| BG-04 | 음소거 토글(mute/unmute) 시 BGM 정지·재개 — SFX mute와 BGM mute 독립 동작 검증 | ✗ | — | ✗ | — | — | — | — | ✗ | — |
+
+> BG-01~BG-04: 자동화 대기 (Phase 5.1 본 작업 시 ✓ 전환).
+> 자동화 방법 예정: `tests/test_sound_bgm.py` — pytest + pygame.mixer mock 패턴 (AU-07 선례).
+> DECISION-AUDIO-013: pygame.mixer BGM 백엔드 채택 결정.
+
+---
 ## 자동화 우선순위 (✗ → ✓ 전환 후보)
 
 v1 항목(DECISION-TL-P3-5-003) 유지 + Phase 4 신규 후보 추가.
