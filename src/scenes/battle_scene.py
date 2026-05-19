@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from src.core.fonts import family_regular as _family_regular
 from src.core.logger import get_logger
 from src.data.loader import StageDef, load_stage
 from src.scenes.base_scene import BaseScene
@@ -126,7 +127,7 @@ class BattleScene(BaseScene):
                 "ESC/Space = 일시정지 | M = 직접조작 모드"
             ),
             fill="#e0d0a0",
-            font=("Malgun Gothic", 16),
+            font=(_family_regular(), 16),
             justify="center",
             tags=(self._tag, "placeholder"),
         )

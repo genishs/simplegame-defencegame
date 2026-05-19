@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from src.core.fonts import family_bold as _family_bold
+from src.core.fonts import family_regular as _family_regular
 from src.scenes.base_scene import BaseScene
 
 if TYPE_CHECKING:
@@ -95,7 +97,8 @@ class StageSelectScene(BaseScene):
 
         def font(pt: int, bold: bool = False) -> tuple[str, int, str]:
             style = "bold" if bold else "normal"
-            return ("Malgun Gothic", fpt(pt), style)
+            family = _family_bold() if bold else _family_regular()
+            return (family, fpt(pt), style)
 
         # 배경
         canvas.create_rectangle(0, 0, w, h, fill="#101820", outline="", tags=(tag, "bg"))
@@ -175,7 +178,8 @@ class StageSelectScene(BaseScene):
 
         def font(pt: int, bold: bool = False) -> tuple[str, int, str]:
             style = "bold" if bold else "normal"
-            return ("Malgun Gothic", scaler.font_pt(pt), style)
+            family = _family_bold() if bold else _family_regular()
+            return (family, scaler.font_pt(pt), style)
 
         card_fill = "#0e1018" if is_locked else "#1c1810"
         card_outline = "#333333" if is_locked else "#5a4a30"

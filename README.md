@@ -179,8 +179,18 @@ pyinstaller --onefile --name AnsiseongDefense src/main.py
 
 ## 라이선스
 
+### 본 저장소 (코드/콘텐츠)
 **미정 (To be decided)** — 추후 결정 예정입니다.
 현재 시점에서 본 저장소의 코드/콘텐츠는 모든 권리가 저작자에게 유보됩니다(All rights reserved by default).
+
+### 동봉 자산 (assets/)
+| 자산 | 라이선스 | 출처 |
+|---|---|---|
+| `assets/fonts/NotoSansKR-Regular.otf` | **SIL Open Font License 1.1** | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) |
+| `assets/fonts/NotoSansKR-Bold.otf` | **SIL Open Font License 1.1** | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) |
+
+라이선스 전문은 [`assets/fonts/OFL.txt`](./assets/fonts/OFL.txt) 또는 [scripts.sil.org/OFL](https://scripts.sil.org/OFL) 참고.
+SIL OFL 1.1은 폰트 파일의 **자유로운 사용·복제·재배포·임베딩**을 허용하며, 본 프로젝트는 빌드된 .exe 내부에 폰트를 임베드하는 형태로 사용합니다(DECISION-Q-007, Issue #7).
 
 ---
 

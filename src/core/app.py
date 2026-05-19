@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from src.core.assets import AssetManager
 from src.core.events import EventBus
+from src.core.fonts import register_korean_fonts
 from src.core.game_loop import GameLoop
 from src.core.logger import get_logger
 from src.core.scaler import Scaler
@@ -46,6 +47,13 @@ class App:
         self.root.title(APP_TITLE)
         self.root.geometry(f"{SETTINGS.window_width}x{SETTINGS.window_height}")
         self.root.minsize(800, 450)
+
+        # DECISION-Q-007 / Issue #7: 번들된 Noto Sans KR 을 프로세스에 등록.
+        # 실패 시 Malgun Gothic 으로 자동 폴백(`src.core.fonts.family_*()`).
+        try:
+            register_korean_fonts(self.root)
+        except Exception:  # noqa: BLE001
+            self._log.exception("Korean font registration failed; falling back")
 
         # 단일 캔버스(DECISION-A): 모든 씬이 이 캔버스를 공유.
         self.canvas = tk.Canvas(

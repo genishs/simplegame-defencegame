@@ -4,6 +4,29 @@
 
 ## [Unreleased]
 
+### Phase 3.4 폰트 번들링 (2026-05-19)
+
+#### Added
+- `assets/fonts/NotoSansKR-Regular.otf` (~4.4MB), `NotoSansKR-Bold.otf` (~4.6MB), `OFL.txt` 동봉 (Issue #7 / DECISION-Q-007)
+- `src/core/fonts.py` (신규): 런타임 폰트 해석 + Win32 `AddFontResourceExW` 프로세스-한정 등록 + Malgun Gothic 폴백. `family_regular() / family_bold() / font_tuple()` 공개 API
+- `AnsiseongDefense.spec` (신규): PyInstaller spec — `datas=[("assets/fonts", "assets/fonts")]` SSOT 관리, `--onefile` 형식 유지 (DECISION-DESIGN-P3-4-001)
+- `tests/test_fonts_runtime.py` (신규): 14건 — `_MEIPASS` 경로 분기, 폴백 정책, idempotent 등록 회귀 방지
+- CI 워크플로 `build-windows.yml / release-windows.yml`: 빌드 후 `PyInstaller.utils.cliutils.archive_viewer` 로 .exe 내부 폰트 포함 검증 step
+- README "라이선스" 섹션: 동봉 자산 목록 + SIL OFL 1.1 명시
+
+#### Changed
+- `src/core/app.py`: 부팅 시 `register_korean_fonts(root)` 호출 — 1회 등록·캐시
+- `src/ui/{widgets,hud,dialog}.py`, `src/scenes/{menu,stage_select,battle,ending}_scene.py`: 하드코딩 `"Malgun Gothic"` → `family_regular()/family_bold()` 동적 해석으로 치환 (총 11개 위치)
+- `.gitignore`: `*.spec` 무시는 유지하되 `!AnsiseongDefense.spec` 예외 추가
+
+#### Closed Issues
+- #7 Noto Sans KR(OFL) PyInstaller 번들링 구성
+
+#### Decisions (Phase 3.4)
+- DECISION-DESIGN-P3-4-001 — spec 파일 단일 SSOT, 워크플로는 spec 우선 + `--add-data` 폴백
+- DECISION-DESIGN-P3-4-002 — `--onefile` 유지(콜드 스타트 ↑ 대신 운영 단순성). 자산 누적 시 onedir 재검토
+- DECISION-DESIGN-P3-4-003 — Regular + Bold 둘 다 번들(시각 품질 우선, 디스크 +5MB는 허용 범위). 추가 weight(Light/Medium 등)는 보류
+
 ### Phase 3.1 통합 하드닝 (2026-05-19)
 
 #### Added

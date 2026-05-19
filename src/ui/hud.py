@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from src.core.fonts import family_bold as _family_bold
+from src.core.fonts import family_regular as _family_regular
+
 if TYPE_CHECKING:
     import tkinter as tk
 
@@ -102,7 +105,8 @@ class HUD:
 
         def font(pt: int, bold: bool = False) -> tuple[str, int, str]:
             style = "bold" if bold else "normal"
-            return ("Malgun Gothic", fpt(pt), style)
+            family = _family_bold() if bold else _family_regular()
+            return (family, fpt(pt), style)
 
         # ── 상단 HUD 배경 (y=0~80) ──────────────────────────────────────
         x1, y1 = sx(0, 0)

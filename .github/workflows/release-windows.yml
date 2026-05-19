@@ -46,7 +46,10 @@ jobs:
         id: guard
         shell: pwsh
         run: |
-          if (Test-Path "src/main.py") {
+          if (Test-Path "AnsiseongDefense.spec") {
+            "spec=AnsiseongDefense.spec" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Using PyInstaller spec: AnsiseongDefense.spec"
+          } elseif (Test-Path "src/main.py") {
             "entry=src/main.py" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } elseif (Test-Path "main.py") {
             "entry=main.py" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -58,7 +61,36 @@ jobs:
       - name: PyInstaller build
         shell: pwsh
         run: |
-          pyinstaller --onefile --name AnsiseongDefense --noconfirm ${{ steps.guard.outputs.entry }}
+          if ("${{ steps.guard.outputs.spec }}") {
+            pyinstaller --noconfirm "${{ steps.guard.outputs.spec }}"
+          } else {
+            # 폴백: spec 부재 시 인라인 --add-data 로 폰트 동봉 (Issue #7).
+            $addDataArg = ""
+            if (Test-Path "assets/fonts") {
+              $addDataArg = "--add-data=assets/fonts;assets/fonts"
+            }
+            pyinstaller --onefile --name AnsiseongDefense --noconfirm $addDataArg "${{ steps.guard.outputs.entry }}"
+          }
+
+      # Issue #7: 폰트가 .exe 에 실제로 포함되는지 검증 (release 게이트).
+      - name: Verify Noto Sans KR bundled in .exe
+        shell: pwsh
+        run: |
+          $exe = "dist/AnsiseongDefense.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Build artifact $exe missing."
+            exit 1
+          }
+          $output = python -m PyInstaller.utils.cliutils.archive_viewer --recursive --brief $exe 2>&1
+          $combined = ($output -join "`n")
+          $hasReg = $combined -match "NotoSansKR-Regular\.otf"
+          $hasBold = $combined -match "NotoSansKR-Bold\.otf"
+          Write-Host "Regular bundled: $hasReg"
+          Write-Host "Bold bundled:    $hasBold"
+          if (-not ($hasReg -and $hasBold)) {
+            Write-Error "Noto Sans KR fonts not found inside $exe. Issue #7 regression."
+            exit 1
+          }
 
       - name: Determine version / tag
         id: ver

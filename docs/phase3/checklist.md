@@ -42,8 +42,8 @@
 - [ ] `tests/test_no_korean_literal_in_ui.py` 신규 (정규식 grep 가드)
 - [ ] Issue #6 — 픽션 캐릭터 5종 placeholder 자산 (`assets/characters/`)  — 담당: Design Lead
 - [ ] `docs/08_asset_inventory.md` 픽션 캐릭터 행 갱신
-- [ ] Issue #7 — `assets/fonts/NotoSansKR-Regular.ttf` + `OFL.txt` 동봉  — 담당: Dev Lead
-- [ ] Issue #7 — PyInstaller spec 또는 `--add-data` 구성
+- [x] Issue #7 — `assets/fonts/NotoSansKR-{Regular,Bold}.otf` + `OFL.txt` 동봉  — 담당: Design Lead (feature/phase3-4-fonts-bundle)
+- [x] Issue #7 — `AnsiseongDefense.spec` (`datas=[...]`) + 워크플로 검증 step
 - [ ] 와이어프레임 SCN-01/SCN-03/SCN-04/SCN-08 코드 반영  — 담당: Dev Team2 + Design Lead
 - [ ] DoD 체크 — UI 한국어 리터럴 0건, 자산 18장 lookup OK
 
