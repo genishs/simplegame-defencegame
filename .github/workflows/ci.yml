@@ -91,6 +91,9 @@ jobs:
       # 2차 방어선: AST 기반 스크립트 (정확도 높음, 주석/문자열 오탐 없음)
       - name: Domain layer tk-free guard (AST)
         shell: bash
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
         run: |
           python scripts/check_systems_no_tk.py --verbose
 
