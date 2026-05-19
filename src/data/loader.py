@@ -89,6 +89,10 @@ class WaveDef:
     delay_s: float
     spawns: tuple[WaveSpawn, ...]
     boss: str | None = None
+    # DECISION-DL-P5P-001 (Issue #43): 보스 spawn path id 옵션 필드.
+    # None 이면 WaveSystem._resolve_boss_path() 가 다음 우선순위로 결정한다:
+    #   spawns 첫 항목 path → load(paths=...) 첫 path id → world waypoints 첫 키 → "p_main".
+    boss_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -203,6 +207,8 @@ def load_stage(stage_id: str, data_root=DATA_ROOT) -> StageDef:  # type: ignore[
                 for s in w.get("spawns", [])
             ),
             boss=w.get("boss"),
+            # Issue #43: 옵션 boss_path 필드 (str 또는 None).
+            boss_path=w.get("boss_path"),
         )
         for w in raw["waves"]
     )
