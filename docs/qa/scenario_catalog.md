@@ -347,3 +347,21 @@ reward.grain 확인: stage_01= / stage_02= / stage_03=
 > CAT-01~04: Phase 3.5 검수 항목 유지.
 > CAT-05~07: Phase 4 신규. Dev Lead(#26)/Dev Team1(#27) 머지 완료 후 검수 가능.
 > FAIL 항목은 GitHub Issue로 등록 후 ug + phase4 레이블 부착.
+
+---
+
+## 검수 현황 (Phase 4 cleanup 기준, DECISION-QA-P4M-001)
+
+**상태: 사용자 검수 대기 중** (자동 테스트 424건 전체 통과 완료)
+
+| 시나리오 | 자동화 가드 | 사용자 검수 | 비고 |
+|---------|------------|------------|------|
+| CAT-01 게임 첫 실행 ~ 메인 메뉴 응답성 | ✓ (일부 자동) | ☐ 대기 중 | 1920×1080 + 100%/125% DPI |
+| CAT-02 Stage 1 전 구간 손맛 | ✓ (BT 자동) | ☐ 대기 중 | 플레이 체험 수동 필수 |
+| CAT-03 .exe 더블클릭 실행 | ✗ (빌드 필요) | ☐ 대기 중 | PyInstaller 빌드 후 검수 |
+| CAT-04 폰트 한글 렌더링 검증 | ✓ (test_fonts_runtime.py) | ☐ 대기 중 | 시각 확인 필요 |
+| CAT-05 튀토리얼 첫 실행 자동 진입 손맛 | ✓ (test_tutorial_scene.py 23건) | ☐ 대기 중 | UX 체험 수동 필수 |
+| CAT-06 난이도 하향 stage 01~03 클리어율 | ✓ (test_clear_rate_simulation.py 9건) | ☐ 대기 중 | 체감 난이도 수동 확인 |
+| CAT-07 M키 수동 모드 + 튀토리얼 6단계 | ✓ (일부 자동) | ☐ 대기 중 | UX 체험 수동 필수 |
+
+> 사용자 복귀 시 본 카탈로그와 `docs/qa/v0_3_0_ga_checklist.md` 를 기준으로 검수 진행 후 ☐ → ✓ 로 변경 요망.

@@ -1,6 +1,8 @@
 # 회귀 매트릭스 — Phase 4 (v2.2, 누적 모드)
 
 > v1 → v2 갱신: QA Lead (DECISION-PERSONA-002 활성화, 2026-05-19)
+> v2.1 갱신: SCM (PR #40/#41/#42 머지 후, DECISION-SCM-P4-002/003)
+> v2.2 갱신: QA Lead (Phase 4 cleanup markers, DECISION-QA-P4M-003/004) + Dev Lead (Phase 5 준비, DECISION-DL-P5P-001/002)
 > v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 + Phase 5 준비 9건 추가 = **총 64 시나리오**
 
 **DECISION-TL-P3-5-001**: 매트릭스 열 구성은 현행 씬/시스템 아키텍처(Menu·StageSelect·Battle·Ending·Font·DPI·Persistence·Audio) 8개 모듈 기준으로 설정. *(v1 유지)*
@@ -8,8 +10,10 @@
 **DECISION-QA-P4-001**: v2부터 Tutorial 모듈 열 추가 — 총 **9 모듈** 기준.
 **DECISION-QA-P4-002**: 자동화 불가 판정 기준 추가 — tkinter 이벤트 루프 필요·음원 파일 필요·실제 백엔드 미구현 항목은 ✗.
 **DECISION-QA-P4-003**: Phase 게이트 거부권 임계값 — green path 시나리오(BT-01~10, MN-03~05, SS-02/05, HM-01~05) 중 1건이라도 ✗ 전환, 또는 `pytest -q` 자동 테스트 합격률 < 99% 시 발동.
+**DECISION-QA-P4M-003**: v2.2 — BL-07 (PR #41) · AU-01~07 (PR #42) 머지로 자동화 ✓ 전환. pytest markers 일관 적용 (5개 파일) 완료.
+**DECISION-QA-P4M-004**: v2.2 — pytest markers 체계: `regression_p4` (71건) / `slow` (5건) / `audio` (18건) / `network` (0건, 미사용). CI 3-step 분리.
 
-마지막 갱신: 2026-05-19 | 기준 커밋: `f338c8d` | 작성: QA Lead (DECISION-PERSONA-002)
+마지막 갱신: 2026-05-19 | 기준 커밋: `020d0cf` | 작성: QA Lead (DECISION-QA-P4M-003/004)
 
 ---
 
@@ -20,6 +24,25 @@
 | ✓ | 자동 테스트 케이스 존재 (pytest 포함) |
 | ✗ | 자동 테스트 없음 (수동 검수 또는 headless 불가) |
 | — | 해당 모듈과 무관 |
+
+---
+
+## pytest Markers 체계 (v2.2, DECISION-QA-P4M-004)
+
+| marker | 의미 | 사용처 |
+| --- | --- | --- |
+| `regression_p4` | Phase 4 회귀 가드 — 자동 실행 대상 | TU-01~10, BL-01~07, AU-01~06 커버 (71건) |
+| `slow` | 1초 이상 소요 테스트 | BL-07 클리어율 시뮬레이션 (test_clear_rate_simulation.py, 5건) |
+| `audio` | 오디오 시스템 테스트 | AU-01~08 (test_sound_simpleaudio.py, 18건) |
+| `network` | 네트워크 의존 테스트 | (현재 미사용, 0건) |
+
+```
+# 선택 실행 예시
+pytest -m regression_p4          # Phase 4 회귀 가드 71건
+pytest -m "not slow"              # 빠른 검증 (CI fast-path step)
+pytest -m audio                   # 오디오 18건
+pytest                            # 전체 424건 (slow 포함)
+```
 
 ---
 
@@ -127,9 +150,10 @@
 | BL-04 | stage_04 wave 수 무변경 (현재 7), reward.grain 무변경 (현재 200) — 영향 0 가드 (DECISION-PL-P4-013) | — | — | ✓ | — | — | — | — | — | — |
 | BL-05 | stage_05 wave 수 무변경 (현재 10), reward.grain 무변경 (현재 300) — 영향 0 가드 (DECISION-PL-P4-013) | — | — | ✓ | — | — | — | — | — | — |
 | BL-06 | stage_03 schema 검증 통과 — night_vision_radius_multiplier 옵션 필드 허용, 범위 0.5~2.0 (DECISION-PL-P4-014) | — | — | ✓ | — | — | — | — | — | — |
-| BL-07 | 자동 모드 mock 시뮬레이션 5회 → stage_01~03 클리어율 95%+ (DECISION-PL-P4-012) | — | — | ✗ | — | — | — | — | — | — |
+| BL-07 | 자동 모드 mock 시뮬레이션 5회 → stage_01~03 클리어율 95%+ (DECISION-PL-P4-012) | — | — | ✓ | — | — | — | — | — | — |
 
-> BL-01~BL-06: Phase 4 R1 SCM 라운드(DECISION-SCM-P4-002) 에서 ✓ 전환. BL-07: 후속 라운드(Dev Lead BattleScene auto-mode 구현 필요).
+> BL-01~BL-06: Phase 4 R1 SCM 라운드(DECISION-SCM-P4-002) 에서 ✓ 전환.
+> BL-07: PR #41 머지 완료 → ✓ 전환 (DECISION-QA-P4M-003). `test_clear_rate_simulation.py` 9건 자동 가드 활성.
 
 ---
 
@@ -204,7 +228,7 @@ v1 항목(DECISION-TL-P3-5-003) 유지 + Phase 4 신규 후보 추가.
 | Font | 커버됨 (test_fonts_runtime.py) | |
 | DPI/Scaler | 커버됨 (test_scaler.py) | |
 | Persistence | 신규 부분 커버 (test_tutorial_scene.py + test_regression_p4.py) | save_slot.tutorial_dismissed/completed 필드 가드 ✓ — player_data 본격 저장·로드는 Phase 4 후속 |
-| Audio | 신규 부분 커버 (test_regression_p4.py) | AU-01~AU-06 ✓, AU-07~AU-08 백엔드 구현 후 전환 |
+| Audio | 커버됨 (test_regression_p4.py + test_sound_simpleaudio.py) | AU-01~AU-07 ✓ (자동), AU-08 수동 검수 의존 (PyInstaller 빌드) |
 | Tutorial | 신규 커버 (test_tutorial_scene.py 23건) | TU-01/02/03/05/09/10 ✓ (자동). TU-04/06/07/08 headless 불가 — 수동 검수. |
 
 **CI 추가 step 검토 의견 (DECISION-QA-P4-005)**:
@@ -248,4 +272,5 @@ BL-07 클리어율 시뮬레이션은 느릴 수 있으므로 `slow` 마커 분�
 | v1 (Phase 3.5) | 2026-05-19 | Test Lead | 30 시나리오 (MN/SS/BT/HM/FD/EN), 8 모듈 열 |
 | v2 (Phase 4) | 2026-05-19 | QA Lead (DECISION-PERSONA-002) | Phase 4 신규 25건 추가 (AU-01~08, TU-01~10, BL-01~07). Tutorial 모듈 열 추가 (총 9 모듈). 거부권 가이드 신설. DECISION-QA-P4-001~006. |
 | v2.1 (Phase 4 R1) | 2026-05-19 | SCM (DECISION-SCM-P4-002) | PR #34/#36 머지 후 자동 가드 가능 시나리오 ✗→✓ 전환. TU-01/02/03/05/09/10 ✓ (자동 가드, test_tutorial_scene.py + test_regression_p4.py 활용). TU-04/06/07/08 은 headless 자동화 불가로 ✗ 유지(수동 검수 의존). BL-01/02/03/06 ✓ (test_stage_balance.py 자동 가드). BL-07 은 후속 라운드. |
+| v2.2 (Phase 4 cleanup) | 2026-05-19 | QA Lead (DECISION-QA-P4M-003/004) | BL-07 ✗→✓ (PR #41, test_clear_rate_simulation.py 9건). AU-01~07 ✓ 확인 (PR #42, test_sound_simpleaudio.py 18건). pytest markers 5개 파일 일관 적용 (regression_p4 71건 선택 가능). markers 체계 표 추가. CI 3-step 분리. |
 | v2.2 (Phase 5 준비) | 2026-05-19 | Dev Lead (DECISION-DL-P5P-001/002) | Phase 5 준비 라운드 신규 9 시나리오 추가: WV-01~05 (보스 path resolution, Issue #43) + CB-01~05 (Projectile swept-circle 충돌, Issue #44). 모두 자동 가드 (test_wave_boss_path.py 13건 + test_combat_sweep.py 11건). |

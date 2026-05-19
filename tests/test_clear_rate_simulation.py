@@ -26,6 +26,8 @@ import pytest
 
 from src.systems.auto_mode_simulator import SimResult, StageSimulator
 
+pytestmark = pytest.mark.regression_p4
+
 # ---------------------------------------------------------------------------
 # 상수
 # ---------------------------------------------------------------------------
