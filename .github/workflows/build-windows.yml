@@ -40,7 +40,11 @@ jobs:
         id: guard
         shell: pwsh
         run: |
-          if (Test-Path "src/main.py") {
+          if (Test-Path "AnsiseongDefense.spec") {
+            "spec=AnsiseongDefense.spec" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Using PyInstaller spec: AnsiseongDefense.spec"
+          } elseif (Test-Path "src/main.py") {
             "entry=src/main.py" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } elseif (Test-Path "main.py") {
@@ -55,7 +59,40 @@ jobs:
         if: steps.guard.outputs.skip == 'false'
         shell: pwsh
         run: |
-          pyinstaller --onefile --name AnsiseongDefense --noconfirm ${{ steps.guard.outputs.entry }}
+          if ("${{ steps.guard.outputs.spec }}") {
+            pyinstaller --noconfirm "${{ steps.guard.outputs.spec }}"
+          } else {
+            # 폴백: spec 부재 시 인라인 --add-data 로 폰트 동봉 (Issue #7).
+            $addDataArg = ""
+            if (Test-Path "assets/fonts") {
+              $addDataArg = "--add-data=assets/fonts;assets/fonts"
+            }
+            pyinstaller --onefile --name AnsiseongDefense --noconfirm $addDataArg "${{ steps.guard.outputs.entry }}"
+          }
+
+      # Issue #7: 폰트가 .exe 에 실제로 포함되는지 검증.
+      # --onefile 산출물은 .exe 내부에 압축되어 직접 Test-Path 가 불가.
+      # PyInstaller pyz-binary 안의 매니페스트(파일 목록) 를 임시 추출해서 검사.
+      - name: Verify Noto Sans KR bundled in .exe
+        if: steps.guard.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          $exe = "dist/AnsiseongDefense.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Build artifact $exe missing."
+            exit 1
+          }
+          # 가장 신뢰성 있는 검증: pyi-archive_viewer 로 .exe 내부 CArchive 항목 나열.
+          $output = python -m PyInstaller.utils.cliutils.archive_viewer --recursive --brief $exe 2>&1
+          $combined = ($output -join "`n")
+          $hasReg = $combined -match "NotoSansKR-Regular\.otf"
+          $hasBold = $combined -match "NotoSansKR-Bold\.otf"
+          Write-Host "Regular bundled: $hasReg"
+          Write-Host "Bold bundled:    $hasBold"
+          if (-not ($hasReg -and $hasBold)) {
+            Write-Error "Noto Sans KR fonts not found inside $exe. Issue #7 regression."
+            exit 1
+          }
 
       - name: Upload artifact
         if: steps.guard.outputs.skip == 'false'

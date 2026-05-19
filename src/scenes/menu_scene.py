@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from src.core.fonts import family_bold as _family_bold
+from src.core.fonts import family_regular as _family_regular
 from src.scenes.base_scene import BaseScene
 
 if TYPE_CHECKING:
@@ -80,7 +82,8 @@ class MenuScene(BaseScene):
 
         def font(pt: int, bold: bool = False) -> tuple[str, int, str]:
             style = "bold" if bold else "normal"
-            return ("Malgun Gothic", fpt(pt), style)
+            family = _family_bold() if bold else _family_regular()
+            return (family, fpt(pt), style)
 
         # 타이틀 텍스트 (TIT-02)
         tcx, tcy = sx(960, 320)
@@ -198,7 +201,7 @@ class MenuScene(BaseScene):
             cy,
             text=label,
             fill="#f0e0c0",
-            font=("Malgun Gothic", fpt_val, "bold"),
+            font=(_family_bold(), fpt_val, "bold"),
             anchor="center",
             tags=(tag, "menu_button"),
         )
