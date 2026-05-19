@@ -4,7 +4,45 @@
 
 ## [Unreleased]
 
-> Phase 3 라운드 누적 변경. main 머지 및 `v0.3.0` 태깅은 Phase 3.5 종료 시 수행.
+> Phase 3 라운드 누적 변경. **Phase 3.5 수직 슬라이스 완료 (2026-05-19)** — 다음 SCM 라운드에서 `v0.3.0-rc.1` 태그 및 `v0.3.0` 정식 머지.
+
+### Phase 3.5 수직 슬라이스 데모 (2026-05-19)
+
+#### Added
+- `tests/test_vertical_slice.py` (신규, 18건): 메뉴 → 스테이지 선택 → 배틀 → 결과 → 엔딩 풀 사이클 통합 회귀 가드 (Issue #12)
+  - 메뉴 라우팅 (`menu.new_game` / `menu.continue` → `stage_select`) 가드
+  - BattleScene 진입 시 영웅(Hero) 자동 등록 검증 (`world["hero"]`)
+  - `stage_05` 클리어 시 `ResultDialog._on_next` → ending 라우팅, 그 외 stage → stage_select
+  - 패배 시 ResultDialog 모든 콜백이 stage_select 로 회귀
+  - UI 문자열 SSOT 키 존재 검증 (menu / stage_select / battle / ending)
+  - `main._register_scenes` 4 씬 모두 등록 (회귀 가드)
+  - stage_01 전 wave force_advance 무예외 통과
+- `BattleScene._compute_hero_spawn_xy()`: build_zone 기반 영웅 스폰 좌표 헬퍼 (DECISION-DL-P3-5-003)
+- `BattleScene._UI_STRINGS_DEFAULT["battle.placeholder.intro"]`: SSOT 진입 안내 텍스트 (DECISION-DL-P3-5-005)
+
+#### Changed
+- `src/scenes/menu_scene.py`: "새 게임" / "이어하기" 버튼 라우팅 `battle` → `stage_select` (수직 슬라이스 흐름, DECISION-DL-P3-5-002)
+- `src/scenes/battle_scene.py`:
+  - `build()` 에서 영웅(Hero) 인스턴스를 자동 생성하여 `world["hero"]` 에 등록 — 기존에는 외부에서 주입되지 않아 패배 조건 및 M키 모드가 사실상 비활성 (DECISION-DL-P3-5-003)
+  - `_end_battle()`: 승리 + `stage_05` 인 경우 "다음" 버튼이 ending 으로 라우팅, 그 외에는 기존대로 stage_select (DECISION-DL-P3-5-004)
+  - 좌하단 manual_mode 라벨 폰트 하드코딩 `"Malgun Gothic"` → `family_regular()` SSOT 적용
+  - 전투 진입 안내 텍스트를 raw 한국어에서 `_UI_STRINGS_DEFAULT` 키로 분리
+
+#### Verified
+- PyInstaller `--onefile` 로컬 빌드 성공 (Windows, 24.9 MB, `dist/AnsiseongDefense.exe`)
+- `pyi-archive_viewer` 로 `assets/fonts/NotoSansKR-Regular.otf` + `NotoSansKR-Bold.otf` 가 .exe 내부에 포함됨 확인
+- 전체 회귀 `pytest`: 295 + 18 = **313 passed** (실패 0)
+
+#### Decisions (DECISION-DL-P3-5-*)
+- **001**: Stage 1 wave 수는 사양(3 wave) 그대로 유지. acceptance criteria 의 "6 wave" 문구는 stage_02 이후의 사양이므로 stage_01 검수에는 "모든 wave (3 wave) 완주" 로 적용.
+- **002**: 메뉴의 "새 게임" / "이어하기" 도 `stage_select` 경유로 일관화 (수직 슬라이스 흐름).
+- **003**: BattleScene 진입 시 영웅을 build_zone 첫 zone 중앙(없으면 화면 중앙) 에 자동 스폰.
+- **004**: 승리 분기는 `stage_id == "stage_05"` 만 ending 으로, 그 외는 stage_select. 단일 stage 검수에서도 stage_05 직접 진입 시 엔딩 도달 가능.
+- **005**: 배틀 placeholder 텍스트와 manual_mode 라벨을 SSOT 키 기반으로 정리.
+- **006**: PyInstaller 빌드는 본 PR 에서 로컬 검증 완료, 정식 산출물 발행은 SCM 라운드 (`v0.3.0-rc.1` 태깅 + GitHub Actions `build-windows.yml` / `release-windows.yml`) 로 위임.
+
+#### Closed Issues
+- #12 수직 슬라이스 데모 + `v0.3.0-rc.1` 준비 (DECISION-DL-P3-5-002/003/004)
 
 ### Phase 3.3 프로토타입 통합 (2026-05-19)
 
