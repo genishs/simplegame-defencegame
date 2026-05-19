@@ -4,7 +4,57 @@
 
 ## [Unreleased]
 
-> Phase 4 진입 대기. 현재 변경 없음.
+### Phase 4 R1 — 첫 구현 라운드 머지 (2026-05-19, DECISION-SCM-P4-001~004)
+
+> Phase 4 첫 구현 라운드. PR #34/#35/#36/#37 4건 통합 머지 완료. develop@5c26653.
+> `v0.3.0` GA 승격은 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드로 보류 (DECISION-SCM-P4-004).
+
+#### Added
+- **튜토리얼 8단계 인터랙티브 흐름 (Issue #26)**:
+  - `src/scenes/tutorial_scene.py` (신규, 1011줄): 메뉴 진입 → 단계 1~8 → stage_select 라우팅. 스킵/ESC 확인 다이얼로그 + "다시 보지 않기" 영구 무시 지원.
+  - `src/core/save_slot.py` (신규): `SaveSlot` 데이터 클래스 + `tutorial_dismissed` / `tutorial_completed` 영속 필드 + 슬롯 직렬화.
+  - `tests/test_tutorial_scene.py` (신규, 23건): 튜토리얼 단계 진행/스킵 다이얼로그/save_slot 영속/자동 진입 정책 자동 가드.
+- **ui_strings §20 한국어 35건 확정 (Issue #26 후속, DECISION-DESIGN-P4-001~005)**: `docs/story/08_ui_strings.md` §20 (`menu.tutorial.button` ~ `tutorial.step8.*`) — 가이드 화자 = 양만춘(`~하시오/~하오` 톤) + 도입부 모용손 [픽션] 카운터파트. 한자 글리프 = 명적(鳴鏑) + 요동성(遼東城) 최소 2건. `docs/characters/` 캐릭터 가이드 역할 추가.
+- **회귀 매트릭스 v2 + 시나리오 카탈로그 확장 (DECISION-QA-P4-001~006)**:
+  - `docs/qa/regression_matrix.md` v2: AU-01~08 / TU-01~10 / BL-01~07 신규 25건 + Tutorial 모듈 열(총 9 모듈) + 거부권 가이드.
+  - `docs/qa/scenario_catalog.md` 확장: CAT-05~07 (튜토리얼 8단계 / 난이도 체감 / 한자 글리프) 추가.
+  - `tests/test_regression_p4.py` (신규, 17건): AU-01~06 SoundManager + BL-04/05 무변경 가드 + import guard.
+- **스키마 옵션 필드 `night_vision_radius_multiplier`**: `src/data/schema.py` validator 가 0.5~2.0 범위 옵션 필드 허용. stage_03 야간 시야 보정.
+- **자동 테스트**:
+  - `tests/test_stage_balance.py` (신규, 22건): BL-01~03 / BL-06 자동 가드 — wave 수, count, interval, reward.grain, schema 옵션 필드.
+  - 총 `pytest` = **396 passed** (Phase 3.5 종료 시점 334 → +62, 회귀 0).
+
+#### Changed
+- **초반 3스테이지 난이도 하향 (Issue #27, DECISION-DT1-P4-001~004)**:
+  - `src/data/stages/stage_01.json`: reward.grain 50 → 100 (체감 진입 보상 강화).
+  - `src/data/stages/stage_02.json`: wave 6 → 4, W1 count -40%, interval +30%, reward.grain → 150.
+  - `src/data/stages/stage_03.json`: wave 6 → 4, W1 단일 path=p_gorge, reward.grain → 220, `night_vision_radius_multiplier` 필드 추가.
+  - stage_04~05 무변경 (영향 0 가드 — BL-04/05 ✓).
+- `tests/test_stages_02_05.py` / `test_stage_reward_grain.py`: stage_02/03 wave 축소 + reward 조정 반영.
+- `docs/story/08_ui_strings.md`: §20 "키 예약" 상태 → "한국어 확정"으로 격상.
+- `docs/qa/regression_matrix.md` v2.1 (DECISION-SCM-P4-002): Phase 4 R1 머지 후 TU-01/02/03/05/09/10 + BL-01/02/03/06 시나리오를 ✗ → ✓ 자동 가드로 전환. headless 자동화 불가 항목(TU-04/06/07/08, BL-07) 은 ✗ 유지 + 수동 검수 의존.
+
+#### Decisions (DECISION-SCM-P4-*)
+- **001**: PR 머지 순서를 #34(독립) → #37(독립) → #36(튜토리얼 구현, placeholder §20) → #35(한국어 §20) 로 적용. PR #35 한국어 §20이 §20 placeholder 보다 후행 머지되어 한국어 본문 보존 보장.
+- **002**: PR #34/#36 머지 후 자동 가드 가능한 시나리오(TU-01/02/03/05/09/10, BL-01~03/06) 를 본 라운드에서 ✓ 전환. 별도 후속 라운드로 분리하지 않음 — Phase 4 R1 종료 시점 매트릭스가 develop 코드 실태와 일치하도록 정합 보정.
+- **003**: TU-04/06/07/08 은 tkinter 창·이벤트 루프 의존(headless 자동화 불가) 으로 ✗ 유지. 수동 검수 카탈로그(CAT-05~07) 의존.
+- **004**: `v0.3.0` GA 승격(main 머지·태깅) 은 본 SCM 라운드에서 보류. 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드에서 수행 — 제약(main 직접 푸시 금지, 새 태그 생성 금지) 준수.
+
+#### Merged PRs
+- #34 — feat(balance): stage 01~03 난이도 하향 (squash → develop@0a5351e)
+- #37 — qa(phase4): 회귀 매트릭스 v2 + 자동 테스트 보강 (squash → develop@58f482d)
+- #36 — feat(phase 4): 인터랙티브 튜토리얼 8단계 구현 (squash → develop@3c5f594)
+- #35 — docs(tutorial): §20 ui_strings 35건 한국어 확정 (squash → develop@5c26653)
+
+#### Closed Issues
+- #26 인터랙티브 튜토리얼 8단계 (PR #36 자동 close)
+- #27 초반 3스테이지 난이도 하향 (PR #34 자동 close)
+
+#### Open Issues (Phase 4 후반 / Phase 5)
+- #29 — 오디오 다채널 동시 재생 백엔드 (AU-07 자동화 게이트)
+- #30 — Audio asset inventory (오디오 자산 발주)
+- #38 — (Phase 4 후반)
+- #39 — (Phase 5)
 
 ## [0.3.0] - 2026-05-19 — Phase 3 완료
 

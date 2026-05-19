@@ -1,4 +1,4 @@
-﻿# 회귀 매트릭스 — Phase 4 (v2, 누적 모드)
+# 회귀 매트릭스 — Phase 4 (v2, 누적 모드)
 
 > v1 → v2 갱신: QA Lead (DECISION-PERSONA-002 활성화, 2026-05-19)
 > v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 = **총 55 시나리오**
@@ -90,42 +90,43 @@
 
 ### [TU] 튜토리얼 시나리오 (DECISION-PL-P4-001~008 연동, docs/12_tutorial_design.md)
 
-> TU-01~TU-10: Dev Lead(Issue #26) 라운드 src/scenes/tutorial_scene.py 구현 결과에 의존.
-> 본 라운드 작성 시점(Dev Lead 병렬 진행 중)에는 ✗. Dev Lead 머지 완료 후 QA Lead가 ✓ 전환.
+> TU-01~TU-10: Dev Lead(Issue #26 / PR #36) 머지 완료. `src/scenes/tutorial_scene.py` + `src/core/save_slot.py` + `tests/test_tutorial_scene.py` (23건 자동 테스트) 활성.
+> 본 SCM 라운드(Phase 4 R1, DECISION-SCM-P4-002) 에서 자동 가드 가능 항목 ✓ 전환. headless 불가 항목(TU-04/06/07/08) 은 ✗ 유지하고 scenario_catalog.md 수동 검수 의존.
 
 | # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
 |---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
-| TU-01 | 저장 슬롯 비어 있을 때 새 게임 → 튜토리얼 자동 진입 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✗ | — | ✗ |
-| TU-02 | 메인 메뉴 튜토리얼 버튼 → 단계 1부터 재진입 (DECISION-PL-P4-005) | ✗ | — | — | — | — | — | — | — | ✗ |
-| TU-03 | 튜토리얼 8단계 순차 완주 → tutorial_completed=True 저장 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✗ | — | ✗ |
+| TU-01 | 저장 슬롯 비어 있을 때 새 게임 → 튜토리얼 자동 진입 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✓ | — | ✓ |
+| TU-02 | 메인 메뉴 튜토리얼 버튼 → 단계 1부터 재진입 (DECISION-PL-P4-005) | ✓ | — | — | — | — | — | — | — | ✓ |
+| TU-03 | 튜토리얼 8단계 순차 완주 → tutorial_completed=True 저장 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✓ | — | ✓ |
 | TU-04 | 스킵 버튼/ESC → 확인 다이얼로그 1회 표시 (DECISION-PL-P4-004) | — | — | — | — | — | — | — | — | ✗ |
-| TU-05 | 다시 보지 않기 체크 후 예 → tutorial_dismissed=True + stage_select 이동 (DECISION-PL-P4-004) | — | — | — | — | — | — | ✗ | — | ✗ |
+| TU-05 | 다시 보지 않기 체크 후 예 → tutorial_dismissed=True + stage_select 이동 (DECISION-PL-P4-004) | — | — | — | — | — | — | ✓ | — | ✓ |
 | TU-06 | ESC 키 → 스킵 다이얼로그 호출 (단계 1~8 모든 단계 공통) | — | — | — | — | — | — | — | — | ✗ |
 | TU-07 | 단계 4 mock wave (tang_soldier x2, interval 1.5s) 정상 진행·종료 (DECISION-PL-P4-007) | — | — | ✗ | — | — | — | — | — | ✗ |
 | TU-08 | 단계 8 시작하기 클릭 → stage_select 화면 이동 (DECISION-PL-P4-002) | — | ✗ | — | — | — | — | ✗ | — | ✗ |
-| TU-09 | tutorial_dismissed=True 상태에서 재실행 → 자동 진입 없음 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✗ | — | ✗ |
-| TU-10 | tutorial_completed=False + tutorial_dismissed=False → 이어하기 시 자동 진입 없음, 메뉴 버튼만 가능 (DECISION-PL-P4-002) | ✗ | — | — | — | — | — | ✗ | — | ✗ |
+| TU-09 | tutorial_dismissed=True 상태에서 재실행 → 자동 진입 없음 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✓ | — | ✓ |
+| TU-10 | tutorial_completed=False + tutorial_dismissed=False → 이어하기 시 자동 진입 없음, 메뉴 버튼만 가능 (DECISION-PL-P4-002) | ✓ | — | — | — | — | — | ✓ | — | ✓ |
 
-> 갱신 안내: Dev Lead 라운드 머지 후 TU-01~TU-10 ✗ → ✓ 전환 담당은 QA Lead.
+> 갱신 안내: TU-04/06/07/08 은 tkinter 창·이벤트 루프 의존으로 headless 자동화 불가 — scenario_catalog.md CAT-05~07 수동 검수 의존. DECISION-SCM-P4-003 (본 라운드).
 
 ---
 
 ### [BL] 난이도 밸런스 시나리오 (DECISION-PL-P4-009~016 연동, docs/13_difficulty_balance.md)
 
-> BL-01~BL-03, BL-06~BL-07: Dev Team1(Issue #27) 데이터 패치 결과 검증. 본 라운드 시점 ✗.
-> BL-04~BL-05: stage_04~05 무변경 가드 — 현재 데이터 기준 ✓ 자동화 포함 (test_regression_p4.py).
+> BL-01~BL-06: Dev Team1(Issue #27 / PR #34) 머지 완료. `tests/test_stage_balance.py` (22건 자동 테스트) 활성.
+> BL-04~BL-05: stage_04~05 무변경 가드 — 현재 데이터 기준 ✓ 자동화 (test_regression_p4.py + test_stage_balance.py).
+> BL-07: 클리어율 시뮬레이션은 mock BattleScene 자동 모드 구현 필요 — 후속 라운드 대상.
 
 | # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
 |---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
-| BL-01 | stage_01 reward.grain = 100 (DECISION-PL-P4-011/015, 현재 50 → 패치 후 100) | — | — | — | — | — | — | ✗ | — | — |
-| BL-02 | stage_02 wave 수 = 4, W1 count = 3, W1 interval_s = 1.0, reward.grain = 150 (DECISION-PL-P4-010/009/015) | — | — | ✗ | — | — | — | — | — | — |
-| BL-03 | stage_03 wave 수 = 4, W1 단일 path=p_gorge, reward.grain = 220, night_vision_radius_multiplier 필드 존재 (DECISION-PL-P4-010/014/015) | — | — | ✗ | — | — | — | — | — | — |
+| BL-01 | stage_01 reward.grain = 100 (DECISION-PL-P4-011/015, 현재 50 → 패치 후 100) | — | — | — | — | — | — | ✓ | — | — |
+| BL-02 | stage_02 wave 수 = 4, W1 count = 3, W1 interval_s = 1.0, reward.grain = 150 (DECISION-PL-P4-010/009/015) | — | — | ✓ | — | — | — | — | — | — |
+| BL-03 | stage_03 wave 수 = 4, W1 단일 path=p_gorge, reward.grain = 220, night_vision_radius_multiplier 필드 존재 (DECISION-PL-P4-010/014/015) | — | — | ✓ | — | — | — | — | — | — |
 | BL-04 | stage_04 wave 수 무변경 (현재 7), reward.grain 무변경 (현재 200) — 영향 0 가드 (DECISION-PL-P4-013) | — | — | ✓ | — | — | — | — | — | — |
 | BL-05 | stage_05 wave 수 무변경 (현재 10), reward.grain 무변경 (현재 300) — 영향 0 가드 (DECISION-PL-P4-013) | — | — | ✓ | — | — | — | — | — | — |
-| BL-06 | stage_03 schema 검증 통과 — night_vision_radius_multiplier 옵션 필드 허용, 범위 0.5~2.0 (DECISION-PL-P4-014) | — | — | ✗ | — | — | — | — | — | — |
+| BL-06 | stage_03 schema 검증 통과 — night_vision_radius_multiplier 옵션 필드 허용, 범위 0.5~2.0 (DECISION-PL-P4-014) | — | — | ✓ | — | — | — | — | — | — |
 | BL-07 | 자동 모드 mock 시뮬레이션 5회 → stage_01~03 클리어율 95%+ (DECISION-PL-P4-012) | — | — | ✗ | — | — | — | — | — | — |
 
-> BL-01~BL-03, BL-06: Dev Team1 머지 후 ✓ 전환 예정. BL-07: Dev Team1 전투 로직 구현 필요.
+> BL-01~BL-06: Phase 4 R1 SCM 라운드(DECISION-SCM-P4-002) 에서 ✓ 전환. BL-07: 후속 라운드(Dev Lead BattleScene auto-mode 구현 필요).
 
 ---
 
@@ -163,9 +164,9 @@ v1 항목(DECISION-TL-P3-5-003) 유지 + Phase 4 신규 후보 추가.
 | Ending | 부분 커버 (test_regression_p3_5.py) | |
 | Font | 커버됨 (test_fonts_runtime.py) | |
 | DPI/Scaler | 커버됨 (test_scaler.py) | |
-| Persistence | 미커버 | player_data 저장·로드 로직 미구현 상태 |
+| Persistence | 신규 부분 커버 (test_tutorial_scene.py + test_regression_p4.py) | save_slot.tutorial_dismissed/completed 필드 가드 ✓ — player_data 본격 저장·로드는 Phase 4 후속 |
 | Audio | 신규 부분 커버 (test_regression_p4.py) | AU-01~AU-06 ✓, AU-07~AU-08 백엔드 구현 후 전환 |
-| Tutorial | 미커버 | Dev Lead #26 머지 후 ✓ 전환 예정 |
+| Tutorial | 신규 커버 (test_tutorial_scene.py 23건) | TU-01/02/03/05/09/10 ✓ (자동). TU-04/06/07/08 headless 불가 — 수동 검수. |
 
 **CI 추가 step 검토 의견 (DECISION-QA-P4-005)**:
 현재 `pytest -q` 명령이 `tests/` 전체를 커버하므로 별도 step 추가 불필요.
@@ -207,3 +208,4 @@ BL-07 클리어율 시뮬레이션은 느릴 수 있으므로 `slow` 마커 분�
 |------|------|--------|------|
 | v1 (Phase 3.5) | 2026-05-19 | Test Lead | 30 시나리오 (MN/SS/BT/HM/FD/EN), 8 모듈 열 |
 | v2 (Phase 4) | 2026-05-19 | QA Lead (DECISION-PERSONA-002) | Phase 4 신규 25건 추가 (AU-01~08, TU-01~10, BL-01~07). Tutorial 모듈 열 추가 (총 9 모듈). 거부권 가이드 신설. DECISION-QA-P4-001~006. |
+| v2.1 (Phase 4 R1) | 2026-05-19 | SCM (DECISION-SCM-P4-002) | PR #34/#36 머지 후 자동 가드 가능 시나리오 ✗→✓ 전환. TU-01/02/03/05/09/10 ✓ (자동 가드, test_tutorial_scene.py + test_regression_p4.py 활용). TU-04/06/07/08 은 headless 자동화 불가로 ✗ 유지(수동 검수 의존). BL-01/02/03/06 ✓ (test_stage_balance.py 자동 가드). BL-07 은 후속 라운드. |
