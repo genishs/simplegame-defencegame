@@ -624,65 +624,85 @@ Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해
 
 ---
 
-## 20. 튜토리얼 (Phase 4 · Issue #26) — **키 예약**
+## 20. 튜토리얼 (Phase 4 · Issue #26)
 
-> Phase 4 기획 리더 라운드 (2026-05-20) 에서 본 섹션에 36개 신규 키를 **예약 등록** 한다.
-> 한국어 표시 텍스트는 **Design Lead 다음 라운드에서 확정** (현재는 키만 SSOT 등재 — `docs/12_tutorial_design.md` DECISION-PL-P4-006).
+> Phase 4 기획 리더 라운드 (2026-05-20) 에서 본 섹션에 35개 신규 키를 **예약 등록** 했고,
+> Phase 4 디자인 리더 라운드 (2026-05-19, 본 라운드) 에서 **한국어 표시 텍스트를 확정** 했다.
 > 컨벤션은 §0.1 (`<scene>.<component>.<role>`) 을 따른다. scene=`tutorial`, 메뉴 진입 버튼만 `menu.tutorial.button` (메뉴 화면이라 menu scene).
+
+### 20.0 디자인 리더 결정 (DECISION-DESIGN-P4-001 ~ 005)
+
+| ID | 의사결정 | 근거 |
+| --- | --- | --- |
+| **DECISION-DESIGN-P4-001** | 튜토리얼 가이드 화자 = **양만춘 본인 (1인칭/2인칭 `~하시오/~하오`)**, 도입부(인트로)에만 **부장 모용손 [픽션]** 이 카운터파트로 짧게 등장. 향이는 7세 아이라 가이드 화자로 부적합 (`docs/story/00_story_bible.md` §2.7). 기존 `help.tut*` 풍선 도움말 (§17.2) 이 이미 양만춘 톤으로 통일되어 있어 본 튜토리얼도 동일 톤 유지 — 신규 플레이어가 두 시스템 (튜토리얼 + hint) 사이에서 톤 충돌을 느끼지 않도록. | `docs/story/00_story_bible.md` §1.2 (양만춘 말투), §2.5 (모용손 부장), `docs/story/01_intro.md` 슬라이드 4 (모용손↔양만춘 대화) |
+| **DECISION-DESIGN-P4-002** | 메뉴 진입 버튼 한국어 = **"전투 입문"**. 단순 "튜토리얼"은 외래어, "도움말"은 §1.2 메인 메뉴 / §12 도움말 섹션과 중복 — `[전투 입문]` 이 게임 분위기 (안시성 무장) 와 정합하면서 4글자 (DECISION-U01 버튼 4글자 가이드) 준수. | 본 결정 |
+| **DECISION-DESIGN-P4-003** | 한자 글리프 사용 정책 = **최소화**. 양만춘은 §3.4 `hero.name_label` 에서 이미 라벨 표시되므로 튜토리얼 본문에서는 한자 미병기 (`~한다` / `~하시오` 위주). 단, 첫 등장 지명/무기 (단계 3 명적, 단계 8 종료의 요동성) 에만 한 번 한자 병기 — `00_story_bible.md` §3.2 첫 등장 규칙 정합. | `00_story_bible.md` §1.2 ("한자 표기: 본문은 한글만. 첫 등장 인물·지명·무기에 한해…") |
+| **DECISION-DESIGN-P4-004** | 존댓말 정책 = **양만춘의 `~하시오/~하오` 통일**. 부드러우면서 영웅적 위엄 유지. `alert.*` (§8.1) / `result.lose.*` (§7.2) / `help.tut*` (§17.2) 와 동일 톤이라 한 게임 안에서 화자 톤이 한 사람으로 모인다. 다이얼로그 yes/no 도 `dialog.yes/no` ("예 / 아니오") 가 아닌 튜토리얼 전용 `tutorial.skip.confirm.yes/no` 는 "예, 그만두겠소" / "아니오, 계속" 같이 양만춘 1인칭 어조. | DECISION-U01 (자연 한국어), §17.2 풍선 도움말 |
+| **DECISION-DESIGN-P4-005** | 단계별 본문 분량 = **1~2문장 (60자 이내)** 권고. 인트로 본문과 단계 1·단계 8만 2~3문장 허용. CTA 버튼은 모두 12자 이내. | UX 인지 부하 + §0 페어 토의 (4글자 버튼 / 두 문장 툴팁) 가이드 |
+
+상위 의사결정 추적:
+- DECISION-PL-P4-001 ~ 008 (`docs/12_tutorial_design.md`) — 튜토리얼 8단계 UX, 신규 키 35건 예약
+- DECISION-D-P3-001 ~ 001c (본 문서 §0) — SSOT 컨벤션
+- DECISION-S01/S02 (`docs/story/00_story_bible.md`) — 양만춘 톤, 픽션 라벨 규칙
 
 ### 20.1 메뉴 진입 + 종료 다이얼로그 (8 keys)
 
 | KEY | 표시 텍스트 |
 |---|---|
-| `menu.tutorial.button` | (Design 확정) |
-| `tutorial.skip.button` | (Design 확정) |
-| `tutorial.skip.confirm.title` | (Design 확정) |
-| `tutorial.skip.confirm.body` | (Design 확정) |
-| `tutorial.skip.confirm.yes` | (Design 확정) |
-| `tutorial.skip.confirm.no` | (Design 확정) |
-| `tutorial.skip.dont_show_again` | (Design 확정) |
-| `tutorial.complete.cta` | (Design 확정) |
+| `menu.tutorial.button` | 전투 입문 |
+| `tutorial.skip.button` | 입문 종료 |
+| `tutorial.skip.confirm.title` | 입문을 그만두시겠소? |
+| `tutorial.skip.confirm.body` | 지금 그만두어도 메뉴의 [전투 입문]에서 다시 익힐 수 있소. |
+| `tutorial.skip.confirm.yes` | 예, 그만두겠소 |
+| `tutorial.skip.confirm.no` | 아니오, 계속 |
+| `tutorial.skip.dont_show_again` | 새 게임을 시작할 때 다시 묻지 마시오 |
+| `tutorial.complete.cta` | 요동성으로 |
+
+> `tutorial.complete.cta` ("요동성으로") 는 §20.1 (메뉴-종료 흐름) 과 §20.2 (단계 8 종료) 양쪽에서 공유한다 — Stage 1 = "요동성의 첫눈" (§2.1 `stage.01.name`) 으로 자연 연결. 단순 "Stage 1로 가기" 보다 게임 내 지명을 살려 몰입감을 강화.
 
 ### 20.2 인트로 + 단계별 본문 (26 keys)
 
+> 화자 표기: `[양]` = 양만춘 (안시성주, [전승]), `[모]` = 부장 모용손 ([픽션]). 표시 없으면 해설 자막 (게임 시스템 화자) 으로 처리. 실제 UI 렌더 시 발신자 라벨은 본문과 별도 컴포넌트로 표시 — 본 표의 `[양]`/`[모]` 접두는 SSOT 표시 텍스트의 일부.
+
 | KEY | 표시 텍스트 |
 |---|---|
-| `tutorial.intro.title` | (Design 확정) |
-| `tutorial.intro.body` | (Design 확정) |
-| `tutorial.step1.title` | (Design 확정) |
-| `tutorial.step1.body` | (Design 확정) |
-| `tutorial.step1.cta` | (Design 확정) |
-| `tutorial.step2.title` | (Design 확정) |
-| `tutorial.step2.body` | (Design 확정) |
-| `tutorial.step2.cta` | (Design 확정) |
-| `tutorial.step3.title` | (Design 확정) |
-| `tutorial.step3.body` | (Design 확정) |
-| `tutorial.step3.cta` | (Design 확정) |
-| `tutorial.step4.title` | (Design 확정) |
-| `tutorial.step4.body` | (Design 확정) |
-| `tutorial.step4.cta` | (Design 확정) |
-| `tutorial.step5.title` | (Design 확정) |
-| `tutorial.step5.body` | (Design 확정) |
-| `tutorial.step5.cta` | (Design 확정) |
-| `tutorial.step6.title` | (Design 확정) |
-| `tutorial.step6.body` | (Design 확정) |
-| `tutorial.step6.cta` | (Design 확정) |
-| `tutorial.step7.title` | (Design 확정) |
-| `tutorial.step7.body` | (Design 확정) |
-| `tutorial.step7.cta` | (Design 확정) |
-| `tutorial.step8.title` | (Design 확정) |
-| `tutorial.step8.body` | (Design 확정) |
-| `tutorial.complete.cta` 는 §20.1 참조 (단계 8 CTA와 동일 키 공유) |  |
+| `tutorial.intro.title` | 안시성주의 전투 입문 |
+| `tutorial.intro.body` | [모] "성주님, 새로 온 병사가 있습니다. 한 번 일러 주시지요."\n[양] "잘 왔소. 짧게 끝내겠으니, 여덟 마디만 듣고 가시오." |
+| `tutorial.step1.title` | 1. 88일의 약속 |
+| `tutorial.step1.body` | [양] "645년 봄, 당의 깃발이 요동으로 향했소. 성은 흙으로 쌓는 것이 아니라 사람으로 쌓는 것이오. 그 사람을 그대가 지키시오." |
+| `tutorial.step1.cta` | 다음 |
+| `tutorial.step2.title` | 2. 곡식을 보시오 |
+| `tutorial.step2.body` | [양] "위를 보시오. 곡식이 있소. 이걸로 병사를 모집하오. 시간이 지나면 알아서 늘어나오." |
+| `tutorial.step2.cta` | 위 곡식을 눌러 보시오 |
+| `tutorial.step3.title` | 3. 궁수를 세우시오 |
+| `tutorial.step3.body` | [양] "왼쪽에서 궁수 한 사람을 고르고, 성벽 위 빈 칸에 두시오. 명적(鳴鏑)은 소리를 내며 날아가니 적이 먼저 흔들릴 것이오." |
+| `tutorial.step3.cta` | 궁수를 빈 칸에 두시오 |
+| `tutorial.step4.title` | 4. 첫 진군이오 |
+| `tutorial.step4.body` | [양] "당군이 다가오오. 이 짧은 진군은 그대의 궁수와 내가 막을 것이니, 가만히 보시오. 한 번 보아 두면 다음이 쉽소." |
+| `tutorial.step4.cta` | 다음 |
+| `tutorial.step5.title` | 5. 내가 곁에 있소 |
+| `tutorial.step5.body` | [양] "나는 평시에 자동으로 적을 친다오. M 키를 누르면 그대가 나를 직접 움직일 수도 있소. 한 번 눌러 보시오 — 다시 누르면 풀린다오." |
+| `tutorial.step5.cta` | M 키를 한 번 누르시오 |
+| `tutorial.step6.title` | 6. 잠시 멈추시오 |
+| `tutorial.step6.body` | [양] "급할 때는 스페이스 키로 멈추시오. 한 번 더 누르면 다시 흐른다오. 호흡을 고르고 다음 진군을 가늠하시오." |
+| `tutorial.step6.cta` | 스페이스를 두 번 누르시오 |
+| `tutorial.step7.title` | 7. 한 진군을 막으면 |
+| `tutorial.step7.body` | [양] "진군을 막을 때마다 곡식과 화살이 들어오오. 별을 얻으면 명성이 쌓이고, 명성은 병영에서 영구한 강화로 바뀐다오." |
+| `tutorial.step7.cta` | 다음 |
+| `tutorial.step8.title` | 8. 이제 시작이오 |
+| `tutorial.step8.body` | [양] "준비는 끝났소. 첫 길목인 요동성(遼東城)에서 첫눈을 보게 될 것이오. 잊지 마시오 — 버티면, 이긴다오." |
+| `tutorial.complete.cta` 는 §20.1 참조 (단계 8 CTA와 동일 키 공유 — "요동성으로") |  |
 
-> `tutorial.complete.cta` 는 §20.1 의 키와 동일 식별자. 단계 8 종료 화면과 메뉴-종료 흐름이 같은 "Stage 1로 가기" 라벨을 공유 — 한 번만 정의.
+> `tutorial.complete.cta` 는 §20.1 의 키와 동일 식별자 ("요동성으로"). 단계 8 종료 화면과 메뉴-종료 흐름이 같은 라벨을 공유 — 한 번만 정의.
+> 본문의 `\n` 은 런타임에서 줄바꿈으로 치환된다 (인트로/단계 5 의 두 줄 대사). `str.format()` 이전 단계에서 처리.
 
 ### 20.3 HUD 강조 화살표 라벨 (3 keys)
 
 | KEY | 표시 텍스트 |
 |---|---|
-| `tutorial.hud_arrow.resource` | (Design 확정) |
-| `tutorial.hud_arrow.buildzone` | (Design 확정) |
-| `tutorial.hud_arrow.hero` | (Design 확정) |
+| `tutorial.hud_arrow.resource` | 곡식 |
+| `tutorial.hud_arrow.buildzone` | 여기에 두시오 |
+| `tutorial.hud_arrow.hero` | 양만춘 |
 
 ### 20.4 키 합계
 
@@ -702,5 +722,6 @@ Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해
 | v1.0 | 2026-05-17 | 기획 리더 + 팀원 | 최초 작성. §1~§15. |
 | v1.1 | 2026-05-19 | 디자인 리더 (Phase 3.4) | **SSOT 격상** (DECISION-D-P3-001). 키 네이밍 컨벤션 명문화 (§0.1). SSOT 운영 규칙 (§0.2). 신규 키 9건 추가: `dialog.next`, `dialog.skip`, `intro.skip_confirm`, `cavalry.sortie`, `help.tut1.welcome` ~ `help.tut6.pause`. `docs/qa/phase2_review.md` 후속 권고 4번 (DECISION-Q-003) 종결. |
 | v1.2 | 2026-05-20 | 기획 리더 (Phase 4) | **§20 튜토리얼 키 예약 추가** (Issue #26, `docs/12_tutorial_design.md` DECISION-PL-P4-006). 신규 키 35건 예약 (한국어 표시 텍스트는 Design Lead 다음 라운드에서 확정). |
+| v1.3 | 2026-05-19 | 디자인 리더 (Phase 4) | **§20 튜토리얼 35건 한국어 텍스트 확정** (Issue #26 후속). 가이드 화자 = 양만춘 + 도입부 모용손 (DECISION-DESIGN-P4-001). 메뉴 진입 버튼 = "전투 입문" (DECISION-DESIGN-P4-002). 한자 글리프 = 명적(鳴鏑) + 요동성(遼東城) 2건만 (DECISION-DESIGN-P4-003). 존댓말 = 양만춘 `~하시오/~하오` 통일 (DECISION-DESIGN-P4-004). 본문 1~2문장 60자 이내 (DECISION-DESIGN-P4-005). |
 
-— UI 스트링 v1.2 (SSOT) 끝 —
+— UI 스트링 v1.3 (SSOT) 끝 —
