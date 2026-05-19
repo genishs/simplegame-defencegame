@@ -4,6 +4,36 @@
 
 ## [Unreleased]
 
+> Phase 3 라운드 누적 변경. main 머지 및 `v0.3.0` 태깅은 Phase 3.5 종료 시 수행.
+
+### Phase 3.3 프로토타입 통합 (2026-05-19)
+
+#### Added
+- `src/scenes/battle_scene.py`: `_spawn_enemy()` stage waypoint 첫 좌표 결선 — `path[0]` 사용 + 빈 path 가드 + 적 인스턴스에 전체 waypoints 주입 (Issue #1 / DECISION-Q-010)
+- M키 영웅 수동 조작 모드 (toggle: M, WASD/방향키 이동, 자동 사거리 추격 일시 정지) (Issue #4 / DECISION-Q-009)
+- `tests/test_battle_spawn.py` (신규, 7건): spawn 좌표·waypoint 주입 회귀 방지
+- `tests/test_hero_manual_mode.py` (신규, 7건): toggle 멱등성, 이동 dt, 모드 라벨, 자동 사거리 중단 검증
+- `docs/story/08_ui_strings.md` v1.2: M키 모드 UI 문자열 4건 (battle.hero_mode.{auto,manual,toggle,prompt})
+
+#### Fixed
+- **Phase 2 잠재 결함 동반 수정**: `Enemy` 생성자 시그니처 불일치(BattleScene이 보내던 인자 vs 실제 정의), `waypoints` 미설정으로 `pathing.update` 첫 프레임 실패 — 두 결함은 Phase 2 기본 path 한 종(stage_01) 환경에서는 노출되지 않다가 Phase 3.2 신규 stage 도입과 함께 재현됨
+
+#### Closed Issues
+- #1 BattleScene `_spawn_enemy` stage waypoint 첫 좌표 참조 (DECISION-Q-010)
+- #4 영웅 M키 직접 조작 모드 상세 명세 (DECISION-Q-009)
+
+### Phase 3.2 스테이지 데이터 (2026-05-19)
+
+#### Added
+- `src/data/stages/stage_02.json` 요동성 외곽 — 보병/궁수 혼합 6 wave (Issue #11)
+- `src/data/stages/stage_03.json` 백암성 — 기병 돌격 도입 7 wave
+- `src/data/stages/stage_04.json` 개모성 — 공성병기(투석거·충차) 도입 8 wave
+- `src/data/stages/stage_05.json` 안시성 외곽 — 보스 wave + 다중 lane 9 wave (토산 스테이지는 6.x 결전용으로 잠정 분리)
+- `tests/test_stages_02_05.py` (신규, 40건): 각 스테이지별 schema validity / wave 합산 / reward.grain / unlock chain / 적 type 사전조건
+
+#### Closed Issues
+- #11 stages 02~05 JSON 작성 (DECISION-DL-P3-001 스키마 가드)
+
 ### Phase 3.4 폰트 번들링 (2026-05-19)
 
 #### Added
@@ -59,19 +89,26 @@
 - prerelease 태그 regex 단위 테스트 23건
 - `release-windows.yml`: SemVer pre-release suffix 기반 prerelease 자동 감지
 
-### Closed Issues
+### Closed Issues (누적)
+- #1 BattleScene `_spawn_enemy` stage waypoint 첫 좌표 참조
 - #2 reward.grain 데이터 패치
+- #4 영웅 M키 직접 조작 모드 상세 명세
 - #5 UI strings SSOT v1.1
 - #6 캐릭터 플레이스홀더 5종
+- #7 Noto Sans KR(OFL) PyInstaller 번들링
 - #8 src/systems tkinter import 금지 CI 가드
 - #9 prerelease 감지 정책
 - #10 stage JSON schema validator
+- #11 stages 02~05 JSON 작성
 
 ### Decisions (Phase 3)
 - DECISION-T1-P3-001 (TYPE_CHECKING import 예외), DECISION-DL-P3-001 (stdlib-only validator), DECISION-D-P3-001 / 001a / 001b / 001c (UI strings SSOT + 컨벤션 + 신규 키 + 표 형식), DECISION-SCM-P3-001 (회수 4파일 한정 픽션 라벨 일괄 치환), DECISION-SCM-P3-002 (변경분 외 일괄 치환 보류)
+- DECISION-Q-009 (M키 수동 모드 상세 명세 — toggle 멱등, 자동 모드 사거리 추격 일시 정지), DECISION-Q-010 (waypoint 첫 좌표 결선 + waypoints 주입)
+- DECISION-SCM-P3-003 (Phase 3.2 → 3.3 → 3.4 순차 squash 머지, 데이터 우선 → 코드 결선 → 자산 독립 순), DECISION-SCM-P3-004 (Phase 3.5 종료 시까지 main/`v0.3.0` 태깅 금지)
 
 ### Notes
-- 본 라운드는 Phase 3.1 통합 하드닝 종결 + Phase 3.4 디자인 일부. Phase 3.2(stages 02~05 데이터, #11) / 3.3(프로토타입 통합) / 3.5(사용자 검수) 다음 라운드 예정
+- Phase 3.1 / 3.2 / 3.3 / 3.4 통합 완료. 잔여는 Phase 3.5 수직 슬라이스 데모(Stage 1 전 구간 playable + 사용자 검수) + `v0.3.0-rc.1` (Issue #12)
+- pytest 합계 **295 passed** (Phase 2 종료 시 139 → +156)
 - main 브랜치 머지 및 `v0.3.0` 태깅은 Phase 3 전체 종료 시 수행
 
 ## [0.2.0] - 2026-05-19 — Phase 2 완료
