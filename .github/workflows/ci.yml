@@ -71,6 +71,29 @@ jobs:
             echo "No Python files; skipping black."
           fi
 
+      # CI 가드: src/systems/ 및 src/entities/ 에 런타임 tkinter import 금지
+      # DECISION-4.1 — 도메인 계층 순수성 보장 (closes #8)
+      # TYPE_CHECKING 가드 내 import 는 허용 (타입힌트 전용, 런타임 비실행)
+      # 1차 방어선: grep (빠른 패턴 매칭 — TYPE_CHECKING 블록 제외)
+      - name: Domain layer tk-free guard (grep)
+        shell: bash
+        run: |
+          # grep 으로 tkinter import 포함 라인을 추출 후, TYPE_CHECKING 블록 내 라인 제외
+          # 단순화: TYPE_CHECKING 라인 바로 다음 줄의 들여쓴 import 는 허용 패턴으로 처리
+          # 정확한 판단은 2차 방어선(AST 스캔)에서 수행
+          if grep -rn -E "^\s*(import|from)\s+tkinter" src/systems 2>/dev/null; then
+            echo "ERROR: tkinter import detected in src/systems/ (domain layer)."
+            echo "Domain must remain tk-independent. (DECISION-4.1, #8)"
+            exit 1
+          fi
+          echo "OK: No tkinter imports found in src/systems/."
+
+      # 2차 방어선: AST 기반 스크립트 (정확도 높음, 주석/문자열 오탐 없음)
+      - name: Domain layer tk-free guard (AST)
+        shell: bash
+        run: |
+          python scripts/check_systems_no_tk.py --verbose
+
       - name: Tests (pytest)
         shell: bash
         run: |
