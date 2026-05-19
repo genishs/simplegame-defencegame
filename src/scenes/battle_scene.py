@@ -7,6 +7,9 @@ DESIGN:
 - 승리 조건: WaveSystem.all_clear AND len(enemies alive)==0.
 - Esc/Space → PauseDialog show.
 - M키 = 영웅 직접 조작 모드 토글 (OPEN-D-201).
+- spawn_enemy: stage.paths 의 waypoint 시퀀스를 world['waypoints']에
+  ``dict[path_id, list[Point]]`` 로 주입하고, EnemyDef 를 들고 Enemy 인스턴스를
+  생성 (Issue #1, DECISION-DL-P3-3-004/005/006).
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from src.core.logger import get_logger
-from src.data.loader import StageDef, load_stage
+from src.data.loader import EnemyDef, StageDef, load_enemies, load_stage
 from src.scenes.base_scene import BaseScene
 from src.systems.combat import CombatSystem
 from src.systems.economy import EconomySystem
@@ -40,6 +43,10 @@ class BattleScene(BaseScene):
         self._log = get_logger(__name__)
         self.stage_id = stage_id
         self.stage: StageDef | None = None
+        # path_id → list[(x, y)] 매핑. PathingSystem 이 직접 조회.
+        self._waypoints_by_path: dict[str, list[tuple[float, float]]] = {}
+        # enemy_type id → EnemyDef. spawn 시 lookup.
+        self._enemy_defs: dict[str, EnemyDef] = {}
 
         # ----- World 컨테이너 -------------------------------------------------
         self.world: dict[str, Any] = {
@@ -57,6 +64,8 @@ class BattleScene(BaseScene):
             "goals_reached": 0,  # enemy가 목표 도달한 누적 횟수
             "events": app.events,
             "spawn_enemy": self._spawn_enemy,
+            # PathingSystem 이 사용. dict[path_id → waypoints] 형태.
+            "waypoints": self._waypoints_by_path,
         }
 
         # 시스템
@@ -94,12 +103,21 @@ class BattleScene(BaseScene):
             self._log.warning("stage file missing: %s", self.stage_id)
             self.stage = None
 
+        # 적 정의 데이터 로드 (Issue #1, DECISION-DL-P3-3-006).
+        # 누락된 enemies.json 은 치명적이지 않으므로 경고만 남기고 빈 맵 유지.
+        try:
+            self._enemy_defs = load_enemies()
+        except (FileNotFoundError, OSError) as exc:
+            self._log.warning("enemies.json load failed: %s", exc)
+            self._enemy_defs = {}
+
         # 배경
         canvas.create_rectangle(0, 0, w, h, fill="#0c1410", outline="", tags=(self._tag, "bg"))
 
         # 경로 / 빌드존
         if self.stage is not None:
             self._draw_paths()
+            self._populate_waypoints()
             self._draw_build_zones()
             self.world["gold"] = self.stage.starting_gold
             self.world["food"] = self.stage.starting_gold
@@ -203,16 +221,59 @@ class BattleScene(BaseScene):
                 x1, y1, x2, y2, outline="#5fa860", width=2, tags=(self._tag, "build_zone")
             )
 
+    def _populate_waypoints(self) -> None:
+        """Stage.paths 의 waypoint 시퀀스를 world['waypoints'] 에 주입한다.
+
+        PathingSystem 은 ``world['waypoints']`` 가 dict 면 ``path_id`` 로,
+        list 면 단일 경로로 해석한다. 본 씬은 다중 경로 지원을 위해 dict 사용.
+        (Issue #1, DECISION-DL-P3-3-004)
+        """
+        if self.stage is None:
+            return
+        # 기존 객체를 mutate 해야 world 와 systems 가 공유하는 참조가 끊기지 않음.
+        self._waypoints_by_path.clear()
+        for path in self.stage.paths:
+            self._waypoints_by_path[path.id] = [(float(x), float(y)) for x, y in path.waypoints]
+
     def _spawn_enemy(self, enemy_type: str, path_id: str) -> None:
-        """WaveSystem의 spawn_callback — 적을 world['enemies']에 추가."""
+        """WaveSystem의 spawn_callback — 적을 world['enemies']에 추가.
+
+        - ``enemy_type`` (예: ``tang_soldier``) 으로 EnemyDef 를 lookup.
+        - ``path_id`` 에 해당하는 waypoints 의 첫 좌표에서 스폰.
+        - ``Enemy`` 생성자에 EnemyDef + path_id 를 전달해 PathingSystem 과 결선.
+        (Issue #1, DECISION-DL-P3-3-005/006)
+        """
         try:
             from src.entities.enemy import Enemy
 
-            enemy = Enemy(x=0.0, y=540.0, hp=100)
-            enemy.enemy_type = enemy_type
-            enemy.path_id = path_id
+            enemy_def = self._enemy_defs.get(enemy_type)
+            if enemy_def is None:
+                self._log.warning(
+                    "spawn_enemy: unknown enemy_type=%s (stage=%s)",
+                    enemy_type,
+                    self.stage_id,
+                )
+                return
+
+            waypoints = self._waypoints_by_path.get(path_id)
+            if not waypoints:
+                self._log.warning(
+                    "spawn_enemy: unknown path_id=%s (stage=%s)",
+                    path_id,
+                    self.stage_id,
+                )
+                return
+
+            start_x, start_y = waypoints[0]
+            enemy = Enemy(x=start_x, y=start_y, enemy_def=enemy_def, path_id=path_id)
             self.world["enemies"].append(enemy)
-            self._log.debug("spawned %s on %s", enemy_type, path_id)
+            self._log.debug(
+                "spawned %s on %s at (%.1f, %.1f)",
+                enemy_type,
+                path_id,
+                start_x,
+                start_y,
+            )
         except Exception as exc:  # noqa: BLE001
             self._log.warning("spawn_enemy failed: %s", exc)
 
