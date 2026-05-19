@@ -6,9 +6,11 @@
 
 > 기준 베이스라인: develop@`0773a5f` (Phase 4 R3 종료), pytest **448 passed**, ruff/black 0 에러.
 
+> **버전 매핑(SCM 정정 2026-05-19)**: Phase 4 종료 = v0.4.0-rc.1 → v0.4.0(GA, 사용자 검수 대기). Phase 5 sub-phase는 develop 누적 진행, Phase 5 종료 = v1.0.0-rc.1 → v1.0.0. 중간 마이너(v0.5.0/v0.6.0) 도입 여부 OPEN-PL-P5-006.
+
 ---
 
-## Phase 5.1 — BGM 통합 (대상 버전: v0.4.0)
+## Phase 5.1 — BGM 통합 (대상: develop 누적, Phase 5 RC 합산)
 
 - [ ] OPEN-AUDIO-001 클로즈 — BGM 백엔드 선택 (pygame.mixer / pyminiaudio / playsound3 등) — 담당: Audio Engineer
 - [ ] DECISION-AUDIO-013 기록 — `docs/audio/00_audio_policy.md` §3.1 갱신
@@ -21,9 +23,9 @@
 - [ ] PyInstaller `--onefile` 빌드 사이즈 ≤ 40MB 측정
 - [ ] DoD 체크 — ruff/black/pytest 0 에러, BGM 백엔드 통합 동작
 - [ ] CHANGELOG `[Unreleased]` Phase 5.1 항목 추가
-- [ ] (선택) v0.4.0 태그 + GitHub Release prerelease=true
+- [ ] (OPEN-PL-P5-006 채택 시) 중간 마이너 태그 + GitHub Release prerelease=true — Steering 표결 후 결정
 
-## Phase 5.2 — 전체 스토리 통합 (대상 버전: v0.5.0)
+## Phase 5.2 — 전체 스토리 통합 (대상: develop 누적, Phase 5 RC 합산)
 
 - [ ] `src/scenes/intro_scene.py` 신규 또는 `menu_scene.py` 확장 — 인트로 컷씬 텍스트 + BGM 동기화 — 담당: Dev Team2 + Design Lead
 - [ ] 각 스테이지 진입 시 intro 대사 5종 (`docs/story/02~06` cold-open) overlay 출력
@@ -37,7 +39,7 @@
 - [ ] pytest 누적 480+ passed
 - [ ] DoD 체크 — ruff/black/pytest 0 에러, 5스테이지 intro/outro 통합 동작
 - [ ] CHANGELOG `[Unreleased]` Phase 5.2 항목 추가
-- [ ] (선택) v0.5.0 태그 + GitHub Release prerelease=true
+- [ ] (OPEN-PL-P5-006 채택 시) 중간 마이너 태그 + GitHub Release prerelease=true — Steering 표결 후 결정
 
 ## Phase 5.3 — 자산 실수급 / 최종 완성 (대상 버전: v1.0.0-rc.1 진입 준비)
 
@@ -83,3 +85,4 @@
 - [ ] OPEN-PL-P5-003 — macOS Apple notarization 인증서 정책 (Planning Lead + SCM, v1.0.0 이후)
 - [ ] OPEN-PL-P5-004 — BGM 백엔드 최종 선택 (Audio Engineer, Phase 5.1 진입 시)
 - [ ] OPEN-PL-P5-005 — 픽션 캐릭터 일러스트 옵션 A(정식) 도입 시점 (Design Lead, Phase 5.3 진행 중)
+- [ ] OPEN-PL-P5-006 — Phase 5 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부 (Steering, Phase 5.2 진입 시점) — SCM 정정 2026-05-19 신설

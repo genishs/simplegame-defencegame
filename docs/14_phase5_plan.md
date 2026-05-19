@@ -1,10 +1,12 @@
 # Phase 5 계획 — 전체 스토리 통합 / 최종 완성 / 패키징·릴리즈 (1.0.0)
 
 - 작성: Planning Lead 페르소나 (시니어 게임 PM/Producer, 20년 경력)
-- 작성일: 2026-05-19
+- 작성일: 2026-05-19 (SCM v0.4.0 정정 라운드 반영)
 - 베이스 커밋: `0773a5f` (`origin/develop` HEAD, Phase 4 R3 종료 직후)
 - 직전 GA 후보: `ca94633` (`origin/main`, v0.3.0-rc.1) — `v0.3.0` 정식 승격은 사용자 검수(CAT-01~07 + DPI 2건) 대기 중
-- 대상 산출 버전(자율 결정): **v0.4.0 → v0.5.0 → v1.0.0-rc.1 → v1.0.0** (DECISION-PL-P5-001 참조)
+- **Phase 4 종료 산출 버전(메모리 규칙 정합)**: `v0.4.0-rc.1` (본 SCM 라운드 발급, develop@phase4-r3-finalize 시점) → 사용자 검수 후 `v0.4.0` GA
+- **Phase 5 종료 산출 버전(메모리 규칙 정합)**: `v1.0.0-rc.1` → `v1.0.0` (DECISION-PL-P5-001 SCM 정정 후 — 메모리 규칙: `1.0.0 = Phase 5 완료`)
+- Phase 5 내부 sub-phase는 develop 누적 커밋으로 진행, 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (SCM 정정 시 신설, Steering 후속 결정)
 - 관련 문서:
   - 직전 Phase plan: `docs/10_phase3_plan.md` (구조 차용)
   - Phase 4 종료 보고서: `docs/qa/phase4_completion_report.md`
@@ -25,10 +27,13 @@
 
 사용자 메모리(`project_overview.md`) 정의:
 
+> **0.x.0 = Phase x 완료** (Phase 1 = v0.1.0, Phase 2 = v0.2.0, …, Phase 4 = v0.4.0).
 > **1.0.0 = Phase 5 완료(정식 릴리즈)**.
 > Phase 5 정의 = "전체 스토리 적용 + 최종 완성 + 패키징/릴리즈".
 
-본 plan은 이 정의를 그대로 수용하되, 사용자 부재 자율 진행 정책 하에서 **5.1 → 5.4** 네 라운드로 분할한 후 GA(v1.0.0) 직행이 아닌 **중간 마이너 릴리즈(v0.4.0, v0.5.0)**를 거치는 보수적 경로를 채택한다 (DECISION-PL-P5-001).
+본 plan은 이 정의를 엄격히 정합한다. **Phase 4 = v0.4.0** (자동 가드 완결 시점에 RC 발급, 사용자 검수 후 GA). **Phase 5 = v1.0.0** 직행(RC 거쳐 정식 GA). 초기 plan에는 v0.4.0/v0.5.0을 Phase 5 내부 sub-phase에 할당한 오류가 있었으나 **SCM 정정 라운드(2026-05-19)**에서 위 메모리 규칙에 부합하도록 정정한다 (DECISION-PL-P5-001 갱신, DECISION-SCM-P5K-001 신규 참조).
+
+Phase 5 sub-phase(5.1~5.4)는 develop 브랜치 누적 커밋으로 진행하고, 종료 시점에 한해 RC(`v1.0.0-rc.N`)와 GA(`v1.0.0`) 태그를 발행한다. 라운드별 중간 마이너 태그(v0.5.0/v0.6.0 등) 도입 여부는 OPEN-PL-P5-006로 Steering 후속 라운드에 위임한다.
 
 ### 1.2 Phase 4 ↔ Phase 5 경계
 
@@ -54,7 +59,7 @@ Phase 5를 4개 sub-phase로 분할한다. 각 라운드는 독립 PR 머지 가
 ### 2.1 Phase 5.1 — BGM 통합 (Audio Engineer 주도)
 
 - **목적**: Issue #30 (Audio asset inventory — BGM 자산 발주)을 정식 클로즈한다. Phase 4 후반의 simpleaudio SFX 패턴을 그대로 확장하되, BGM 백엔드는 **OGG Vorbis** 재생을 위해 별도 검토(DECISION-AUDIO-003).
-- **대상 버전**: `v0.4.0` (마이너 증가). Phase 5의 첫 산출이므로 PATCH가 아닌 MINOR.
+- **대상 버전**: develop 누적 커밋 (별도 마이너 태그 미발급, Phase 5 RC 진입 시 합산). 중간 마이너(v0.5.0) 발급 옵션은 OPEN-PL-P5-006 (Steering 후속).
 - **포함 작업**:
   - `src/core/sound.py` BGM 백엔드 추가 — OPEN-AUDIO-001 결정 마감(simpleaudio는 OGG 미지원 → pygame.mixer 또는 다른 경량 옵션을 Audio Engineer가 비교 결정).
   - `assets/audio/bgm/` 8 placeholder OGG (무음 또는 짧은 사인파, 게임플레이 영향 0) + 라이선스 노트.
@@ -77,7 +82,7 @@ Phase 5를 4개 sub-phase로 분할한다. 각 라운드는 독립 PR 머지 가
 ### 2.2 Phase 5.2 — 전체 스토리 통합 (Design Lead + Dev Team2 협업)
 
 - **목적**: `docs/story/01_intro.md` ~ `07_ending.md`의 산출물을 실 인게임 컷씬·텍스트 페이지로 통합한다. Phase 3.4·4의 ui_strings §20 (35건 한국어 확정) 위에 쌓는다.
-- **대상 버전**: `v0.5.0` (Phase 5.1 머지 후 다음 마이너).
+- **대상 버전**: develop 누적 커밋 (별도 마이너 태그 미발급, Phase 5 RC 진입 시 합산). 중간 마이너(v0.6.0) 발급 옵션은 OPEN-PL-P5-006.
 - **포함 작업**:
   - `src/scenes/intro_scene.py` 신규 또는 `menu_scene.py` 확장 — 인트로(요동성 행군 직전) 컷씬 텍스트 + (Phase 5.1 BGM `bgm_main_menu` 동기화) + 색약 모드 호환.
   - 각 스테이지 진입 시 **stage intro 대사 5종**(`docs/story/02~06`의 cold-open 대사) 풀스크린 또는 dialog overlay로 출력.
@@ -284,7 +289,7 @@ graph LR
 
 | ID | 의사결정 | 근거 |
 | --- | --- | --- |
-| **DECISION-PL-P5-001** | Phase 5는 v1.0.0 직행이 아닌 **v0.4.0 → v0.5.0 → v1.0.0-rc.1 → v1.0.0** 단계적 릴리즈 경로 채택. | Phase 4 R3에서 자동 가드 8/8 ✓ 후에도 사용자 검수 의존이 입증됨. RC를 거치는 보수적 게이트가 v0.2.0 자동 GA 마킹 사고(DECISION-P3-003) 재발 방지에 부합. |
+| **DECISION-PL-P5-001 (SCM 정정 2026-05-19)** | Phase 4 종료 = `v0.4.0-rc.1` → `v0.4.0` (메모리 규칙: 0.x.0 = Phase x 완료). Phase 5 종료 = `v1.0.0-rc.1` → `v1.0.0` (메모리 규칙: 1.0.0 = Phase 5 완료). 중간 마이너(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006로 위임. | 초기 plan은 Phase 4 자동 가드 완결을 v0.3.0 GA 게이트로 묶어 v0.4.0 RC 발급을 빠뜨림. 본 SCM 라운드(DECISION-SCM-P5K-001)에서 메모리 규칙에 정합하도록 정정. RC를 거치는 보수적 게이트는 v0.2.0 자동 GA 마킹 사고(DECISION-P3-003) 재발 방지에 부합. |
 | **DECISION-PL-P5-002** | 픽션 캐릭터 일러스트는 Phase 5.3에서 **강화된 placeholder(옵션 B)** 우선. 정식 일러스트(옵션 A)는 시간 여유 있을 시 점진 교체. | 외부 일러스트 외주/AI 생성 비용·시간 변동 큼. placeholder-v2(도형+팔레트+픽토그램) 만으로도 시각 매트릭스 통과 가능 — Design Lead 자율 판단 위임. |
 | **DECISION-PL-P5-003** | Localization Engineer(i18n) 페르소나 **신설하지 않음** (OPEN-PL-P5-001로 보류). | 한국어 단일 출시를 v1.0.0 목표로 명시 — 영어 번역은 Phase 6 / v1.1.0 별도 라운드. 본 plan 일정에 영향 없음. |
 | **DECISION-PL-P5-004** | Windows .exe **코드 서명 미적용 유지** (Phase 5.4). | 학습 프로젝트 비용·인증서 정책 미수립. SmartScreen 경고는 README 가이드로 대응. v1.0.0 이후 별도 검토. |
@@ -302,6 +307,7 @@ graph LR
 | **OPEN-PL-P5-003** | macOS 빌드 CI 추가 (Apple notarization 비용·인증서 정책) | Planning Lead + SCM (v1.0.0 이후 별도 라운드) |
 | **OPEN-PL-P5-004** | BGM 백엔드 최종 선택 (pygame.mixer vs pyminiaudio vs playsound3 등) | Audio Engineer (Phase 5.1 진입 시 비교 후 DECISION-AUDIO-013 자율 결정) |
 | **OPEN-PL-P5-005** | 픽션 캐릭터 일러스트 옵션 A(정식) 도입 시점 | Design Lead (Phase 5.3 진행 중 시간 여유 평가) |
+| **OPEN-PL-P5-006 (SCM 정정 신규)** | Phase 5 내부 중간 마이너 태그(v0.5.0/v0.6.0 등) 도입 여부 — 채택 시 sub-phase별 별도 GitHub Release 발급, 미채택 시 develop 누적 후 v1.0.0-rc.1 직행 | Steering (Phase 5.2 진입 시점에 SCM 사용량·라운드 일정 평가 후 표결) |
 
 ---
 
