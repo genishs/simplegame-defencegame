@@ -4,6 +4,50 @@
 
 ## [Unreleased]
 
+### Phase 4 R2 — 후반 라운드 통합 머지 (2026-05-19, DECISION-SCM-P4B-001~003)
+
+> Phase 4 후반 라운드. PR #41(BL-07 클리어율 자동화) + PR #42(simpleaudio SFX 백엔드) 통합 머지 완료. develop@b5b9f2c.
+> `v0.3.0` GA 승격은 여전히 보류 — 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드(DECISION-SCM-P4-004 유지).
+
+#### Added
+- **BL-07 클리어율 시뮬레이션 자동화 (Issue #39, PR #41, DECISION-DT1-P4B-001~005)**:
+  - `src/systems/auto_mode_simulator.py` (신규, 337줄): tkinter-free 헤드리스 BattleScene 시뮬레이터. WaveSystem + PathingSystem + 직접 DPS 모델 채택.
+  - `tests/test_clear_rate_simulation.py` (신규, 9건/15 회 반복): 5 시드 × 3 스테이지 = 15/15 (100%) 클리어 확인, 실행시간 ≈1.4s (임계 5s 대비).
+  - `pyproject.toml` pytest markers 4종 정식 등록: `regression_p4` / `slow` / `audio` / `network` — PytestUnknownMarkWarning 0건.
+- **simpleaudio SFX 백엔드 시범 도입 (Issue #29, PR #42, DECISION-AUDIO-012)**:
+  - `src/core/sound.py`: winsound no-op stub → simpleaudio 비동기 WAV 재생 + PCM 볼륨 스케일링 (`set_master_volume` 실제 구현, 미설치/헤드리스 graceful fallback 내장).
+  - `assets/audio/sfx/` 8 placeholder WAV(무음, Python `wave` stdlib 생성, 게임플레이 영향 0) + `assets/audio/sfx/README.md`.
+  - `tests/test_sound_simpleaudio.py` (신규, 18건): AU-01~08 자동화 — AU-07 다채널 동시 재생(`play_buffer` 2회 호출 mock 검증) + AU-08 PCM 볼륨/뮤트 풀 사이클.
+  - `src/scenes/menu_scene.py` / `src/scenes/battle_scene.py`: SFX 통합 — 버튼 클릭(ui_click), 적 사망(enemy_die), 웨이브 시작(wave_start), 영웅 페이즈(hero_skill).
+
+#### Changed
+- `SoundManager` API 확장 — `play_ui`, `play_sfx` 신규 메서드 + 마스터 볼륨 PCM 스케일링.
+- `.github/workflows/ci.yml`: ubuntu-latest 잡에 `libasound2-dev` apt 설치 step 추가 (simpleaudio 의존). windows 잡은 그대로(winsound + simpleaudio 휠 양립).
+- `docs/qa/regression_matrix.md`: AU-01~07 + BL-07 ✗ → ✓ 자동 가드 전환.
+- `requirements.txt`: `simpleaudio>=1.0.4` 추가.
+
+#### Decisions (DECISION-SCM-P4B-*)
+- **001**: 머지 순서 — PR #41(BL-07, systems/ 단독) → PR #42(simpleaudio, 자산·CI·SoundManager 확산) 선후 적용. 작은 변경 선행, 외부 패키지 의존 + CI 변경은 후행 검증 부담 분리.
+- **002**: `pyproject.toml` markers 충돌 해결 — BL-07(develop)의 4종 마커 스켈레톤 + audio(PR #42) 메타데이터(`Issue #29, DECISION-AUDIO-012`) 통합본 채택. `regression_p4` 설명도 PR #42의 매트릭스 자동 테스트 표현 + develop의 DECISION 트레이스를 합성.
+- **003**: README/CHANGELOG 갱신을 SCM 본인 명의로 develop에 직접 commit (별도 `docs(release): ...` PR 생략) — Phase 4 후반 라운드 종료 마무리, 사용자 부재 자율 권한 위임 범위 내. `v0.3.0` GA 승격(main 머지·태깅) 보류는 그대로 유지.
+
+#### Merged PRs
+- #41 — feat(phase4-bl07): BL-07 클리어율 자동화 + pytest mark 등록 (squash → develop@b5112ca)
+- #42 — feat(audio): simpleaudio SFX 백엔드 시범 도입 (squash → develop@b5b9f2c)
+
+#### Closed Issues
+- #29 simpleaudio SFX 백엔드 (PR #42, 수동 close — squash 메시지 키워드 누락 보정)
+- #38 AU-07 다채널 자동 테스트 (PR #42, 수동 close)
+- #39 BL-07 클리어율 시뮬레이션 (PR #41, 수동 close)
+
+#### Open Issues (Phase 5 위임)
+- #30 — Audio asset inventory (BGM 자산 발주 — Phase 5)
+
+#### pytest 누적
+- 베이스라인: 396 passed (Phase 4 R1 종료) → **424 passed** (+15 BL-07 + 18 simpleaudio − 일부 중복 회귀 가드 흡수). 경고 0건. ruff/black 양쪽 ✓.
+
+---
+
 ### Phase 4 R1 — 첫 구현 라운드 머지 (2026-05-19, DECISION-SCM-P4-001~004)
 
 > Phase 4 첫 구현 라운드. PR #34/#35/#36/#37 4건 통합 머지 완료. develop@5c26653.
