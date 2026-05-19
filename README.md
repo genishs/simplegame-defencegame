@@ -35,7 +35,7 @@
 | 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | ✅ 완료 (v0.2.0, 2026-05-19) |
 | 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 + 수직 슬라이스 + 회귀 매트릭스 | ✅ 완료 (`v0.3.0-rc.1`, 2026-05-19) |
 | 4 | 기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 + 잠재 결함 해결 (자동 가드 완료, 사용자 검수 CAT-01~07 통과 시 `v0.3.0` GA 승격) | ✅ 자동 가드 완료 (R1+R2+R3: #26 #27 #29 #38 #39 #43 #44, 사용자 검수 대기) |
-| 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | ⏳ 예정 |
+| 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | 🚧 진행 중 (kickoff 2026-05-19, `docs/14_phase5_plan.md`, 4 sub-phase 분할, 대상: v0.4.0→v0.5.0→v1.0.0-rc.1→v1.0.0) |
 
 ### Phase 3 세부 진행
 - **3.1 통합 하드닝 — 완료**: `reward.grain` 데이터 패치(#2), `src/systems/` tkinter import 금지 CI 가드(#8), stdlib-only stage JSON schema validator(#10), prerelease 감지 워크플로(#9)
@@ -65,7 +65,13 @@
   - **`docs/qa/phase4_completion_report.md`** Phase 4 종료 보고서
   - pytest 누적 **448 passed** (Phase 4 종료 시점, slow 별도 시 BL-07 5/5)
 - **GA 진입 (사용자 의존)**: CAT-01~07 + DPI 매트릭스 통과 후 별도 SCM 라운드에서 develop → main 머지 + `v0.3.0` 태그 + GitHub Release prerelease=false 갱신.
-- **Phase 5 백로그**: BGM 자산 수급 + 백엔드(#30).
+- **Phase 5 진입 (2026-05-19, DECISION-PL-P5-001~006)**: `docs/14_phase5_plan.md` 발행 — 전체 스토리 통합 + 최종 완성 + 패키징/릴리즈(1.0.0). 4 sub-phase 분할:
+  - **Phase 5.1 BGM 통합** → v0.4.0: Issue #30 정식 클로즈, OGG Vorbis 백엔드 도입 (OPEN-AUDIO-001 마감 예정)
+  - **Phase 5.2 전체 스토리 통합** → v0.5.0: `docs/story/01~07` 산출물을 인게임 intro/outro/엔딩 컷씬으로 실 통합, 5인 픽션 캐릭터 대사 SSOT 60~80건 추가
+  - **Phase 5.3 자산 실수급 / 최종 완성**: BGM 8곡 + SFX 20개 실 라이선스 자산 교체, 픽션 캐릭터 일러스트 옵션 B(강화 placeholder) 우선
+  - **Phase 5.4 1.0.0 패키징 / 릴리즈** → v1.0.0-rc.1 → v1.0.0: 자동 릴리즈 노트 + Linux 빌드 CI 추가(DECISION-PL-P5-005), Windows 코드 서명 미적용 유지(DECISION-PL-P5-004), macOS 보류(OPEN-PL-P5-002)
+  - 페르소나 거버넌스: Localization Engineer / Release Engineer 신설은 보류, Steering 후속 라운드 표결 위임 (OPEN-PL-P5-001~002)
+  - 자율 결정 6건 DECISION-PL-P5-001~006 기록, 5건 OPEN-PL-P5-001~005 후속 위임
 
 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md) 참조.
 
