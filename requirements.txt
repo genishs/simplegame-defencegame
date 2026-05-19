@@ -1,3 +1,7 @@
 # 런타임 의존성 (최소)
 # Python 3.11.x 가정. tkinter는 표준 라이브러리.
 Pillow>=10.0,<12.0
+# DECISION-AUDIO-012 (2026-05-19): simpleaudio Phase 4 후반 SFX 시범 도입 (Issue #29).
+# 크로스플랫폼 WAV 재생, 다채널 동시 재생 지원. BGM은 Phase 5 #30에서 별도 처리.
+# Linux CI: sudo apt-get install -y libasound2-dev 필요 (헤드리스 sound device 없음 fallback 내장).
+simpleaudio>=1.0.4

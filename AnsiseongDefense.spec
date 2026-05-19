@@ -32,12 +32,17 @@ if fonts_dir.is_dir():
     # (source_abs, dest_in_bundle). dest 는 sys._MEIPASS 기준 상대경로.
     datas.append((str(fonts_dir), "assets/fonts"))
 
+# DECISION-AUDIO-009/012: assets/audio/ 번들링 (Phase 4 후반, simpleaudio SFX 시범 도입).
+audio_dir = PROJECT_ROOT / "assets" / "audio"
+if audio_dir.is_dir():
+    datas.append((str(audio_dir), "assets/audio"))
+
 a = Analysis(
     [str(PROJECT_ROOT / "src" / "main.py")],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    hiddenimports=['_simpleaudio'],  # DECISION-AUDIO-012: simpleaudio C 확장 모듈 안전망
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
