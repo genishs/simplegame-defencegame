@@ -27,9 +27,12 @@ def test_stage01_reward_grain_positive() -> None:
 
 
 def test_stage01_reward_grain_value() -> None:
-    """stage_01 reward.grain 은 GDD §자원/§경제 근거 50이다."""
+    """stage_01 reward.grain 은 Phase 4 난이도 하향 정책 적용 후 100이다.
+
+    DECISION-PL-P4-011/015: stage_01 보상만 상향 (+100%, 50→100).
+    """
     stage = load_stage("stage_01")
-    assert stage.reward.grain == 50
+    assert stage.reward.grain == 100
 
 
 def test_stage01_reward_gold_preserved() -> None:
