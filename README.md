@@ -9,7 +9,7 @@
 ---
 
 ## 스크린샷
-*(추후 Phase 2 이후 게임플레이 스크린샷 추가 예정)*
+*(Phase 3 이후 게임플레이 스크린샷 추가 예정)*
 
 ---
 
@@ -27,13 +27,13 @@
 
 ## 현재 진행 상태
 
-**Phase 1 완료 (v0.1.0, 2026-05-17) — Phase 2 진입 준비 중 (기본 로직 설계·구현 + 스토리 작성)**
+**Phase 2 완료 (v0.2.0, 2026-05-19) — Phase 3 진입 준비 중 (기능 통합 / 디자인·스토리 적용 / 프로토타입)**
 
 | Phase | 내용 | 상태 |
 |---|---|---|
 | 1 | 사전 기획 — 역사 검토, 컨셉, 디자인 문서, 기술 아키텍처, SCM/CI 구축 | ✅ 완료 (v0.1.0, 2026-05-17) |
-| 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | 🟡 진행 예정 |
-| 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 | ⏳ 예정 |
+| 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | ✅ 완료 (v0.2.0, 2026-05-19) |
+| 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 | 🟡 진행 예정 |
 | 4 | 기능 테스트 + 디버깅 + 버그픽스 | ⏳ 예정 |
 | 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | ⏳ 예정 |
 
@@ -62,7 +62,7 @@
 
 ---
 
-## 폴더 구조 (Phase 1 시점)
+## 폴더 구조 (Phase 2 시점)
 
 ```
 defensegame/
@@ -77,22 +77,36 @@ defensegame/
 │   ├── 03_game_design_document.md
 │   ├── 04_technical_architecture.md
 │   ├── 05_branching_release_strategy.md
-│   └── 06_ci_release_workflow.md
+│   ├── 06_ci_release_workflow.md
+│   ├── 07_wireframes_visuals.md
+│   ├── 08_asset_inventory.md
+│   ├── 09_animation_state_diagrams.md
+│   ├── story/               # 스토리 산출물 (00 bible / 01 intro / 02~06 stages / 07 ending / 08 ui_strings / 09 codex)
+│   └── qa/                  # Phase 2 QA 리뷰·의사결정
+├── src/                     # 게임 소스 코드
+│   ├── core/                # app, game_loop, scaler, assets, events, settings, logger, sound
+│   ├── entities/            # entity(ObjectPool), hero, ally, enemy, projectile, effect
+│   ├── systems/             # combat, pathing, wave, economy, input (tk-independent)
+│   ├── scenes/              # menu, stage_select, battle, ending
+│   ├── ui/                  # widgets, hud, dialog
+│   ├── data/                # 데이터 로더 + units/enemies/stages JSON
+│   └── main.py
+├── tests/                   # pytest 단위·통합 테스트 (139 passed)
+├── assets/                  # (Phase 3 이후 일러스트/사운드 자산 투입 예정)
+├── requirements.txt
+├── requirements-dev.txt
 ├── .gitignore
 ├── CHANGELOG.md
 └── README.md
 ```
-
-> Phase 2부터 `src/`, `tests/`, `assets/`, `requirements.txt`가 추가될 예정입니다.
 
 ---
 
 ## 개발 가이드
 
 ### 로컬 실행
-> Phase 1 시점에는 실행 가능한 소스 코드가 아직 없습니다. Phase 2부터 추가됩니다.
+> Phase 2부터 소스 코드가 포함되며 실행 가능합니다.
 
-향후 Phase 2 이후 예상 절차:
 ```bash
 # 1. 저장소 복제
 git clone https://github.com/genishs/simplegame-defencegame.git
