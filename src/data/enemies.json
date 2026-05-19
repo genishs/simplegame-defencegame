@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "enemies": {
+    "tang_soldier": {
+      "name": "당군 보병",
+      "hp": 80,
+      "speed": 60,
+      "armor": 0,
+      "damage_to_castle": 1,
+      "gold_drop": 8,
+      "sprite": "enemy_soldier"
+    },
+    "tang_scout_captain": {
+      "name": "당군 척후대장",
+      "hp": 200,
+      "speed": 55,
+      "armor": 2,
+      "damage_to_castle": 4,
+      "gold_drop": 40,
+      "sprite": "enemy_captain",
+      "is_boss": true
+    }
+  }
+}
