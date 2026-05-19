@@ -1,0 +1,7 @@
+# 개발 / 테스트 / 빌드 전용
+-r requirements.txt
+
+pytest>=8.0
+ruff>=0.6
+black>=24.0
+pyinstaller>=6.0

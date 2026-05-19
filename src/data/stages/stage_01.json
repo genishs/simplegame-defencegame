@@ -1,0 +1,41 @@
+{
+  "id": "stage_01",
+  "title": "요동성의 첫눈",
+  "background": "bg_stage_01",
+  "music": "bgm_battle_01",
+  "starting_gold": 300,
+  "starting_population": 10,
+  "lives": 20,
+  "paths": [
+    {
+      "id": "p_main",
+      "waypoints": [[0, 540], [600, 540], [600, 300], [1920, 300]]
+    }
+  ],
+  "build_zones": [
+    { "x": 700, "y": 600, "w": 80, "h": 80 },
+    { "x": 820, "y": 600, "w": 80, "h": 80 }
+  ],
+  "waves": [
+    {
+      "delay_s": 3.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 4, "interval_s": 0.8, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 8.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 10.0,
+      "boss": "tang_scout_captain",
+      "spawns": [
+        { "type": "tang_soldier", "count": 4, "interval_s": 0.8, "path": "p_main" }
+      ]
+    }
+  ],
+  "reward": { "gold": 200, "unlock": "stage_02" }
+}
