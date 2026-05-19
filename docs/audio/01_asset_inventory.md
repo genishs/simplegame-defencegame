@@ -1,4 +1,4 @@
-﻿# 01. 오디오 자산 인벤토리 (Audio Asset Inventory) — 안시성: 88일의 약속
+# 01. 오디오 자산 인벤토리 (Audio Asset Inventory) — 안시성: 88일의 약속
 
 > Phase 4 킥오프 산출물 #2
 > 작성: Audio Engineer (DECISION-PERSONA-001, 2026-05-19)
@@ -29,18 +29,25 @@
 
 ## 1. BGM (Background Music)
 
-| ID | 파일명 (placeholder) | 카테고리 | 예상 길이 | 포맷 | 라이선스 후보 | 출처 후보 | 상태 |
-|----|---------------------|----------|----------|------|--------------|----------|------|
-| `bgm_main_menu` | `bgm_main_menu.ogg` | BGM | 2:30~3:00 | OGG q5 | CC0 / CC BY 4.0 | freesound.org, opengameart.org | `[픽션·승인대기]` |
-| `bgm_stage_01` | `bgm_stage_01_battle.ogg` | BGM | 2:00~2:30 | OGG q5 | CC0 / CC BY 4.0 | opengameart.org | `[픽션·승인대기]` |
-| `bgm_stage_02` | `bgm_stage_02_battle.ogg` | BGM | 2:00~2:30 | OGG q5 | CC0 / CC BY 4.0 | opengameart.org | `[픽션·승인대기]` |
-| `bgm_stage_03` | `bgm_stage_03_battle.ogg` | BGM | 2:00~2:30 | OGG q5 | CC0 / CC BY 4.0 | opengameart.org | `[픽션·승인대기]` |
-| `bgm_stage_04` | `bgm_stage_04_battle.ogg` | BGM | 2:00~2:30 | OGG q5 | CC0 / CC BY 4.0 | opengameart.org | `[픽션·승인대기]` |
-| `bgm_stage_05` | `bgm_stage_05_battle.ogg` | BGM | 2:00~2:30 | OGG q5 | CC0 / CC BY 4.0 | opengameart.org | `[픽션·승인대기]` |
-| `bgm_ending_victory` | `bgm_ending_victory.ogg` | BGM | 1:30~2:00 | OGG q5 | CC0 / CC BY 4.0 | freesound.org | `[픽션·승인대기]` |
-| `bgm_ending_defeat` | `bgm_ending_defeat.ogg` | BGM | 1:30~2:00 | OGG q5 | CC0 / CC BY 4.0 | freesound.org | `[픽션·승인대기]` |
+> Phase 5.1 사전 조사 완료 — 후보 8건 매핑 갱신 (Issue #30, DECISION-AUDIO-013~014)
+> 상세 후보 정보: `docs/audio/02_bgm_candidates.md`
+> Placeholder WAV 8건 생성 완료: `assets/audio/bgm/` (무음 30초, 실수급 시 OGG 교체)
 
-**소계**: 8곡, 예상 크기 ~20MB
+| ID | 파일명 (placeholder) | 카테고리 | 예상 길이 | 포맷 | 라이선스 후보 | 출처 후보 | 저작자 후보 | 우선순위 | 상태 |
+|----|---------------------|----------|----------|------|--------------|----------|-----------|--------|------|
+| `bgm.menu` | `bgm.menu.ogg` | BGM | 2:45 | OGG q5 | CC BY 4.0 | incompetech.com | Kevin MacLeod | 상 | `[픽션·승인대기]` |
+| `bgm.intro` | `bgm.intro.ogg` | BGM | 3:10 | OGG q5 | CC0 1.0 | opengameart.org | — (CC0) | 상 | `[픽션·승인대기]` |
+| `bgm.stage_01_02` | `bgm.stage_01_02.ogg` | BGM | 2:20 | OGG q5 | CC0 1.0 | freesound.org | szegvari | 상 | `[픽션·승인대기]` |
+| `bgm.stage_03_04` | `bgm.stage_03_04.ogg` | BGM | 2:35 | OGG q5 | CC BY 4.0 | opengameart.org | Sangue Voador | 상 | `[픽션·승인대기]` |
+| `bgm.stage_05` | `bgm.stage_05.ogg` | BGM | 3:00 | OGG q5 | CC BY 4.0 | incompetech.com | Kevin MacLeod | 상 | `[픽션·승인대기]` |
+| `bgm.victory` | `bgm.victory.ogg` | BGM | 1:50 | OGG q5 | CC BY 4.0 | incompetech.com | Kevin MacLeod | 중 | `[픽션·승인대기]` |
+| `bgm.defeat` | `bgm.defeat.ogg` | BGM | 1:40 | OGG q5 | CC0 1.0 | freesound.org | szegvari | 중 | `[픽션·승인대기]` |
+| `bgm.tutorial` | `bgm.tutorial.ogg` | BGM | 2:00 | OGG q5 | CC0 1.0 | freesound.org | Mrthenoronha | 중 | `[픽션·승인대기]` |
+
+**소계**: 8곡, OGG q5 예상 크기 ~18.2MB (placeholder WAV: `assets/audio/bgm/*.wav`, 실수급 시 `.ogg` 교체)
+
+> 식별자 변경: `bgm_main_menu` → `bgm.menu` 등 dot-notation으로 통일 (DECISION-AUDIO-013, 02_bgm_candidates.md §1).
+> Stage 단위도 두 스테이지 공유 트랙으로 합산 (stage_01_02, stage_03_04) — 실수급 시 분리 가능.
 
 ---
 
@@ -162,3 +169,4 @@
 | 날짜 | 작성자 | 내용 |
 |------|-------|------|
 | 2026-05-19 | Audio Engineer | 초안 작성 — Phase 4 킥오프, 전체 placeholder |
+| 2026-05-19 | Audio Engineer | BGM 섹션 갱신 — Phase 5.1 사전 조사 후보 8건 매핑, 식별자 dot-notation 통일, placeholder WAV 생성 완료 (Issue #30, DECISION-AUDIO-013~014) |

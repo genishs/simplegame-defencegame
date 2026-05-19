@@ -140,12 +140,37 @@ class SoundManager:
     def play_bgm(self, name: str, loop: bool = True) -> None:
         """BGM을 재생한다. (Phase 5 #30 위임 — 현재 stub)
 
-        Args:
-            name: BGM 식별자. 예: "bgm_main_menu".
-            loop: True이면 루프. 기본값 True.
+        **현재 구현**: no-op (로그만 출력). 자산 파일 없어도 예외 없음.
+        **Phase 5.1 구현 예정 시그니처** (DECISION-AUDIO-013)::
 
-        현재 구현: no-op (로그만 출력).
-        Phase 5 구현 시: pygame.mixer.music 패턴 예정.
+            play_bgm(name: str, *, loop: bool = True, fade_in: float = 1.0) -> None
+
+        Args:
+            name: BGM 식별자. 예: ``"bgm.menu"``, ``"bgm.stage_01_02"``.
+                  파일 경로: ``assets/audio/bgm/{name}.ogg`` (OGG Vorbis,
+                  DECISION-AUDIO-006).
+                  전체 식별자 목록: ``docs/audio/01_asset_inventory.md`` §1.
+            loop: True이면 트랙 종료 시 처음부터 반복 재생 (기본값 True).
+                  Phase 5.1 구현 시 ``pygame.mixer.music.play(loops=-1)`` 에 매핑.
+
+        Phase 5.1 추가 예정 파라미터:
+            fade_in (float): 페이드 인 시간(초). 기본값 1.0.
+                Phase 5.1에서 ``pygame.mixer.music.play(fade_ms=int(fade_in*1000))``
+                으로 구현 예정.
+
+        Phase 5.1 추가 예정 메서드 (동일 파일):
+            ``stop_bgm(*, fade_out: float = 1.0)``
+                페이드 아웃 후 BGM 정지.
+                ``pygame.mixer.music.fadeout(int(fade_out * 1000))`` 예정.
+            ``set_bgm_volume(v: float)``
+                BGM 독립 볼륨(0.0~1.0). SFX 마스터 볼륨과 별도 채널.
+                ``pygame.mixer.music.set_volume(v)`` 예정.
+                (DECISION-AUDIO-002 카테고리별 독립 볼륨 구현의 일환)
+
+        참조:
+            - DECISION-AUDIO-013: pygame.mixer BGM 백엔드 채택
+            - ``docs/audio/03_bgm_backend_proposal.md`` §5.2 -- 구현 계획
+            - ``docs/audio/02_bgm_candidates.md`` -- 실수급 후보 8건
         """
         _log.debug("SoundManager.play_bgm(%s, loop=%s) [Phase 5 stub — no-op]", name, loop)
 
