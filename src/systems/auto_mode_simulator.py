@@ -11,6 +11,11 @@ DECISION-DT1-P4B-005: Direct DPS damage model instead of CombatSystem
   causes projectile overshoot relative to hit_radius (12 px). Direct damage
   preserves identical DPS while avoiding floating-point trajectory artifacts.
 
+  Phase 5 후속 (DECISION-DL-P5P-002, Issue #44): 실 발사체에는 swept-circle
+  collision (Projectile + Enemy 양쪽 이동 보정) 이 도입됐으나, 시뮬레이터는
+  본격 클리어율 재검증 비용 (15 회 × 3 stage = 45 시드) 을 회피하기 위해
+  DPS 모델을 유지한다. 두 모델은 동일 DPS 를 보장하므로 클리어율 결과 일치.
+
 Usage::
 
     from src.systems.auto_mode_simulator import StageSimulator, SimResult
@@ -212,7 +217,10 @@ class StageSimulator:
             enemies.append(e)
 
         wave_sys.spawn_callback = spawn_enemy
-        wave_sys.load(stage.waves)
+        # Issue #43 / DECISION-DL-P5P-001: paths 주입으로 WaveSystem 자체가 보스 path
+        # fallback 처리. 시뮬레이터의 spawn_enemy fallback (effective_path_id) 은
+        # 안전망으로 유지 — 미래 stage 변형 시 graceful degradation 확보.
+        wave_sys.load(stage.waves, paths=stage.paths)
 
         while elapsed < self.MAX_SIM_TIME:
             dt = self.DT

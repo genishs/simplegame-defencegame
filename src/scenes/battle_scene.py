@@ -161,7 +161,8 @@ class BattleScene(BaseScene):
             self.world["pop"] = self.stage.starting_population
             self.world["population"] = self.stage.starting_population
             self.world["lives"] = self.stage.lives
-            self.wave.load(self.stage.waves)
+            # Issue #43 / DECISION-DL-P5P-001: paths 컨텍스트 주입으로 보스 spawn fallback 안정화.
+            self.wave.load(self.stage.waves, paths=self.stage.paths)
 
         # 영웅(양만춘) 생성 — 수직 슬라이스 (Issue #12, DECISION-DL-P3-5-003).
         # build_zones 평균 좌표 부근 또는 화면 중앙에 스폰. 자동 AI 작동.

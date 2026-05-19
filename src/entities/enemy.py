@@ -57,6 +57,13 @@ class Enemy(Entity):
         self.fade_alpha: float = 1.0
         self._was_dying: bool = False  # CombatSystem이 보상 콜백 1회 트리거에 사용
 
+        # DECISION-DL-P5P-002 (Issue #44): 이전 틱 좌표 스냅샷.
+        # Projectile.update 의 swept-circle 충돌 판정이 (_prev_x, _prev_y) →
+        # (x, y) 의 한-틱 segment 를 사용해 fast-moving enemy 통과 케이스 감지.
+        # PathingSystem 이 매 틱 시작에 갱신; 초기값은 spawn 좌표.
+        self._prev_x: float = float(x)
+        self._prev_y: float = float(y)
+
         # 보상 (GDD §5 gold_drop → food, 나머지는 합리값)
         self.reward_food: int = enemy_def.gold_drop  # gold_drop을 곡식 보상으로 매핑
         self.reward_pop: int = 0

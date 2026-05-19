@@ -2,8 +2,8 @@
 
 > v1 → v2 갱신: QA Lead (DECISION-PERSONA-002 활성화, 2026-05-19)
 > v2.1 갱신: SCM (PR #40/#41/#42 머지 후, DECISION-SCM-P4-002/003)
-> v2.2 갱신: QA Lead (Phase 4 cleanup markers, DECISION-QA-P4M-003/004)
-> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 = **총 55 시나리오**
+> v2.2 갱신: QA Lead (Phase 4 cleanup markers, DECISION-QA-P4M-003/004) + Dev Lead (Phase 5 준비, DECISION-DL-P5P-001/002)
+> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 + Phase 5 준비 9건 추가 = **총 64 시나리오**
 
 **DECISION-TL-P3-5-001**: 매트릭스 열 구성은 현행 씬/시스템 아키텍처(Menu·StageSelect·Battle·Ending·Font·DPI·Persistence·Audio) 8개 모듈 기준으로 설정. *(v1 유지)*
 **DECISION-TL-P3-5-002**: 자동 테스트 표기(✓)는 현재 `tests/` 디렉터리에 동작하는 케이스가 존재할 때만 표기. headless 불가 UI 테스트는 ✗ 로 표기. *(v1 유지)*
@@ -157,6 +157,42 @@ pytest                            # 전체 424건 (slow 포함)
 
 ---
 
+### [WV] WaveSystem 보스 path resolution (Phase 5 준비, Issue #43, DECISION-DL-P5P-001)
+
+> WV-01~05: Dev Lead Phase 5 준비 라운드 (feature/phase5-prep-bug-fixes) 머지 후 ✓ 전환.
+> `tests/test_wave_boss_path.py` (13 케이스) 에서 자동 가드. stage_03/04/05 보스 spawn
+> 실패 결함 (p_main 하드코딩) 정식 해결.
+
+| # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
+|---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
+| WV-01 | 보스 wave 의 `boss_path` 명시 시 그 값을 spawn path 로 사용 (DECISION-DL-P5P-001 우선순위 1) | — | — | ✓ | — | — | — | — | — | — |
+| WV-02 | `boss_path` 미지정 + 같은 wave 의 spawns 첫 path 차용 (우선순위 2) | — | — | ✓ | — | — | — | — | — | — |
+| WV-03 | boss-only wave (spawns 비어 있음) → `load(paths=)` 첫 path id 사용 (우선순위 3) | — | — | ✓ | — | — | — | — | — | — |
+| WV-04 | paths 미주입 + `world['waypoints']` dict 첫 키 (우선순위 4) | — | — | ✓ | — | — | — | — | — | — |
+| WV-05 | 완전 미지정 → `"p_main"` 호환 fallback (우선순위 5, legacy 보존) | — | — | ✓ | — | — | — | — | — | — |
+
+> 실 stage 01~05 보스 spawn 가드 4건 (stage_01: tang_scout_captain, stage_03: tang_night_raider, stage_04: tang_elite_battering_ram, stage_05: tang_taizong) 가 모두 ✓ 통과 — stage_03/04/05 의 보스 wave 가 더 이상 `"p_main"` 으로 spawn 시도하지 않음을 회귀 가드.
+
+---
+
+### [CB] Projectile swept-circle 충돌 (Phase 5 준비, Issue #44, DECISION-DL-P5P-002)
+
+> CB-01~05: Dev Lead Phase 5 준비 라운드 (feature/phase5-prep-bug-fixes) 머지 후 ✓ 전환.
+> `tests/test_combat_sweep.py` (11 케이스) 에서 자동 가드. 발사체 hit_radius overshoot
+> 결함 (DECISION-DT1-P4B-005 시뮬레이터 우회 사유) 정식 해결.
+
+| # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
+|---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
+| CB-01 | 정지 타겟에 정면 충돌 (legacy 동작 보존) | — | — | ✓ | — | — | — | — | — | — |
+| CB-02 | 도주하는 타겟을 빠른 발사체가 따라잡으면 명중 | — | — | ✓ | — | — | — | — | — | — |
+| CB-03 | 빠른 타겟이 발사체 line 을 수직으로 가로지름 — swept-circle 동기 감지 | — | — | ✓ | — | — | — | — | — | — |
+| CB-04 | 멀리 정지 타겟 + 느린 발사체 → 미명중 (false-positive 회귀 가드) | — | — | ✓ | — | — | — | — | — | — |
+| CB-05 | hit_radius 경계 케이스 (안쪽 hit, 바깥쪽 no-hit) | — | — | ✓ | — | — | — | — | — | — |
+
+> 보조 가드 (CB-06~10): dying 타겟 fly-through, target=None 스냅샷, legacy 타겟 (prev 좌표 없음) 호환, PathingSystem `_prev_x/_prev_y` 자동 갱신, 1000 px/s 고속 발사체 overshoot regression.
+
+---
+
 ## 자동화 우선순위 (✗ → ✓ 전환 후보)
 
 v1 항목(DECISION-TL-P3-5-003) 유지 + Phase 4 신규 후보 추가.
@@ -237,3 +273,4 @@ BL-07 클리어율 시뮬레이션은 느릴 수 있으므로 `slow` 마커 분�
 | v2 (Phase 4) | 2026-05-19 | QA Lead (DECISION-PERSONA-002) | Phase 4 신규 25건 추가 (AU-01~08, TU-01~10, BL-01~07). Tutorial 모듈 열 추가 (총 9 모듈). 거부권 가이드 신설. DECISION-QA-P4-001~006. |
 | v2.1 (Phase 4 R1) | 2026-05-19 | SCM (DECISION-SCM-P4-002) | PR #34/#36 머지 후 자동 가드 가능 시나리오 ✗→✓ 전환. TU-01/02/03/05/09/10 ✓ (자동 가드, test_tutorial_scene.py + test_regression_p4.py 활용). TU-04/06/07/08 은 headless 자동화 불가로 ✗ 유지(수동 검수 의존). BL-01/02/03/06 ✓ (test_stage_balance.py 자동 가드). BL-07 은 후속 라운드. |
 | v2.2 (Phase 4 cleanup) | 2026-05-19 | QA Lead (DECISION-QA-P4M-003/004) | BL-07 ✗→✓ (PR #41, test_clear_rate_simulation.py 9건). AU-01~07 ✓ 확인 (PR #42, test_sound_simpleaudio.py 18건). pytest markers 5개 파일 일관 적용 (regression_p4 71건 선택 가능). markers 체계 표 추가. CI 3-step 분리. |
+| v2.2 (Phase 5 준비) | 2026-05-19 | Dev Lead (DECISION-DL-P5P-001/002) | Phase 5 준비 라운드 신규 9 시나리오 추가: WV-01~05 (보스 path resolution, Issue #43) + CB-01~05 (Projectile swept-circle 충돌, Issue #44). 모두 자동 가드 (test_wave_boss_path.py 13건 + test_combat_sweep.py 11건). |

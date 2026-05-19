@@ -3,6 +3,11 @@
 DESIGN: ``WaveDef`` 리스트를 받아 ``delay_s``만큼 대기 후 ``spawns``를 순회.
 ``spawn_callback``으로 외부(BattleScene/엔티티 풀)에 적 생성을 위임.
 DECISION-A·4.1: tkinter import 절대 금지 — 순수 도메인 모듈.
+
+DECISION-DL-P5P-001 (Issue #43): 보스 spawn path_id 결정 로직.
+  과거: ``"p_main"`` 하드코딩 → stage_03/04/05 처럼 ``p_main`` 미정의 시 spawn 실패.
+  현재: 우선순위 (a) ``wave_def.boss_path`` 명시 → (b) ``load(paths=...)`` 첫 path id →
+        (c) ``world['waypoints']`` 첫 키 → (d) 기존 호환 ``"p_main"`` fallback.
 """
 
 from __future__ import annotations
@@ -11,7 +16,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from src.data.loader import WaveDef
+    from src.data.loader import PathDef, WaveDef
 
 
 SpawnFn = Callable[[str, str], None]  # (enemy_type, path_id) -> None
@@ -46,6 +51,10 @@ class WaveSystem:
         # _spawn_queue: list of (type, path, remaining_count, interval_acc)
         self._spawn_queues: list[dict[str, Any]] = []
 
+        # Issue #43: 보스 spawn fallback 시 사용할 기본 path id (load 시 갱신).
+        # None 이면 ``world['waypoints']`` 의 첫 키 또는 "p_main" 으로 fallback.
+        self._default_path_id: str | None = None
+
     # ------------------------------------------------------------------
     # 공개 속성 (HUD가 읽음)
     # ------------------------------------------------------------------
@@ -73,14 +82,31 @@ class WaveSystem:
     # 로드
     # ------------------------------------------------------------------
 
-    def load(self, waves: tuple[WaveDef, ...]) -> None:  # type: ignore[no-untyped-def]
-        """스테이지 진입 시 웨이브 정의를 주입."""
+    def load(  # type: ignore[no-untyped-def]
+        self,
+        waves: tuple[WaveDef, ...],
+        paths: tuple[PathDef, ...] | None = None,
+    ) -> None:
+        """스테이지 진입 시 웨이브 정의를 주입.
+
+        Args:
+            waves: 진행할 ``WaveDef`` 리스트.
+            paths: 스테이지 ``PathDef`` 튜플 (DECISION-DL-P5P-001, Issue #43).
+                보스 spawn 시 ``wave.boss_path`` 미명시 + ``world['waypoints']``
+                미설정 환경의 fallback 으로 첫 path id 를 사용한다.
+                None 이거나 비어 있으면 기존 동작 유지 (world 또는 "p_main" fallback).
+        """
         self.waves = tuple(waves)
         self.current_index = -1
         self.all_clear = False
         self.paused = False
         self._wave_started = False
         self._spawn_queues = []
+        # paths 주입 시 첫 path id 를 보스 fallback 기본값으로 기억.
+        if paths:
+            self._default_path_id = paths[0].id
+        else:
+            self._default_path_id = None
         if self.waves:
             self._delay_remaining = float(self.waves[0].delay_s)
         else:
@@ -174,11 +200,44 @@ class WaveSystem:
                 }
             )
 
-        # 보스 스폰
+        # 보스 스폰 (DECISION-DL-P5P-001, Issue #43)
         if wave_def.boss:
-            self._do_spawn(wave_def.boss, "p_main")
+            boss_path = self._resolve_boss_path(wave_def)
+            self._do_spawn(wave_def.boss, boss_path)
 
         self._publish("wave.started", {"index": self.current_index})
+
+    def _resolve_boss_path(self, wave_def: WaveDef) -> str:
+        """보스 wave 의 spawn path id 결정 (DECISION-DL-P5P-001, Issue #43).
+
+        우선순위:
+          1. ``wave_def.boss_path`` 에 명시된 값 (stage JSON 의 ``boss_path`` 필드).
+          2. 같은 wave 의 ``spawns`` 첫 항목 ``path`` — 정확한 컨텍스트 회복용.
+          3. ``load(paths=...)`` 로 주입된 첫 path id.
+          4. ``world['waypoints']`` 가 dict 면 첫 키.
+          5. 기존 호환 ``"p_main"`` fallback (단일 경로 stage_01/02 동작 보존).
+        """
+        # (1) WaveDef 명시 필드 (옵션)
+        boss_path = getattr(wave_def, "boss_path", None)
+        if boss_path:
+            return str(boss_path)
+        # (2) wave 의 일반 spawn path 차용 — 보스가 보병과 같은 경로로 진입하는 게 자연스러움
+        if wave_def.spawns:
+            first_spawn_path = wave_def.spawns[0].path
+            if first_spawn_path:
+                return str(first_spawn_path)
+        # (3) load(paths=...) 주입값
+        if self._default_path_id:
+            return self._default_path_id
+        # (4) world['waypoints'] dict 의 첫 키
+        wp = self.world.get("waypoints")
+        if isinstance(wp, dict) and wp:
+            try:
+                return next(iter(wp.keys()))
+            except StopIteration:
+                pass
+        # (5) 호환 fallback
+        return "p_main"
 
     def _tick_spawns(self, dt: float) -> None:
         """현재 웨이브의 스폰 큐를 진행한다."""
