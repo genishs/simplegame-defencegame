@@ -246,6 +246,10 @@ Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해
 | `hero.skill.cooldown` | {seconds}초 |
 | `hero.skill.locked` | 잠김 |
 | `hero.respawn_in` | 잠시 후 다시 일어섭니다 ({seconds}초) |
+| `hero.manual_mode.on` | 직접 조작 모드 ON (WASD/방향키 이동) |
+| `hero.manual_mode.off` | 직접 조작 모드 OFF |
+
+> `hero.manual_mode.*` 는 M 키 토글 시 좌하단 상태 라벨에 표시되는 직접조작 모드 표시 텍스트 (Issue #4, DECISION-DL-P3-3-002/007).
 
 ---
 
