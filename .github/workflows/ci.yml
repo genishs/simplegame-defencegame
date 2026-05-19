@@ -105,7 +105,25 @@ jobs:
         run: |
           python scripts/check_systems_no_tk.py --verbose
 
-      - name: Tests (pytest)
+      - name: Tests (pytest) — fast path (not slow)
+        shell: bash
+        run: |
+          if [ -d tests ] || compgen -G "test_*.py" > /dev/null || compgen -G "**/test_*.py" > /dev/null; then
+            pytest -q -m "not slow"
+          else
+            echo "No tests found; skipping pytest."
+          fi
+
+      - name: Tests (pytest) — audio markers
+        shell: bash
+        run: |
+          if [ -d tests ]; then
+            pytest -q -m audio
+          else
+            echo "No tests found; skipping pytest audio step."
+          fi
+
+      - name: Tests (pytest) — full suite including slow
         shell: bash
         run: |
           if [ -d tests ] || compgen -G "test_*.py" > /dev/null || compgen -G "**/test_*.py" > /dev/null; then

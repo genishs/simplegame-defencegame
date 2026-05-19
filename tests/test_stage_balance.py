@@ -23,6 +23,7 @@ from src.data.loader import StageDef, load_stage
 from src.data.schema import validate_stage
 
 STAGES_DIR = Path(__file__).parent.parent / "src" / "data" / "stages"
+pytestmark = pytest.mark.regression_p4
 
 
 def _raw(stage_id: str) -> dict:
