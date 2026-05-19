@@ -173,11 +173,17 @@ def _make_menu_scene(player_data: Any = None) -> Any:
 
 
 def test_menu_enter_key_triggers_goto_for_focused_button() -> None:
-    """MN-03: Enter 키 -> _focused_idx 0번(새 게임/battle) -> app.goto("battle") 호출."""
+    """MN-03: Enter 키 -> _focused_idx 0번 -> goto(dest) 호출.
+
+    DECISION-SCM-P3-001 (2026-05-19): Phase 3.5 수직 슬라이스(PR #24,
+    DECISION-DL-P3-5-002)에서 "새 게임"/"이어하기" 라우팅이 battle 직행에서
+    stage_select 경유로 변경됨. 본 테스트는 회귀 매트릭스 MN-03을 신규
+    수직 슬라이스 흐름(메뉴 → 스테이지 선택 → 배틀)에 맞춰 갱신.
+    """
     scene = _make_menu_scene()
-    scene._focused_idx = 0  # "새 게임" -> dest="battle"
+    scene._focused_idx = 0  # "새 게임" -> dest="stage_select" (수직 슬라이스 흐름)
     scene._on_enter_key(None)
-    assert "battle" in scene.app._goto_calls
+    assert "stage_select" in scene.app._goto_calls
 
 
 def test_menu_enter_key_stage_select_button() -> None:
