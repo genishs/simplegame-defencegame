@@ -4,6 +4,50 @@
 
 ## [Unreleased]
 
+> Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
+
+## [0.4.0-rc.1] - 2026-05-19 — Phase 4 자동 가드 완결 (RC, 사용자 검수 대기)
+
+> Phase 4 (기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 + 잠재 결함 해결) 자동 가드 완결 시점. 메모리 규칙(0.x.0 = Phase x 완료) 정합. 사용자 시각 검수(CAT-01~07) + DPI 매트릭스(1920×1080·100%/125%) 통과 시 별도 SCM 라운드에서 `v0.4.0` 정식 GA 승격 (DECISION-SCM-P5K-001).
+>
+> 본 RC는 Phase 4 R1+R2+R3 + Phase 5 kickoff(PR #47) + Phase 5.1 BGM prep(PR #48) 누적. develop@8e9c3de. pytest **448 passed**, ruff/black 0 에러.
+>
+> Phase 5 kickoff 산출물(PR #47/#48)은 Phase 5 본 작업 진입 직전 문서·placeholder만 포함 — 코드(.py) 도메인 영역 무변경. 따라서 RC에 안전하게 합산.
+
+### Phase 5 Kickoff — Planning Lead 명세 + Audio Engineer BGM prep (PR #47/#48, 2026-05-19)
+
+#### Added (Planning, PR #47)
+- `docs/14_phase5_plan.md` (신규, 326줄): Phase 5 (전체 스토리 통합 + 최종 완성 + 패키징/릴리즈 1.0.0) 운영 계획서 — 4 sub-phase 분할 (5.1 BGM / 5.2 스토리 / 5.3 자산 / 5.4 패키징), acceptance criteria + DECISION-PL-P5-001~006 + OPEN-PL-P5-001~006
+- `docs/phase5/checklist.md` (신규): 각 라운드별 1줄 체크박스 추적
+- README "현재 진행 상태" + "다음 단계" 갱신: Phase 5 진행 중 (🚧) 표시
+
+#### Added (Audio prep, PR #48)
+- `docs/audio/02_bgm_candidates.md` (신규, 247줄): BGM 후보 8건 (CC0 ×4 + CC BY 4.0 ×4, 동양풍 우선, 번들 ~18.2MB)
+- `docs/audio/03_bgm_backend_proposal.md` (신규, 188줄): pygame.mixer vs simpleaudio vs PyOgg 비교, **pygame.mixer 채택** (DECISION-AUDIO-013)
+- `assets/audio/bgm/` 신규 — 무음 30초 WAV placeholder 8건 (bgm.intro/menu/tutorial/stage_01_02/stage_03_04/stage_05/victory/defeat) + 라이선스 정책 README
+- `src/core/sound.py`: `play_bgm()` docstring 보강 — Phase 5.1 예정 시그니처 (`play_bgm(name, *, loop, fade_in)`, `stop_bgm(*, fade_out)`, `set_bgm_volume(v)`)
+- `docs/audio/01_asset_inventory.md`: BGM 섹션 후보 8건 매핑 갱신 (dot-notation 통일, 저작자/우선순위 열 추가)
+- `docs/qa/regression_matrix.md`: v2.3 갱신, BG-01~BG-04 시나리오 등록 (총 68건, 자동화 대기)
+
+#### Changed (SCM 정정 라운드, DECISION-SCM-P5K-001)
+- `docs/14_phase5_plan.md`: 버전 매핑을 메모리 규칙(0.x.0=Phase x 완료, 1.0.0=Phase 5 완료)에 정합하도록 정정. 초기 plan은 v0.4.0/v0.5.0을 Phase 5 sub-phase에 할당하여 규칙 위반 → Phase 4 = v0.4.0-rc.1, Phase 5 = v1.0.0-rc.1 → v1.0.0 직행으로 정정
+- `docs/phase5/checklist.md`: sub-phase 헤더에서 마이너 태그 매핑 제거, develop 누적 명시. 중간 마이너 도입 여부는 OPEN-PL-P5-006 (신규)
+- README "다음 단계": Phase 4 종료 v0.4.0-rc.1 발급 명시, Phase 5 매핑 정정
+
+#### Decisions (PR #47 + SCM 정정)
+- DECISION-PL-P5-001 (정정): Phase 4 종료 = v0.4.0-rc.1 → v0.4.0, Phase 5 종료 = v1.0.0-rc.1 → v1.0.0
+- DECISION-PL-P5-002~006: 픽션 일러스트 옵션 B / Localization Engineer 보류 / Windows 코드 서명 미적용 / Linux CI 추가, macOS 보류 / Release Engineer 보류
+- DECISION-AUDIO-013 (PR #48): BGM 백엔드 pygame.mixer 채택
+- DECISION-AUDIO-014 (PR #48): 우선순위 '상' 5건 Phase 5.1 수급, '중' 3건 Phase 5.2 이후
+- **DECISION-SCM-P5K-001 (본 RC 라운드)**: PR #47 버전 매핑 정정 commit을 PR #47 브랜치에 직접 push 후 squash 머지(별도 정정 PR 신설 회피). 메모리 규칙 정합 우선
+
+#### Merged PRs (Phase 5 kickoff)
+- #47 — docs(phase 5 kickoff): Phase 5 명세 + checklist + README 갱신 (squash → develop@8e9c3de)
+- #48 — feat(audio): Phase 5.1 BGM prep — 후보 조사 + placeholder + 백엔드 제안 (Issue #30) (squash → develop@621ba21)
+
+#### Open Issues (Phase 5 위임)
+- #30 — Audio asset inventory (BGM 자산 발주 — Phase 5.1 본 작업)
+
 ### Phase 4 R3 — 정리 라운드 (2026-05-19, DECISION-SCM-P4F-001~002)
 
 > Phase 4 종료 라운드. PR #45(QA cleanup) + PR #46(잠재 결함 #43/#44 정식 해결) 통합 머지 완료. develop@6e108a4.
@@ -351,7 +395,8 @@
 - 본 버전은 사전 기획·인프라 단계로, 실행 가능한 게임 코드는 아직 포함하지 않습니다.
 - 라이선스는 미정이며 추후 결정합니다.
 
-[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.4.0-rc.1...HEAD
+[0.4.0-rc.1]: https://github.com/genishs/simplegame-defencegame/compare/v0.3.0-rc.1...v0.4.0-rc.1
 [0.3.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/genishs/simplegame-defencegame/releases/tag/v0.1.0
