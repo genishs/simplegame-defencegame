@@ -624,11 +624,83 @@ Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해
 
 ---
 
-## 19. 변경 이력
+## 20. 튜토리얼 (Phase 4 · Issue #26) — **키 예약**
+
+> Phase 4 기획 리더 라운드 (2026-05-20) 에서 본 섹션에 36개 신규 키를 **예약 등록** 한다.
+> 한국어 표시 텍스트는 **Design Lead 다음 라운드에서 확정** (현재는 키만 SSOT 등재 — `docs/12_tutorial_design.md` DECISION-PL-P4-006).
+> 컨벤션은 §0.1 (`<scene>.<component>.<role>`) 을 따른다. scene=`tutorial`, 메뉴 진입 버튼만 `menu.tutorial.button` (메뉴 화면이라 menu scene).
+
+### 20.1 메뉴 진입 + 종료 다이얼로그 (8 keys)
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `menu.tutorial.button` | (Design 확정) |
+| `tutorial.skip.button` | (Design 확정) |
+| `tutorial.skip.confirm.title` | (Design 확정) |
+| `tutorial.skip.confirm.body` | (Design 확정) |
+| `tutorial.skip.confirm.yes` | (Design 확정) |
+| `tutorial.skip.confirm.no` | (Design 확정) |
+| `tutorial.skip.dont_show_again` | (Design 확정) |
+| `tutorial.complete.cta` | (Design 확정) |
+
+### 20.2 인트로 + 단계별 본문 (26 keys)
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `tutorial.intro.title` | (Design 확정) |
+| `tutorial.intro.body` | (Design 확정) |
+| `tutorial.step1.title` | (Design 확정) |
+| `tutorial.step1.body` | (Design 확정) |
+| `tutorial.step1.cta` | (Design 확정) |
+| `tutorial.step2.title` | (Design 확정) |
+| `tutorial.step2.body` | (Design 확정) |
+| `tutorial.step2.cta` | (Design 확정) |
+| `tutorial.step3.title` | (Design 확정) |
+| `tutorial.step3.body` | (Design 확정) |
+| `tutorial.step3.cta` | (Design 확정) |
+| `tutorial.step4.title` | (Design 확정) |
+| `tutorial.step4.body` | (Design 확정) |
+| `tutorial.step4.cta` | (Design 확정) |
+| `tutorial.step5.title` | (Design 확정) |
+| `tutorial.step5.body` | (Design 확정) |
+| `tutorial.step5.cta` | (Design 확정) |
+| `tutorial.step6.title` | (Design 확정) |
+| `tutorial.step6.body` | (Design 확정) |
+| `tutorial.step6.cta` | (Design 확정) |
+| `tutorial.step7.title` | (Design 확정) |
+| `tutorial.step7.body` | (Design 확정) |
+| `tutorial.step7.cta` | (Design 확정) |
+| `tutorial.step8.title` | (Design 확정) |
+| `tutorial.step8.body` | (Design 확정) |
+| `tutorial.complete.cta` 는 §20.1 참조 (단계 8 CTA와 동일 키 공유) |  |
+
+> `tutorial.complete.cta` 는 §20.1 의 키와 동일 식별자. 단계 8 종료 화면과 메뉴-종료 흐름이 같은 "Stage 1로 가기" 라벨을 공유 — 한 번만 정의.
+
+### 20.3 HUD 강조 화살표 라벨 (3 keys)
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `tutorial.hud_arrow.resource` | (Design 확정) |
+| `tutorial.hud_arrow.buildzone` | (Design 확정) |
+| `tutorial.hud_arrow.hero` | (Design 확정) |
+
+### 20.4 키 합계
+
+- 메뉴/종료 다이얼로그: 8
+- 인트로/단계 본문: 26 (단계 1~7 = 21 + 단계 8 title/body = 2 + 인트로 title/body = 2 + complete.cta = 1, complete.cta는 §20.1 공유라 중복 카운트 제외하면 **24**)
+- HUD 화살표: 3
+- **신규 키 합계: 35** (§20.1 8 + §20.2 24 + §20.3 3 = 35; `tutorial.complete.cta` 가 §20.1 과 §20.2 양쪽에서 인용되지만 1건만 등재)
+
+> `docs/12_tutorial_design.md` §6.5 에는 36건으로 표기되어 있으나, `tutorial.complete.cta` 가 메뉴 종료/단계 8 양쪽에서 공유되어 실제 SSOT 등재는 35건이다 (DECISION-PL-P4-006 보정).
+
+---
+
+## 21. 변경 이력
 
 | 버전 | 일자 | 작성자 | 내용 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-05-17 | 기획 리더 + 팀원 | 최초 작성. §1~§15. |
 | v1.1 | 2026-05-19 | 디자인 리더 (Phase 3.4) | **SSOT 격상** (DECISION-D-P3-001). 키 네이밍 컨벤션 명문화 (§0.1). SSOT 운영 규칙 (§0.2). 신규 키 9건 추가: `dialog.next`, `dialog.skip`, `intro.skip_confirm`, `cavalry.sortie`, `help.tut1.welcome` ~ `help.tut6.pause`. `docs/qa/phase2_review.md` 후속 권고 4번 (DECISION-Q-003) 종결. |
+| v1.2 | 2026-05-20 | 기획 리더 (Phase 4) | **§20 튜토리얼 키 예약 추가** (Issue #26, `docs/12_tutorial_design.md` DECISION-PL-P4-006). 신규 키 35건 예약 (한국어 표시 텍스트는 Design Lead 다음 라운드에서 확정). |
 
-— UI 스트링 v1.1 (SSOT) 끝 —
+— UI 스트링 v1.2 (SSOT) 끝 —

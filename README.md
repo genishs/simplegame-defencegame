@@ -47,6 +47,9 @@
 ### 다음 단계
 - **사용자 시각 검수 (CAT-01~04)**: `docs/qa/scenario_catalog.md` 카탈로그 기반. 통과 시 `v0.3.0` 정식 GA 승격.
 - **Phase 4**: 검수 결함 수렴 + 1920×1080 / 100%·125% DPI 매트릭스 검증 + 추가 회귀 가드.
+- **Phase 4 기획 명세 (2026-05-20 신규)**:
+  - 튜토리얼 UX: [`docs/12_tutorial_design.md`](./docs/12_tutorial_design.md) (Issue #26, 8단계 인터랙티브 흐름 + 신규 ui_strings 키 35건 예약)
+  - 초반 3스테이지 난이도 하향 정책: [`docs/13_difficulty_balance.md`](./docs/13_difficulty_balance.md) (Issue #27, stage_01 보상만 상향 / stage_02~03 wave 6→4 + count -40% + interval +30% + reward +50% + 야간 시야 +40%)
 
 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md) 참조.
 
