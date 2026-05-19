@@ -215,6 +215,11 @@ class MenuScene(BaseScene):
 
         def _click_handler(d: str = dest, i: int = idx) -> None:
             self._focused_idx = i
+            # Issue #29 / DECISION-AUDIO-012: 버튼 클릭 UI Sound 재생 (placeholder WAV)
+            try:
+                self.app.sound.play_ui("sfx.ui_click")
+            except Exception:  # noqa: BLE001
+                pass
             if d == "__quit__":
                 self.app.quit()
             else:
@@ -247,6 +252,11 @@ class MenuScene(BaseScene):
     def _on_enter_key(self, _event: object) -> None:
         if self._focused_idx < len(_BUTTONS):
             _, dest, *_ = _BUTTONS[self._focused_idx]
+            # Issue #29: Enter 키 선택에도 UI Sound 재생
+            try:
+                self.app.sound.play_ui("sfx.ui_click")
+            except Exception:  # noqa: BLE001
+                pass
             if dest == "__quit__":
                 self.app.quit()
             else:

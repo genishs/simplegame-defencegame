@@ -36,12 +36,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      # Issue #29 / DECISION-AUDIO-012: simpleaudio는 Linux에서 libasound2-dev 필요.
+      # Windows 러너는 해당 없음 (조건부 실행).
+      - name: Install Linux audio dev libraries (ubuntu only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y libasound2-dev
+
       - name: Install dependencies (if requirements.txt exists)
         shell: bash
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+            # DECISION-AUDIO-012: simpleaudio가 헤드리스 환경에서 설치 실패할 수 있음.
+            # 설치 실패 시 SoundManager가 자동 no-op fallback으로 처리함.
+            pip install -r requirements.txt || pip install -r requirements.txt --ignore-requires-python || true
           else
             echo "requirements.txt not found; skipping install."
           fi

@@ -68,23 +68,26 @@
 
 ## Phase 4 신규 시나리오 (25건)
 
-### [AU] 오디오 정책 회귀 (DECISION-AUDIO-011 연동)
+### [AU] 오디오 정책 회귀 (DECISION-AUDIO-011/012 연동)
 
-> AU-01~AU-06: no-op 스텁 상태에서 현재 pytest 자동화 가능. `tests/test_regression_p4.py` 에 케이스 추가.
-> AU-07~AU-08: 실제 다채널 백엔드(simpleaudio/pygame.mixer) 도입 후 전환 예정.
+> AU-01~AU-07: simpleaudio SFX 백엔드 시범 도입 (Issue #29, DECISION-AUDIO-012) 완료.
+> `tests/test_sound_simpleaudio.py` (12 케이스) 에서 자동화 가드 활성.
+> AU-08: PyInstaller 빌드 수동 CAT 항목 유지.
 
 | # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
 |---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
-| AU-01 | SoundManager.play_bgm("main_menu") 호출 시 예외 없음 (no-op 포함) | — | — | — | — | — | — | — | ✓ | — |
-| AU-02 | SoundManager.play_sfx("sfx_arrow_shoot") 호출 시 예외 없음 | — | — | — | — | — | — | — | ✓ | — |
-| AU-03 | SoundManager.play_sfx("ui_button_click") 호출 시 예외 없음 | — | — | — | — | — | — | — | ✓ | — |
+| AU-01 | SoundManager.play_bgm("main_menu") 호출 시 예외 없음 (Phase 5 stub) | — | — | — | — | — | — | — | ✓ | — |
+| AU-02 | SoundManager.play_sfx("sfx.arrow_shot") 호출 시 예외 없음 (simpleaudio fallback 포함) | — | — | — | — | — | — | — | ✓ | — |
+| AU-03 | SoundManager.play_ui("sfx.ui_click") 호출 시 예외 없음 | — | — | — | — | — | — | — | ✓ | — |
 | AU-04 | SoundManager.stop_all() 호출 시 예외 없음 | — | — | — | — | — | — | — | ✓ | — |
-| AU-05 | SoundManager.set_master_volume(0.5) 호출 시 예외 없음 (미래 API, no-op 단계도 통과) | — | — | — | — | — | — | — | ✓ | — |
-| AU-06 | SoundManager.mute() 호출 시 예외 없음 (미래 API, no-op 단계도 통과) | — | — | — | — | — | — | — | ✓ | — |
-| AU-07 | BGM 루프 재생 중 SFX 동시 재생 가능 (백엔드 교체 후 검증) | — | — | — | — | — | — | — | ✗ | — |
+| AU-05 | SoundManager.set_master_volume(0.5) — 클램핑 검증 포함 | — | — | — | — | — | — | — | ✓ | — |
+| AU-06 | SoundManager.mute() / unmute() 토글 — 볼륨 복원 검증 | — | — | — | — | — | — | — | ✓ | — |
+| AU-07 | play_sfx 2회 연속 → 둘 다 play_buffer 큐잉 (다채널 동시 재생, mock 검증) | — | — | — | — | — | — | — | ✓ | — |
 | AU-08 | PyInstaller 빌드 시 assets/audio/ 경로 정상 해석 (수동 검수 의존) | — | — | — | — | — | — | — | ✗ | — |
 
-> AU-07: 실제 다채널 백엔드 도입 후 ✓ 전환. AU-08: .exe 빌드 수동 CAT 항목으로 관리.
+> AU-07: ✓ 전환 (DECISION-AUDIO-012, Issue #29) — simpleaudio mock 다채널 큐잉 pytest 자동화.
+> AU-08: .exe 빌드 수동 CAT 항목 유지 — spec 파일에 hiddenimports + audio datas 번들링 추가 완료.
+> **Issue #38 close 후보**: AU-07 자동화 가드 활성화로 다채널 SFX 회귀 감지 가능.
 
 ---
 

@@ -120,6 +120,8 @@ class BattleScene(BaseScene):
         self._placeholder_id: int | None = None
         # 직접조작 모드 상태 표시 캔버스 아이템 (DECISION-DL-P3-3-002).
         self._manual_mode_label_id: int | None = None
+        # Issue #29 / DECISION-AUDIO-012: 웨이브 시작 SFX 트리거 추적.
+        self._last_wave_index: int = -1
 
     # ------------------------------------------------------------------
     # lifecycle
@@ -235,16 +237,33 @@ class BattleScene(BaseScene):
         self.combat.update(dt, self.world)
         self.economy.update(dt)
 
+        # Issue #29 / DECISION-AUDIO-012: 웨이브 시작 SFX
+        current_wave_idx = self.wave.current_index
+        if current_wave_idx != self._last_wave_index and current_wave_idx >= 0:
+            self._last_wave_index = current_wave_idx
+            try:
+                self.app.sound.play_sfx("sfx.wave_start")
+            except Exception:  # noqa: BLE001
+                pass
+
         # 영웅 업데이트 (Issue #4, DECISION-DL-P3-3-003).
         # 자동 모드: Hero.update 로 쿨다운/페이즈 갱신.
         # 수동 모드: 누적된 이동 입력만 처리. AI 자동 update 호출하지 않음.
         hero = self.world.get("hero")
         if hero is not None:
+            prev_phase = getattr(hero, "current_phase", None)
             if self._hero_direct_mode:
                 self._apply_hero_manual_move(hero, dt)
             else:
                 if hasattr(hero, "update"):
                     hero.update(dt)
+            # Issue #29 / DECISION-AUDIO-012: 영웅 페이즈 변화(스킬 발동) SFX
+            new_phase = getattr(hero, "current_phase", None)
+            if prev_phase is not None and new_phase is not None and new_phase != prev_phase:
+                try:
+                    self.app.sound.play_sfx("sfx.hero_skill")
+                except Exception:  # noqa: BLE001
+                    pass
 
         # 죽은 적 정리
         self._cleanup_dead()
@@ -393,11 +412,21 @@ class BattleScene(BaseScene):
                 hero._prev_phase = new_phase  # noqa: SLF001
 
     def _cleanup_dead(self) -> None:
-        """alive==False인 엔티티를 world 목록에서 제거."""
+        """alive==False인 엔티티를 world 목록에서 제거.
+
+        Issue #29 / DECISION-AUDIO-012: 적 사망 시 sfx.enemy_die SFX 재생.
+        """
         for key in ("enemies", "allies", "projectiles", "effects"):
             lst = self.world.get(key)
             if isinstance(lst, list):
+                dead_enemies = [e for e in lst if not getattr(e, "alive", True)] if key == "enemies" else []
                 self.world[key] = [e for e in lst if getattr(e, "alive", True)]
+                # 적 사망 SFX (1번만 재생 — 동시 다수 사망 시에도 단발)
+                if dead_enemies:
+                    try:
+                        self.app.sound.play_sfx("sfx.enemy_die")
+                    except Exception:  # noqa: BLE001
+                        pass
 
     def _check_end_conditions(self) -> None:
         """승/패 판정 및 ResultDialog 표시."""

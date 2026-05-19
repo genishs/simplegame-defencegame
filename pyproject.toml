@@ -15,3 +15,7 @@ testpaths = ["tests"]
 addopts = "-ra -q"
 # 'src'를 패키지처럼 import 가능하도록 루트를 추가.
 pythonpath = ["."]
+markers = [
+    "regression_p4: Phase 4 회귀 매트릭스 자동 테스트",
+    "audio: 오디오 시스템 테스트 (Issue #29, DECISION-AUDIO-012)",
+]
