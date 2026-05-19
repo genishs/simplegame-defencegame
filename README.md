@@ -27,15 +27,26 @@
 
 ## 현재 진행 상태
 
-**Phase 2 완료 (v0.2.0, 2026-05-19) — Phase 3 진입 준비 중 (기능 통합 / 디자인·스토리 적용 / 프로토타입)**
+**Phase 3 완료 — `v0.3.0-rc.1` 사전 릴리즈 (2026-05-19). Phase 4 진입 예정.**
 
 | Phase | 내용 | 상태 |
 |---|---|---|
 | 1 | 사전 기획 — 역사 검토, 컨셉, 디자인 문서, 기술 아키텍처, SCM/CI 구축 | ✅ 완료 (v0.1.0, 2026-05-17) |
 | 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | ✅ 완료 (v0.2.0, 2026-05-19) |
-| 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 | 🟡 진행 예정 |
-| 4 | 기능 테스트 + 디버깅 + 버그픽스 | ⏳ 예정 |
+| 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 + 수직 슬라이스 + 회귀 매트릭스 | ✅ 완료 (`v0.3.0-rc.1`, 2026-05-19) |
+| 4 | 기능 테스트 + 디버깅 + 버그픽스 (사용자 검수 CAT-01~04 통과 시 `v0.3.0` GA 승격) | ⏳ 예정 |
 | 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | ⏳ 예정 |
+
+### Phase 3 세부 진행
+- **3.1 통합 하드닝 — 완료**: `reward.grain` 데이터 패치(#2), `src/systems/` tkinter import 금지 CI 가드(#8), stdlib-only stage JSON schema validator(#10), prerelease 감지 워크플로(#9)
+- **3.2 스테이지 데이터 — 완료**: `stage_02` 요동 ~ `stage_05` 토산 JSON 5종 + 스키마 검증 테스트 40건(#11)
+- **3.3 프로토타입 통합 — 완료**: `BattleScene._spawn_enemy` waypoint 결선(#1), M키 영웅 수동 모드(#4), Phase 2 잠재 결함(Enemy 생성자 시그니처 + waypoints 미설정) 동반 수정
+- **3.4 디자인/스토리 적용 + 폰트 번들 — 완료**: `docs/story/08_ui_strings.md` SSOT v1.1 격상(#5), 캐릭터 플레이스홀더 5종(#6), Noto Sans KR(OFL 1.1) PyInstaller 번들링(#7)
+- **3.5 수직 슬라이스 데모 — 완료**(#12): 메뉴 → 스테이지 선택 → 배틀 → 엔딩 풀 사이클 결선, BattleScene 진입 시 영웅(Hero) 자동 등록, stage_05 클리어 시 엔딩 라우팅, 통합 테스트 18건 + 회귀 매트릭스 자동 가드 21건 추가 (총 **334 passed**), PyInstaller `--onefile` .exe 로컬 빌드 검증 (24.9MB, Noto Sans KR 번들 확인), 사용자 검수 카탈로그 CAT-01~04 정의. SCM finalize: `v0.3.0-rc.1` 태깅 + main 머지.
+
+### 다음 단계
+- **사용자 시각 검수 (CAT-01~04)**: `docs/qa/scenario_catalog.md` 카탈로그 기반. 통과 시 `v0.3.0` 정식 GA 승격.
+- **Phase 4**: 검수 결함 수렴 + 1920×1080 / 100%·125% DPI 매트릭스 검증 + 추가 회귀 가드.
 
 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md) 참조.
 
@@ -174,8 +185,18 @@ pyinstaller --onefile --name AnsiseongDefense src/main.py
 
 ## 라이선스
 
+### 본 저장소 (코드/콘텐츠)
 **미정 (To be decided)** — 추후 결정 예정입니다.
 현재 시점에서 본 저장소의 코드/콘텐츠는 모든 권리가 저작자에게 유보됩니다(All rights reserved by default).
+
+### 동봉 자산 (assets/)
+| 자산 | 라이선스 | 출처 |
+|---|---|---|
+| `assets/fonts/NotoSansKR-Regular.otf` | **SIL Open Font License 1.1** | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) |
+| `assets/fonts/NotoSansKR-Bold.otf` | **SIL Open Font License 1.1** | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) |
+
+라이선스 전문은 [`assets/fonts/OFL.txt`](./assets/fonts/OFL.txt) 또는 [scripts.sil.org/OFL](https://scripts.sil.org/OFL) 참고.
+SIL OFL 1.1은 폰트 파일의 **자유로운 사용·복제·재배포·임베딩**을 허용하며, 본 프로젝트는 빌드된 .exe 내부에 폰트를 임베드하는 형태로 사용합니다(DECISION-Q-007, Issue #7).
 
 ---
 

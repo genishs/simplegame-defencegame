@@ -1,9 +1,26 @@
-# 08. UI 텍스트 모음 (UI Strings)
+# 08. UI 텍스트 모음 (UI Strings) — **SSOT (Single Source of Truth)**
 
-> Phase 2 - 기획 파트 산출물 #9 (스토리)
-> 의존: `00_story_bible.md`, GDD §8(UI 와이어프레임)
-> 본 문서는 게임 내 메뉴·버튼·툴팁·메시지·유닛 설명·도움말 등 **모든 UI 텍스트**를 카테고리별로 정리한다.
+> Phase 2 - 기획 파트 산출물 #9 (스토리). Phase 3.4에서 SSOT로 격상.
+> 의존: `00_story_bible.md`, GDD §8(UI 와이어프레임), `docs/07_wireframes_visuals.md`
+> 본 문서는 게임 내 메뉴·버튼·툴팁·메시지·유닛 설명·도움말 등 **모든 UI 텍스트**의 단일 진실 원천(SSOT)이다.
 > 한국어 표준어, 가족 친화 톤. 키(KEY)는 향후 i18n을 고려해 영문 식별자로 부여.
+
+---
+
+## 결정 사항 (Phase 3.4 디자인 라운드 추가)
+
+본 문서는 Phase 2에서 작성된 v1.0을 Phase 3.4 에서 **SSOT 격상 + 신규 키 7개 추가 + 컨벤션 명문화** 한 v1.1 이다.
+
+| ID | 의사결정 | 근거 |
+| --- | --- | --- |
+| **DECISION-D-P3-001** | `docs/story/08_ui_strings.md` 를 모든 UI 문자열의 **SSOT** 로 채택. 다른 문서(`docs/07`, `docs/09`, story intro/ending 등)는 동일 문자열을 직접 정의하지 않고 **키로 인용** 한다. 단, **스토리 대본 자체 (인트로/엔딩 내레이션 본문, 캐릭터 대사)는 스토리 문서가 원천** 으로 본 문서가 다루는 SSOT 범위는 **UI 컴포넌트의 라벨/버튼/툴팁/메시지/토스트** 에 한정한다. | DECISION-Q-003 (`docs/qa/phase2_decisions.md`) |
+| **DECISION-D-P3-001a** | 키 네이밍 컨벤션은 `<scene>.<component>.<role>` 패턴을 따른다 (자세한 규칙은 §0.1 참조). 기존 키들은 본 컨벤션과 호환되며, 위반 사례 없음을 본 라운드에서 검증. | 본 문서 §0.1 |
+| **DECISION-D-P3-001b** | 신규 키 7건 (`cavalry.sortie`, `dialog.next`, `dialog.skip`, `intro.skip_confirm`, `help.tut1.welcome`, `help.tut2.choose_unit`, `help.tut3.place_unit`, `help.tut4.next_wave`, `help.tut5.skill`, `help.tut6.pause`) 을 추가 — `docs/07_wireframes_visuals.md` §6.5 / §8.10 / §24 (튜토리얼) 요청 반영. **실제로는 10건이 됐다 (help.tut* 가 6건이라 합계 10건)** — `docs/qa/phase2_review.md` 후속 권고와 `docs/07` 인계 체크리스트 §25.2 항목 종결. | 본 문서 §6, §8, §17 |
+| **DECISION-D-P3-001c** | 향후 `src/data/ui_strings.json` 데이터 파일을 빌드 단계에서 자동 추출할 수 있도록, 본 문서의 모든 키 정의는 **표(`| KEY | 표시 텍스트 |`) 형식** 으로 통일한다. 자동 추출 빌드 스크립트는 Phase 3.5 / Phase 4 에서 도입 검토 (DECISION-Q-003 부속). | 본 문서 §0.2 |
+
+상위 의사결정 추적:
+- DECISION-Q-003 (`docs/qa/phase2_decisions.md` 행 9) — SSOT 채택 합의
+- DECISION-D-P3-001 ~ 001c — Phase 3.4 디자인 라운드 본 작업에서 명문화
 
 ---
 
@@ -18,6 +35,101 @@
 - **DECISION-U01**: 모든 버튼 텍스트는 한국어 자연체. "Save"는 "저장하기"가 아닌 "두기" 같은 자연어. (단, 일반 메뉴는 표준 한국어 게임 용어를 따른다 — "저장", "불러오기" 등.)
 - **DECISION-U02**: 키(KEY)는 영문 snake_case. 본 문서가 i18n 리소스 파일의 1차 원천.
 - **DECISION-U03**: 한자·전문용어는 항상 한글 + (한자) 병기. 툴팁은 평이한 풀이.
+
+---
+
+## 0.1 키 네이밍 컨벤션 (DECISION-D-P3-001a)
+
+본 문서의 모든 KEY 는 다음 컨벤션을 따른다.
+
+### 0.1.1 일반 패턴
+
+`<scene>.<component>.<role>`
+
+- **scene** — UI가 등장하는 화면/맥락의 짧은 식별자.
+  - 예: `title`, `menu`, `stage_select`, `hud`, `pause`, `result`, `barracks`, `codex`, `settings`, `help`, `dialog`, `intro`, `credits`, `toast`, `alert`, `gain`, `boss`, `hero`, `enemy`, `unit`, `building`, `stage` (스테이지 메타).
+- **component** — 화면 내 컴포넌트 / 객체 식별자.
+  - 예: `grain`, `population`, `arrows`, `skill1`, `wave_progress`, `next_wave_in`, `new_game`, `continue`, `quit`.
+- **role** — 표시 역할의 보조 라벨 (선택).
+  - 예: `tooltip`, `confirm`, `subtitle`, `ready`, `cooldown`, `locked`, `name`, `cost`.
+
+### 0.1.2 패턴 예시 정리
+
+| KEY | scene | component | role |
+| --- | --- | --- | --- |
+| `hud.grain` | hud | grain | (없음) |
+| `hud.grain.tooltip` | hud | grain | tooltip |
+| `menu.new_game` | menu | new_game | (없음) |
+| `pause.resume` | pause | resume | (없음) |
+| `result.win.title` | result | win | title |
+| `unit.archer.tooltip` | unit | archer | tooltip |
+| `boss.liu.subtitle` | boss | liu | subtitle |
+| `dialog.next` | dialog | next | (없음) |
+| `help.tut1.welcome` | help | tut1 | welcome |
+| `stage.01.name` | stage | 01 | name |
+
+### 0.1.3 예외 / 합의된 변형
+
+- **2단계 키** (예: `dialog.confirm`, `menu.quit`) 는 component 만 있고 role 이 비는 형태로 허용한다. UI 가 단일 의미 라벨 1건만 필요한 경우 자연스럽다.
+- **4단계 키** (예: `result.win.message.s1`, `barracks.tier1.desc`) 는 카테고리(`result.win.*`)의 하위 항목 분기가 필요한 경우 허용. role 위치에 한 단계 더 들어가는 형태.
+- **숫자 식별자** (`stage.01.name`, `barracks.tier1.cost`, `help.tut3.place_unit`) 는 `01`/`02` 두 자릿수 또는 `tier1`/`tut3` 같이 명확한 접두를 붙인다.
+- **plural / template 슬롯** (`{seconds}`, `{count}`, `{current}/{total}`) 은 본 문서 표 안의 표시 텍스트에 직접 노출되며, 런타임 lookup 후 Python `str.format()` 으로 채운다.
+
+### 0.1.4 금지
+
+- 한국어 키 금지 (DECISION-U02).
+- 점(.) 이외 분리자 (예: `-`, `_` 만으로 단계 분리) 금지. (component 내부 단어 결합은 snake_case 로 사용.)
+- 동일 키의 다른 텍스트가 두 군데 이상에서 직접 정의되는 형태 금지 (SSOT 위반).
+
+---
+
+## 0.2 SSOT 운영 규칙 (DECISION-D-P3-001 / 001c)
+
+### 0.2.1 본 문서의 범위
+
+본 문서가 SSOT 인 범위:
+
+- 메뉴/HUD/패널/모달의 **버튼 텍스트, 라벨, 툴팁, 상태 메시지, 알림(토스트), 결과 화면 문구, 단축 설명 (help.*)**.
+- 캐릭터/유닛의 **표시 이름과 코덱스용 짧은 라벨**.
+
+본 문서의 범위가 **아닌** 것 (스토리 문서가 원천):
+
+- 인트로/엔딩 내레이션 본문 (예: "645년 봄, 당의 깃발이 요동으로 향했다.")
+  - 출처: `docs/story/01_intro.md`, `docs/story/07_ending.md`
+- 캐릭터 대사 (양만춘/모용손 등) — 스토리 문서가 원천.
+  - 출처: `docs/story/00_story_bible.md`, 각 stage 스크립트.
+- 코덱스 카드의 **본문** (해설문) — `docs/story/09_codex.md` 가 원천.
+
+### 0.2.2 인용 방식
+
+다른 문서가 UI 문자열을 언급할 때:
+
+- 표 셀 안에 텍스트를 직접 쓰지 말고 **KEY 만** 표기한다. (예: 와이어프레임의 컴포넌트 표 "KEY" 열에 `dialog.next` 만 적고 텍스트 "다음" 은 본 문서에서 lookup.)
+- 본문 중 텍스트를 예시로 보여주는 경우 코드 블록(``` ``` ```)으로 감싸고 끝에 KEY 출처를 명시한다.
+  ```
+  > "곡식이 부족하오."  (alert.grain_short)
+  ```
+- 같은 텍스트가 두 화면에 등장하면 둘 다 같은 KEY 를 인용해야 한다 (예: `dialog.skip` 은 인트로 + 엔딩 컷씬 양쪽에서 사용).
+
+### 0.2.3 코드 인계 (DECISION-D-P3-001c)
+
+향후 빌드 / 런타임 자동화 경로:
+
+1. **Phase 3.4 (현재)** — 본 문서가 SSOT, 코드는 한국어 문자열을 lookup 함수 (`ui_strings(key)`) 를 통해 접근하도록 점진 이관 (Issue #5 후속 PR / Phase 3.5).
+2. **Phase 3.5 / Phase 4** — 빌드 스크립트가 본 문서의 표를 파싱해 `src/data/ui_strings.json` (또는 `.py` 딕셔너리) 을 생성. 데이터 파일은 git 에 커밋하지 않고 빌드 산출물로 처리.
+3. **Phase 5** — i18n. 본 문서의 한국어 텍스트가 `ui_strings.ko.json` 가 되고, 다른 언어 추가 시 동일 KEY 로 `ui_strings.en.json` 등을 추가.
+
+### 0.2.4 코드 grep 가드 (권고)
+
+Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해 `src/ui/*.py`, `src/scenes/*.py` 안에 ui_strings KEY lookup 외의 한국어 리터럴이 들어 있으면 실패하도록 한다 (`docs/10_phase3_plan.md` R-P3-07 위험 완화).
+
+### 0.2.5 정합성 확인
+
+- 본 라운드 종료 시 점검 (디자인 라더 책임):
+  - [x] 모든 키가 §0.1.1 컨벤션 준수
+  - [x] 동일 텍스트의 중복 정의 0건
+  - [x] `docs/07_wireframes_visuals.md` 의 컴포넌트 표에서 텍스트 직접 명세 → KEY 인용으로 치환 (§25.2 체크박스 종결)
+  - [x] `docs/qa/phase2_review.md` 후속 권고 4번 (DECISION-Q-003) 종결
 
 ---
 
@@ -134,6 +246,10 @@
 | `hero.skill.cooldown` | {seconds}초 |
 | `hero.skill.locked` | 잠김 |
 | `hero.respawn_in` | 잠시 후 다시 일어섭니다 ({seconds}초) |
+| `hero.manual_mode.on` | 직접 조작 모드 ON (WASD/방향키 이동) |
+| `hero.manual_mode.off` | 직접 조작 모드 OFF |
+
+> `hero.manual_mode.*` 는 M 키 토글 시 좌하단 상태 라벨에 표시되는 직접조작 모드 표시 텍스트 (Issue #4, DECISION-DL-P3-3-002/007).
 
 ---
 
@@ -441,14 +557,60 @@
 | `dialog.no` | 아니오 |
 | `dialog.ok` | 알겠소 |
 | `dialog.close` | 닫기 |
+| `dialog.next` | 다음 |
+| `dialog.skip` | 건너뛰기 |
 | `dialog.quit.title` | 게임 종료 |
 | `dialog.quit.message` | 정말로 안시성을 떠나시겠습니까? 저장하지 않은 진행은 사라집니다. |
 | `dialog.restart.title` | 다시 시작 |
 | `dialog.restart.message` | 이 스테이지를 처음부터 다시 시작하겠습니까? |
 
+> `dialog.next` / `dialog.skip` 은 인트로 (SCN-03) 및 엔딩 (SCN-10) 컷씬의 공통 컨트롤 버튼 (DECISION-D-P3-001b).
+
 ---
 
-## 16. 페어 토의 — 최종 합의
+## 16. 인트로 / 엔딩 컷씬 컨트롤
+
+본 섹션은 와이어프레임 §6.5 / §13 컷씬 공통 UI 텍스트.
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `intro.skip_confirm` | 인트로를 건너뛰시겠습니까? 도감에서 다시 볼 수 있습니다. |
+
+> 컷씬 본문(내레이션)은 `docs/story/01_intro.md`, `docs/story/07_ending.md` 가 원천 (SSOT 범위 외, §0.2.1).
+> 컷씬 컨트롤 버튼 라벨은 §15 `dialog.next` / `dialog.skip` 을 공유한다.
+
+---
+
+## 17. 인게임 전투 — 기병 출격 / 튜토리얼
+
+본 섹션은 와이어프레임 §8.10 (전투 HUD) 과 §24 (튜토리얼) 의 신규 KEY.
+
+### 17.1 기병 출격
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `cavalry.sortie` | 기병 출격 |
+
+> 사기 게이지 100% 도달 시 우패널 PRV-07 버튼에 표시 (와이어프레임 §8.6.3). 클릭 시 좌·우 출격구에서 기병이 측면으로 돌격 — `unit.cavalry.tooltip` 참조.
+
+### 17.2 튜토리얼 풍선 도움말 (첫 플레이)
+
+스테이지 1 초기 6단계 풍선 도움말. 양만춘 본인의 톤(`~하시오`)으로 통일.
+
+| KEY | 표시 텍스트 |
+|---|---|
+| `help.tut1.welcome` | 위에 자원이 있소. 곡식 134 — 이걸로 병사를 모집하시오. |
+| `help.tut2.choose_unit` | 왼쪽에서 궁수를 골라 보시오. 클릭하면 마우스를 따라옵니다. |
+| `help.tut3.place_unit` | 성벽 위 빈 칸에 클릭으로 배치하시오. |
+| `help.tut4.next_wave` | 오른쪽에 다음 진군 정보가 있소. 적이 무엇인지 확인하시오. |
+| `help.tut5.skill` | 양만춘의 스킬은 Q/W/E. 한 번 발동해 보시오. |
+| `help.tut6.pause` | 잠시 멈추고 싶으면 스페이스, 또는 위 버튼을 누르시오. |
+
+> 풍선 도움말의 표시 위치는 `docs/07_wireframes_visuals.md` §24 / §8.7 (LOG-03) 에 명세. 진행 조건 (예: 자원이 보일 때, 첫 클릭 후) 은 `docs/09_animation_state_diagrams.md` 의 튜토리얼 상태도 참조.
+
+---
+
+## 18. 페어 토의 — 최종 합의
 
 - **리더**: "양만춘 본인의 1인칭/2인칭은 '~하시오/하오/하시오' 위주. 영웅 + 정중함의 균형. 패배 메시지에 짧은 인용 한 줄씩 넣어 톤 일관."
 - **팀원**: "동의. 자원 부족 알림도 영웅 톤. '곡식이 부족하오.' 같이 양만춘이 직접 알려주는 느낌."
@@ -459,3 +621,14 @@
 **다음**: `09_codex.md`
 
 — UI 스트링 v1.0 끝 —
+
+---
+
+## 19. 변경 이력
+
+| 버전 | 일자 | 작성자 | 내용 |
+| --- | --- | --- | --- |
+| v1.0 | 2026-05-17 | 기획 리더 + 팀원 | 최초 작성. §1~§15. |
+| v1.1 | 2026-05-19 | 디자인 리더 (Phase 3.4) | **SSOT 격상** (DECISION-D-P3-001). 키 네이밍 컨벤션 명문화 (§0.1). SSOT 운영 규칙 (§0.2). 신규 키 9건 추가: `dialog.next`, `dialog.skip`, `intro.skip_confirm`, `cavalry.sortie`, `help.tut1.welcome` ~ `help.tut6.pause`. `docs/qa/phase2_review.md` 후속 권고 4번 (DECISION-Q-003) 종결. |
+
+— UI 스트링 v1.1 (SSOT) 끝 —

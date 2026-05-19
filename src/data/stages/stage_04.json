@@ -1,0 +1,87 @@
+{
+  "id": "stage_04",
+  "title": "안시성 외곽",
+  "background": "bg_stage_04",
+  "music": "bgm_battle_04",
+  "starting_gold": 450,
+  "starting_population": 16,
+  "lives": 25,
+  "paths": [
+    {
+      "id": "p_outer_gate",
+      "waypoints": [[0, 540], [300, 540], [300, 300], [700, 300], [700, 540], [1200, 540], [1920, 540]]
+    },
+    {
+      "id": "p_north_flank",
+      "waypoints": [[0, 200], [500, 200], [500, 400], [900, 400], [1920, 400]]
+    },
+    {
+      "id": "p_south_flank",
+      "waypoints": [[0, 800], [600, 800], [600, 600], [1000, 600], [1920, 600]]
+    }
+  ],
+  "build_zones": [
+    { "x": 380, "y": 580, "w": 80, "h": 80 },
+    { "x": 480, "y": 580, "w": 80, "h": 80 },
+    { "x": 580, "y": 580, "w": 80, "h": 80 },
+    { "x": 380, "y": 340, "w": 80, "h": 80 },
+    { "x": 480, "y": 340, "w": 80, "h": 80 },
+    { "x": 800, "y": 580, "w": 80, "h": 80 },
+    { "x": 800, "y": 460, "w": 80, "h": 80 }
+  ],
+  "waves": [
+    {
+      "delay_s": 4.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_outer_gate" }
+      ]
+    },
+    {
+      "delay_s": 10.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_outer_gate" },
+        { "type": "tang_archer", "count": 4, "interval_s": 0.9, "path": "p_north_flank" }
+      ]
+    },
+    {
+      "delay_s": 11.0,
+      "spawns": [
+        { "type": "tang_siege_tower", "count": 2, "interval_s": 3.0, "path": "p_outer_gate" },
+        { "type": "tang_heavy_infantry", "count": 5, "interval_s": 1.0, "path": "p_south_flank" }
+      ]
+    },
+    {
+      "delay_s": 12.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 6, "interval_s": 0.9, "path": "p_outer_gate" },
+        { "type": "tang_cavalry", "count": 3, "interval_s": 1.5, "path": "p_north_flank" },
+        { "type": "tang_archer", "count": 5, "interval_s": 0.8, "path": "p_south_flank" }
+      ]
+    },
+    {
+      "delay_s": 12.0,
+      "spawns": [
+        { "type": "tang_siege_tower", "count": 2, "interval_s": 3.0, "path": "p_north_flank" },
+        { "type": "tang_soldier", "count": 8, "interval_s": 0.6, "path": "p_outer_gate" },
+        { "type": "tang_cavalry", "count": 4, "interval_s": 1.2, "path": "p_south_flank" }
+      ]
+    },
+    {
+      "delay_s": 13.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 8, "interval_s": 0.8, "path": "p_outer_gate" },
+        { "type": "tang_cavalry", "count": 4, "interval_s": 1.2, "path": "p_north_flank" },
+        { "type": "tang_archer", "count": 6, "interval_s": 0.7, "path": "p_south_flank" }
+      ]
+    },
+    {
+      "delay_s": 14.0,
+      "boss": "tang_elite_battering_ram",
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 6, "interval_s": 0.8, "path": "p_outer_gate" },
+        { "type": "tang_cavalry", "count": 4, "interval_s": 1.2, "path": "p_north_flank" }
+      ]
+    }
+  ],
+  "reward": { "gold": 400, "grain": 200, "unlock": "stage_05" }
+}

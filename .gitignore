@@ -25,6 +25,8 @@ htmlcov/
 build/
 dist/
 *.spec
+# Issue #7 / DECISION-DESIGN-P3-4-001: 프로젝트 표준 spec 은 트래킹.
+!AnsiseongDefense.spec
 *.egg-info/
 *.egg
 

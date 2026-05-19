@@ -1,7 +1,8 @@
 """캔버스 기반 재사용 위젯 (Button / Panel / Label).
 
 DESIGN-D-007: 모든 클릭 가능 컴포넌트 hit-target ≥ 44×44 px (베이스 좌표 기준).
-DESIGN-D-006: 폰트는 Malgun Gothic 1순위, 폴백 순서로 시스템 기본 사용.
+DESIGN-D-006 → DECISION-Q-007: 폰트는 번들 Noto Sans KR 1순위, Malgun Gothic 폴백.
+구체 패밀리 해석은 ``src.core.fonts`` 가 담당한다.
 모든 위젯은 scaler를 받아 1920×1080 베이스 좌표를 실제 캔버스 좌표로 변환한다.
 """
 
@@ -9,6 +10,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+
+from src.core.fonts import family_bold as _family_bold
+from src.core.fonts import family_regular as _family_regular
 
 if TYPE_CHECKING:
     import tkinter as tk
@@ -37,7 +41,8 @@ def _font(base_pt: int, bold: bool = False, scaler: Scaler | None = None) -> tup
     if scaler is not None:
         pt = scaler.font_pt(base_pt)
     style = "bold" if bold else "normal"
-    return ("Malgun Gothic", pt, style)
+    family = _family_bold() if bold else _family_regular()
+    return (family, pt, style)
 
 
 # ---------------------------------------------------------------------------
@@ -296,9 +301,11 @@ def make_text_button(
     fill: str = "#3a2a1c",
     outline: str = "#a88a5c",
     text_color: str = "#f0e0c0",
-    font: tuple[str, int, str] = ("Malgun Gothic", 14, "bold"),
+    font: tuple[str, int, str] | None = None,
 ) -> tuple[int, int]:
     """텍스트 버튼을 그리고 ``(rect_id, text_id)``를 반환."""
+    if font is None:
+        font = _font(14, bold=True)
     rect_id = canvas.create_rectangle(
         cx - width / 2,
         cy - height / 2,

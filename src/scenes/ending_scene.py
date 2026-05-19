@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from src.core.fonts import family_bold as _family_bold
+from src.core.fonts import family_regular as _family_regular
 from src.scenes.base_scene import BaseScene
 
 if TYPE_CHECKING:
@@ -145,7 +147,8 @@ class EndingScene(BaseScene):
 
         def font(pt: int, bold: bool = False) -> tuple[str, int, str]:
             style = "bold" if bold else "normal"
-            return ("Malgun Gothic", fpt(pt), style)
+            family = _family_bold() if bold else _family_regular()
+            return (family, fpt(pt), style)
 
         # 제목
         title = str(panel.get("title", ""))

@@ -494,6 +494,12 @@ defensegame/
 
 **DECISION-4.1**: 의존 방향은 위 다이어그램으로 고정. 위반 시 PR reject. `import-linter`로 CI 강제 검사(차후).
 
+**CI 가드: systems/ 및 entities/ 는 tk-free** (Phase 3.1, closes #8)
+- `scripts/check_systems_no_tk.py` — AST 기반 스캔 (로컬 `python scripts/check_systems_no_tk.py --verbose` 로 즉시 확인 가능)
+- `tests/test_systems_no_tk.py` — pytest 통합 (1차 방어선, 로컬 `pytest -q` 에서 즉시 감지)
+- `.github/workflows/ci.yml` — grep + AST 이중 step (2차 방어선, PR 머지 전 CI 강제)
+- 위반 파일 예: `src/systems/foo.py` 에 `import tkinter` → CI 즉시 빨강.
+
 ---
 
 ## 5. 데이터 주도 설계 (Data-Driven Design)
@@ -648,6 +654,29 @@ def load_units() -> dict[str, UnitDef]:
 ```
 
 **DECISION-5.1**: 데이터 외부화 + `dataclass(frozen=True)` 불변 객체. 코드는 데이터를 "읽기 전용"으로 다룬다.
+
+### 5.4 스키마 검증 정책 (Phase 3.1 추가)
+
+Phase 3.1 (Issue #10) 부터 `src/data/schema.py` 모듈이 모든 데이터 JSON에 대해 stdlib-only 스키마 검증을 수행한다.
+
+- **위치**: `src/data/schema.py` — `validate_stage(raw, source=)`, `validate_units(...)`, `validate_enemies(...)`, 예외 `StageSchemaError(ValueError)`.
+- **호출 시점**: `loader.load_stage` / `load_units` / `load_enemies` 진입에서 `json.load` 직후, dataclass 매핑 직전.
+- **에러 메시지 형식**: `[<source>] at '<json.path>': <reason>` — 파일 경로 + JSON path + 사유를 한 줄로.
+- **의존성**: 외부 라이브러리 없음 (DECISION-P3-005). `typing`, `isinstance` 만 사용.
+
+검증 규칙(요약):
+
+| 영역 | 필수 키 | 타입/범위 |
+|------|---------|-----------|
+| stage 루트 | `id`, `title`, `background`, `music`, `starting_gold≥0`, `lives≥1`, `paths(≥1)`, `waves(≥1)` | str / int / list |
+| `paths[*]` | `id`, `waypoints(≥2)` | 각 waypoint = `[x, y]` 정확히 2개 숫자 |
+| `waves[*]` | `delay_s≥0` | `spawns` 또는 `boss` 중 하나는 비공집합 |
+| `waves[*].spawns[*]` | `type`, `count≥1`, `interval_s≥0`, `path` | — |
+| `build_zones[*]` (optional) | `x`, `y`, `w≥1`, `h≥1` | — |
+| `reward` (optional) | `gold≥0` 필수. `grain≥0` / `unlock` optional | `grain` 은 Team1 머지(Issue #2) 후 mandatory 격상 예정 (follow-up Issue) |
+| `units[*]`, `enemies[*]` | 기존 dataclass 필드와 정합 | bool 은 int 검사에서 거부 |
+
+**DECISION-DL-P3-001** (Dev Lead, Phase 3.1): stage/unit/enemy JSON 검증은 stdlib only 의 작은 헬퍼 함수 (`_require_int`, `_require_str`, `_require_list`, ...) + path 추적 방식으로 구현. 외부 의존(`jsonschema`/`pydantic`) 도입은 표현력 부족이 입증될 때만 별도 Issue 로 재검토.
 
 ---
 
