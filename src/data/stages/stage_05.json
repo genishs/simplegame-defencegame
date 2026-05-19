@@ -1,0 +1,119 @@
+{
+  "id": "stage_05",
+  "title": "안시성 토산",
+  "background": "bg_stage_05",
+  "music": "bgm_battle_05_final",
+  "starting_gold": 500,
+  "starting_population": 20,
+  "lives": 30,
+  "paths": [
+    {
+      "id": "p_front_gate",
+      "waypoints": [[0, 540], [350, 540], [350, 300], [750, 300], [750, 540], [1300, 540], [1920, 540]]
+    },
+    {
+      "id": "p_north_wall",
+      "waypoints": [[0, 200], [450, 200], [450, 420], [900, 420], [1920, 420]]
+    },
+    {
+      "id": "p_south_wall",
+      "waypoints": [[0, 860], [550, 860], [550, 650], [1000, 650], [1920, 650]]
+    },
+    {
+      "id": "p_mound_left",
+      "waypoints": [[200, 0], [200, 350], [600, 350], [1920, 350]]
+    }
+  ],
+  "build_zones": [
+    { "x": 430, "y": 580, "w": 80, "h": 80 },
+    { "x": 530, "y": 580, "w": 80, "h": 80 },
+    { "x": 630, "y": 580, "w": 80, "h": 80 },
+    { "x": 430, "y": 340, "w": 80, "h": 80 },
+    { "x": 530, "y": 340, "w": 80, "h": 80 },
+    { "x": 850, "y": 580, "w": 80, "h": 80 },
+    { "x": 850, "y": 460, "w": 80, "h": 80 },
+    { "x": 950, "y": 580, "w": 80, "h": 80 },
+    { "x": 430, "y": 460, "w": 80, "h": 80 }
+  ],
+  "waves": [
+    {
+      "delay_s": 4.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 8, "interval_s": 0.6, "path": "p_front_gate" }
+      ]
+    },
+    {
+      "delay_s": 12.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 6, "interval_s": 0.8, "path": "p_front_gate" },
+        { "type": "tang_archer", "count": 5, "interval_s": 0.8, "path": "p_north_wall" }
+      ]
+    },
+    {
+      "delay_s": 12.0,
+      "spawns": [
+        { "type": "tang_siege_tower", "count": 2, "interval_s": 3.0, "path": "p_front_gate" },
+        { "type": "tang_cavalry", "count": 4, "interval_s": 1.2, "path": "p_south_wall" },
+        { "type": "tang_heavy_infantry", "count": 5, "interval_s": 0.8, "path": "p_north_wall" }
+      ]
+    },
+    {
+      "delay_s": 13.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 8, "interval_s": 0.7, "path": "p_front_gate" },
+        { "type": "tang_cavalry", "count": 5, "interval_s": 1.1, "path": "p_north_wall" },
+        { "type": "tang_archer", "count": 6, "interval_s": 0.7, "path": "p_south_wall" }
+      ]
+    },
+    {
+      "delay_s": 13.0,
+      "spawns": [
+        { "type": "tang_siege_tower", "count": 3, "interval_s": 3.0, "path": "p_front_gate" },
+        { "type": "tang_heavy_infantry", "count": 6, "interval_s": 0.7, "path": "p_south_wall" },
+        { "type": "tang_cavalry", "count": 4, "interval_s": 1.2, "path": "p_north_wall" }
+      ]
+    },
+    {
+      "delay_s": 14.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 10, "interval_s": 0.6, "path": "p_front_gate" },
+        { "type": "tang_archer", "count": 8, "interval_s": 0.6, "path": "p_mound_left" },
+        { "type": "tang_cavalry", "count": 5, "interval_s": 1.0, "path": "p_south_wall" }
+      ]
+    },
+    {
+      "delay_s": 14.0,
+      "spawns": [
+        { "type": "tang_heavy_infantry", "count": 10, "interval_s": 0.6, "path": "p_front_gate" },
+        { "type": "tang_cavalry", "count": 6, "interval_s": 1.0, "path": "p_north_wall" },
+        { "type": "tang_archer", "count": 8, "interval_s": 0.6, "path": "p_mound_left" }
+      ]
+    },
+    {
+      "delay_s": 15.0,
+      "spawns": [
+        { "type": "tang_elite_guard", "count": 6, "interval_s": 1.0, "path": "p_front_gate" },
+        { "type": "tang_heavy_infantry", "count": 8, "interval_s": 0.6, "path": "p_south_wall" },
+        { "type": "tang_cavalry", "count": 5, "interval_s": 1.0, "path": "p_north_wall" }
+      ]
+    },
+    {
+      "delay_s": 15.0,
+      "spawns": [
+        { "type": "tang_elite_guard", "count": 8, "interval_s": 0.9, "path": "p_front_gate" },
+        { "type": "tang_cavalry", "count": 6, "interval_s": 1.0, "path": "p_north_wall" },
+        { "type": "tang_archer", "count": 8, "interval_s": 0.6, "path": "p_mound_left" }
+      ]
+    },
+    {
+      "delay_s": 16.0,
+      "boss": "tang_taizong",
+      "spawns": [
+        { "type": "tang_elite_guard", "count": 10, "interval_s": 0.8, "path": "p_front_gate" },
+        { "type": "tang_cavalry", "count": 6, "interval_s": 1.0, "path": "p_north_wall" },
+        { "type": "tang_heavy_infantry", "count": 8, "interval_s": 0.7, "path": "p_south_wall" }
+      ]
+    }
+  ],
+  "reward": { "gold": 600, "grain": 300 }
+}

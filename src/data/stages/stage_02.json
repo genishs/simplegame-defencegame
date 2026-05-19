@@ -1,0 +1,64 @@
+{
+  "id": "stage_02",
+  "title": "백암성의 항복",
+  "background": "bg_stage_02",
+  "music": "bgm_battle_02",
+  "starting_gold": 350,
+  "starting_population": 12,
+  "lives": 20,
+  "paths": [
+    {
+      "id": "p_main",
+      "waypoints": [[0, 540], [480, 540], [480, 300], [960, 300], [960, 480], [1920, 480]]
+    }
+  ],
+  "build_zones": [
+    { "x": 560, "y": 580, "w": 80, "h": 80 },
+    { "x": 660, "y": 580, "w": 80, "h": 80 },
+    { "x": 760, "y": 580, "w": 80, "h": 80 },
+    { "x": 560, "y": 360, "w": 80, "h": 80 }
+  ],
+  "waves": [
+    {
+      "delay_s": 3.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 5, "interval_s": 0.8, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 9.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_main" },
+        { "type": "tang_archer", "count": 3, "interval_s": 1.0, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 10.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 7, "interval_s": 0.7, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 10.0,
+      "spawns": [
+        { "type": "tang_archer", "count": 5, "interval_s": 0.9, "path": "p_main" },
+        { "type": "tang_soldier", "count": 4, "interval_s": 0.8, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 12.0,
+      "spawns": [
+        { "type": "tang_soldier", "count": 8, "interval_s": 0.6, "path": "p_main" },
+        { "type": "tang_archer", "count": 4, "interval_s": 0.9, "path": "p_main" }
+      ]
+    },
+    {
+      "delay_s": 10.0,
+      "boss": "tang_vanguard_captain",
+      "spawns": [
+        { "type": "tang_soldier", "count": 6, "interval_s": 0.7, "path": "p_main" }
+      ]
+    }
+  ],
+  "reward": { "gold": 250, "grain": 100, "unlock": "stage_03" }
+}
