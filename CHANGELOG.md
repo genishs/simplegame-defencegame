@@ -4,7 +4,22 @@
 
 ## [Unreleased]
 
-> Phase 3 라운드 누적 변경. **Phase 3.5 수직 슬라이스 완료 (2026-05-19)** — 다음 SCM 라운드에서 `v0.3.0-rc.1` 태그 및 `v0.3.0` 정식 머지.
+> Phase 4 진입 대기. 현재 변경 없음.
+
+## [0.3.0] - 2026-05-19 — Phase 3 완료
+
+> Phase 3 라운드 (3.1 통합 하드닝 → 3.2 스테이지 데이터 → 3.3 프로토타입 통합 → 3.4 디자인/스토리 + 폰트 번들 → 3.5 수직 슬라이스 + 회귀 매트릭스) 전체 종료. `v0.3.0-rc.1` 사전 릴리즈 후 사용자 시각 검수(CAT-01~04) 통과 시 정식 `v0.3.0` GA 승격 예정 (DECISION-SCM-P3-006).
+
+### Phase 3.5 회귀 매트릭스 + 시나리오 카탈로그 (2026-05-19)
+
+#### Added
+- `docs/qa/regression_matrix.md` (신규): Phase 3 누적 회귀 매트릭스 — 메뉴 / 스테이지 선택 / 배틀 / 결과 / 엔딩 5 씬별 자동 가드 매핑
+- `docs/qa/scenario_catalog.md` (신규): 사용자 시각 검수 시나리오 카탈로그 CAT-01~04 (메뉴 네비게이션, 스테이지 풀 사이클, 영웅 M키 모드, 폰트 한글 렌더링)
+- `tests/test_regression_p3_5.py` (신규, 21건): 회귀 매트릭스 자동 가드 — MN-03~05 메뉴 키보드, BT-01~03 배틀 진입/스폰, RD-01~02 ResultDialog 라우팅, ED-01 엔딩 검출, FT-01 폰트 SSOT, UI-01~02 ui_strings SSOT 키 등
+
+#### Changed (Phase 3 finalize, DECISION-SCM-P3-001)
+- `tests/test_regression_p3_5.py::test_menu_enter_key_triggers_goto_for_focused_button`: 회귀 가드 기준을 수직 슬라이스 흐름(메뉴 → 스테이지 선택 → 배틀, PR #24/DECISION-DL-P3-5-002) 에 맞춰 `battle` → `stage_select` 로 갱신. PR #23 작성 시점(수직 슬라이스 미적용)과 PR #24 머지 결과(라우팅 변경) 가 양립 불가하여 SCM finalize 단계에서 보정.
+
 
 ### Phase 3.5 수직 슬라이스 데모 (2026-05-19)
 
@@ -199,6 +214,7 @@
 - 본 버전은 사전 기획·인프라 단계로, 실행 가능한 게임 코드는 아직 포함하지 않습니다.
 - 라이선스는 미정이며 추후 결정합니다.
 
-[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/genishs/simplegame-defencegame/releases/tag/v0.1.0
