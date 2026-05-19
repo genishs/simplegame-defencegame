@@ -253,7 +253,7 @@ class BattleScene(BaseScene):
         stage = self.stage
         stars = 1 if victory else 0
         fame = stars * 3
-        grain = self.stage.reward.get("grain", 0) if stage else 0
+        grain = stage.reward.grain if stage else 0
 
         stats: dict[str, Any] = {
             "stars": stars,
