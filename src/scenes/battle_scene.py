@@ -49,10 +49,14 @@ _HERO_DIR_KEYS: dict[str, tuple[float, float]] = {
     "D": (1.0, 0.0),
 }
 
-# UI 문자열 (docs/story/08_ui_strings.md §3.4 — DECISION-DL-P3-3-007)
+# UI 문자열 (docs/story/08_ui_strings.md §3.4 — DECISION-DL-P3-3-007 / P3-5-005)
 _UI_STRINGS_DEFAULT: dict[str, str] = {
     "hero.manual_mode.on": "직접 조작 모드 ON (WASD/방향키 이동)",
     "hero.manual_mode.off": "직접 조작 모드 OFF",
+    # Issue #12 — 배틀 씬 진입 안내 텍스트도 SSOT 키 사용.
+    "battle.placeholder.intro": (
+        "전투 — {stage_id}\n웨이브: {waves}\n" "ESC/Space = 일시정지 | M = 직접조작 모드"
+    ),
 }
 
 
@@ -157,6 +161,24 @@ class BattleScene(BaseScene):
             self.world["lives"] = self.stage.lives
             self.wave.load(self.stage.waves)
 
+        # 영웅(양만춘) 생성 — 수직 슬라이스 (Issue #12, DECISION-DL-P3-5-003).
+        # build_zones 평균 좌표 부근 또는 화면 중앙에 스폰. 자동 AI 작동.
+        # M키 토글 시 _hero_direct_mode 가 True 가 되어 수동 이동 처리.
+        if self.world.get("hero") is None:
+            try:
+                from src.entities.hero import Hero
+
+                hero_x, hero_y = self._compute_hero_spawn_xy()
+                self.world["hero"] = Hero(x=hero_x, y=hero_y)
+                self._log.debug(
+                    "hero spawned at (%.1f, %.1f) stage=%s",
+                    hero_x,
+                    hero_y,
+                    self.stage_id,
+                )
+            except Exception as exc:  # noqa: BLE001
+                self._log.warning("hero spawn failed: %s", exc)
+
         # HUD 초기화 (상단 바 + 영웅 패널)
         self.hud.build(
             canvas,
@@ -164,15 +186,14 @@ class BattleScene(BaseScene):
             on_pause_click=self._toggle_pause,
         )
 
-        # 전투 플레이스홀더 텍스트
+        # 전투 진입 안내 텍스트 (Issue #12, DECISION-DL-P3-5-005)
+        waves_count = len(self.stage.waves) if self.stage else 0
         self._placeholder_id = canvas.create_text(
             w / 2,
             h / 2,
-            text=(
-                "전투 씬 — Phase 2 구현 중\n"
-                f"stage: {self.stage_id}    "
-                f"waves: {len(self.stage.waves) if self.stage else 0}\n"
-                "ESC/Space = 일시정지 | M = 직접조작 모드"
+            text=_UI_STRINGS_DEFAULT["battle.placeholder.intro"].format(
+                stage_id=self.stage_id,
+                waves=waves_count,
             ),
             fill="#e0d0a0",
             font=(_family_regular(), 16),
@@ -182,12 +203,13 @@ class BattleScene(BaseScene):
 
         # 직접조작 모드 상태 표시 (DECISION-DL-P3-3-002).
         # 좌하단 영역에 토글 상태를 항시 표시 → 토스트보다 영구적이라 모드 망각 방지.
+        # Issue #12: 폰트는 SSOT (Noto Sans KR / Malgun Gothic 폴백) 로 통일.
         self._manual_mode_label_id = canvas.create_text(
             16,
             h - 24,
             text=_UI_STRINGS_DEFAULT["hero.manual_mode.off"],
             fill="#8a7a4a",
-            font=("Malgun Gothic", 12),
+            font=(_family_regular(), 12),
             anchor="w",
             tags=(self._tag, "manual_mode_label"),
         )
@@ -398,7 +420,13 @@ class BattleScene(BaseScene):
             self._end_battle(victory=True)
 
     def _end_battle(self, victory: bool) -> None:
-        """전투 종료 처리."""
+        """전투 종료 처리.
+
+        - 승리 + 마지막 stage(=stage_05): "다음" → ending 씬 (수직 슬라이스 종결).
+        - 승리 + 그 외 stage: "다음" → stage_select (다음 스테이지 선택 가능).
+        - 패배: 다음/재도전 모두 stage_select 로 회귀 (게임오버 다이얼로그 표시).
+        (Issue #12, DECISION-DL-P3-5-004)
+        """
         if self._game_over:
             return
         self._game_over = True
@@ -416,6 +444,10 @@ class BattleScene(BaseScene):
             "waves_survived": self.wave.current_wave,
         }
 
+        # "다음" 동선 결정: stage_05 클리어 + 승리 → ending 으로 직행.
+        is_final_stage_win = bool(victory) and self.stage_id == "stage_05"
+        next_scene = "ending" if is_final_stage_win else "stage_select"
+
         canvas = self.app.canvas
         scaler = self.app.scaler
         self._result_dialog = ResultDialog(
@@ -423,11 +455,22 @@ class BattleScene(BaseScene):
             scaler,
             victory=victory,
             stats=stats,
-            on_next=lambda: self.app.goto("stage_select"),
+            on_next=lambda: self.app.goto(next_scene),
             on_retry=lambda: self.app.goto("battle"),
             on_menu=lambda: self.app.goto("stage_select"),
         )
         self._result_dialog.show()
+
+    def _compute_hero_spawn_xy(self) -> tuple[float, float]:
+        """영웅 스폰 좌표 계산 (Issue #12, DECISION-DL-P3-5-003).
+
+        - stage.build_zones 가 있으면 첫 zone 중앙.
+        - 없으면 1920×1080 화면 중앙.
+        """
+        if self.stage is not None and self.stage.build_zones:
+            z = self.stage.build_zones[0]
+            return (float(z["x"]) + float(z["w"]) / 2.0, float(z["y"]) + float(z["h"]) / 2.0)
+        return (960.0, 540.0)
 
     def _refresh_hud(self) -> None:
         """HUD state dict를 구성해서 업데이트."""

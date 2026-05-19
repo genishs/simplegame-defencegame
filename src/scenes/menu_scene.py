@@ -34,10 +34,13 @@ _STRINGS: dict[str, str] = {
 }
 
 # 와이어프레임 §4.2 버튼 배치 (베이스 1920×1080)
+# Phase 3.5 (Issue #12, DECISION-DL-P3-5-002):
+# 수직 슬라이스 흐름 (메뉴 → 스테이지 선택 → 배틀 → 엔딩) 을 위해
+# "새 게임" 과 "이어하기" 도 stage_select 로 라우팅. 기존 battle 직행은 제거.
 _BUTTONS: list[tuple[str, str, float, float, float, float]] = [
     # (key, scene_or_action, bx, by, bw, bh)
-    ("menu.new_game", "battle", 760, 520, 400, 70),
-    ("menu.continue", "battle", 760, 600, 400, 70),
+    ("menu.new_game", "stage_select", 760, 520, 400, 70),
+    ("menu.continue", "stage_select", 760, 600, 400, 70),
     ("menu.stage_select", "stage_select", 760, 680, 400, 70),
     ("menu.barracks", "menu", 760, 760, 400, 70),
     ("menu.codex", "menu", 760, 840, 400, 70),
