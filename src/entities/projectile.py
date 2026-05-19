@@ -3,6 +3,13 @@
 등속 직선 운동으로 타겟을 향해 이동한다.
 타겟까지 거리 < hit_radius이면 ``hit=True``.
 타겟이 dying이면 fly-through 후 ``should_release=True``로 자동 회수.
+
+DECISION-DL-P5P-002 (Issue #44): swept-circle 충돌 판정.
+  과거: 발사체 line-segment vs 타겟 현재 좌표(점) 최단거리. 타겟이 같은 dt 동안
+        반대 방향으로 이동하면 발사체가 hit_radius 를 통과하면서도 명중 누락.
+  현재: 발사체와 타겟 양쪽의 동시 이동을 고려한 swept-circle distance — 타겟에
+        ``_prev_x/_prev_y`` (이전 틱 좌표 스냅샷) 이 있으면 양 선분의 최소 거리,
+        없으면 기존 단일-선분 검사로 fallback (하위 호환).
 """
 
 from __future__ import annotations
@@ -72,11 +79,14 @@ class Projectile(Entity):
     # ------------------------------------------------------------------
 
     def update(self, dt: float) -> None:
-        """등속 직선 이동 + 명중 판정.
+        """등속 직선 이동 + swept-circle 명중 판정.
 
-        타겟 엔티티가 있으면 그 현재 좌표로, 없으면 발사 시 좌표 스냅샷으로
-        거리를 계산한다. 한 틱에 타겟을 통과할 수 있으므로 이동 전후의 최소
-        거리를 기준으로 판정한다.
+        타겟이 같은 dt 동안 이동할 수 있으므로 발사체 선분 [proj_old → proj_new]
+        과 타겟 선분 [tgt_old → tgt_new] 사이의 최소 거리 < hit_radius 이면 명중.
+        타겟에 ``_prev_x/_prev_y`` 가 없으면 점(현재 좌표)으로 fallback.
+
+        DECISION-DL-P5P-002 (Issue #44): swept-circle 충돌 — Enemy 가 같은 틱에
+        반대 방향으로 빠르게 이동하는 케이스에서도 hit_radius 통과 감지.
 
         Args:
             dt: 경과 시간(초).
@@ -90,15 +100,21 @@ class Projectile(Entity):
             return
 
         # 명중 좌표 결정 (이동 전)
+        # 타겟 엔티티의 prev 좌표가 있으면 이를 사용해 swept-circle 평가.
+        # CombatSystem 이 매 틱 시작 시 _prev_x/_prev_y 를 갱신한다.
         if self.target is not None:
-            tx = self.target.x
-            ty = self.target.y
+            tx_new = self.target.x
+            ty_new = self.target.y
+            tx_old = float(getattr(self.target, "_prev_x", tx_new))
+            ty_old = float(getattr(self.target, "_prev_y", ty_new))
         else:
-            tx = self._target_x
-            ty = self._target_y
+            tx_new = self._target_x
+            ty_new = self._target_y
+            tx_old = tx_new
+            ty_old = ty_new
 
         # 이동 전 거리 확인
-        dist_before = math.hypot(tx - self.x, ty - self.y)
+        dist_before = math.hypot(tx_old - self.x, ty_old - self.y)
         if dist_before < self.hit_radius:
             self.hit = True
             return
@@ -106,29 +122,36 @@ class Projectile(Entity):
         # 이동 전 위치 저장
         old_x, old_y = self.x, self.y
 
-        # 이동
+        # 발사체 이동
         self.x += self.vx * dt
         self.y += self.vy * dt
 
-        # 이동 후 거리 확인
-        dist_after = math.hypot(tx - self.x, ty - self.y)
+        # 이동 후 거리 확인 (발사체 new vs 타겟 new)
+        dist_after = math.hypot(tx_new - self.x, ty_new - self.y)
         if dist_after < self.hit_radius:
             self.hit = True
             return
 
-        # 통과 감지: 이동 선분 상 타겟의 최근접 거리를 계산
-        # 선분 [old → new] 위의 점 P = old + t*(new-old), t in [0,1]
-        seg_dx = self.x - old_x
-        seg_dy = self.y - old_y
-        seg_len_sq = seg_dx * seg_dx + seg_dy * seg_dy
-        if seg_len_sq > 0:
-            t = ((tx - old_x) * seg_dx + (ty - old_y) * seg_dy) / seg_len_sq
-            t = max(0.0, min(1.0, t))
-            closest_x = old_x + t * seg_dx
-            closest_y = old_y + t * seg_dy
-            closest_dist = math.hypot(tx - closest_x, ty - closest_y)
-            if closest_dist < self.hit_radius:
-                self.hit = True
+        # Swept-circle: 두 선분의 최단 거리.
+        # 발사체 위치: P(t) = proj_old + t * (proj_new - proj_old), t in [0,1]
+        # 타겟 위치:   T(t) = tgt_old + t * (tgt_new - tgt_old),   t in [0,1]
+        # 둘 사이 거리 vector: D(t) = (proj_old - tgt_old) + t * ((proj_new - tgt_new) - (proj_old - tgt_old))
+        # |D(t)|^2 가 t in [0,1] 에서 최소가 되는 t* 를 구한 뒤 거리 < hit_radius 검증.
+        dx0 = old_x - tx_old
+        dy0 = old_y - ty_old
+        dvx = (self.x - tx_new) - dx0
+        dvy = (self.y - ty_new) - dy0
+        denom = dvx * dvx + dvy * dvy
+        if denom <= 1e-12:
+            # 두 entity 가 동일 속도로 평행 이동 → 거리 일정. 이미 dist_before 로 처리됨.
+            return
+        t_star = -(dx0 * dvx + dy0 * dvy) / denom
+        t_star = max(0.0, min(1.0, t_star))
+        closest_dx = dx0 + t_star * dvx
+        closest_dy = dy0 + t_star * dvy
+        closest_dist = math.hypot(closest_dx, closest_dy)
+        if closest_dist < self.hit_radius:
+            self.hit = True
 
     # ------------------------------------------------------------------
     # 초기화 (풀에서 재사용 시)

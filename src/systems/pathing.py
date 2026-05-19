@@ -94,6 +94,13 @@ class PathingSystem:
             if getattr(enemy, "dying", False):
                 continue
 
+            # DECISION-DL-P5P-002 (Issue #44): 이동 직전 좌표 스냅샷.
+            # Projectile.update 의 swept-circle 충돌 판정이 이 값을 사용해
+            # (prev → cur) dt-segment 를 정확히 평가한다. CombatSystem 이
+            # PathingSystem 이후 호출되므로 (prev=이번 틱 이동 전, cur=이동 후).
+            enemy._prev_x = float(enemy.x)
+            enemy._prev_y = float(enemy.y)
+
             # 경로 선택: dict이면 path_id로 조회, list이면 직접 사용
             if isinstance(wp_map, dict):
                 path_id = getattr(enemy, "path_id", "")
