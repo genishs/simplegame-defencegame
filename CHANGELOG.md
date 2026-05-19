@@ -4,6 +4,53 @@
 
 ## [Unreleased]
 
+### Phase 3.1 통합 하드닝 (2026-05-19)
+
+#### Added
+- `stage_01.json` `reward.grain: 50` 데이터 패치 (Issue #2 / DECISION-Q-011)
+- `StageReward` dataclass 도입 (`src/data/loader.py`): `gold/grain/unlock` 타입 필드, 기본값 0 비파괴
+- `scripts/check_systems_no_tk.py` (신규, AST 기반): `src/systems/` 도메인 계층 tkinter import 금지 가드. `TYPE_CHECKING` 가드 내 import는 허용 (DECISION-T1-P3-001)
+- CI `ci.yml`: grep + AST 이중 방어선 step 추가 (Issue #8 / DECISION-4.1)
+- `src/data/schema.py` (신규, 427줄): stdlib-only stage JSON schema validator. `validate_stage / validate_units / validate_enemies` + `StageSchemaError` (Issue #10 / DECISION-DL-P3-001)
+- 테스트 +62건: `test_stage_reward_grain` (11), `test_systems_no_tk` (18), `test_stage_schema` (33). pytest **195 passed**
+- 문서: `docs/04_technical_architecture.md` §5.4 schema policy, CI tk-free 가드 현황 주석
+
+#### Changed
+- `src/data/loader.py`: schema validation 호출 추가 + `__all__` 정비. `StageDef.reward` 타입 `dict → StageReward`
+- `src/scenes/battle_scene.py`: `stage.reward.grain` 직접 접근으로 단순화
+
+### Phase 3.4 디자인/스토리 적용 — 일부 (2026-05-19)
+
+#### Added
+- `docs/assets/placeholders/character_placeholders.md` (신규, 374줄): 5개 주요 캐릭터 플레이스홀더 (양만춘/연개소문/이세민/이도종/유백영) (Issue #6)
+- `docs/assets/placeholders/README.md` (신규): 플레이스홀더 운영 정책
+
+#### Changed
+- `docs/story/08_ui_strings.md` v1.0 → **v1.1 SSOT 격상** (Issue #5 / DECISION-D-P3-001 ~ 001c): 키 네이밍 컨벤션 `<scene>.<component>.<role>` 명문화, 신규 UI 키 10건 추가 (cavalry.sortie, dialog.next/skip, intro.skip_confirm, help.tut1~6.*)
+- `docs/07_wireframes_visuals.md`: 픽션·승인대기 → 픽션 라벨 정리 (7건, DECISION-SCM-P3-001)
+
+### CI / Workflow
+
+#### Added
+- `docs/06_ci_release_workflow.md`: prerelease 감지 정책 명문화 (Issue #9)
+- prerelease 태그 regex 단위 테스트 23건
+- `release-windows.yml`: SemVer pre-release suffix 기반 prerelease 자동 감지
+
+### Closed Issues
+- #2 reward.grain 데이터 패치
+- #5 UI strings SSOT v1.1
+- #6 캐릭터 플레이스홀더 5종
+- #8 src/systems tkinter import 금지 CI 가드
+- #9 prerelease 감지 정책
+- #10 stage JSON schema validator
+
+### Decisions (Phase 3)
+- DECISION-T1-P3-001 (TYPE_CHECKING import 예외), DECISION-DL-P3-001 (stdlib-only validator), DECISION-D-P3-001 / 001a / 001b / 001c (UI strings SSOT + 컨벤션 + 신규 키 + 표 형식), DECISION-SCM-P3-001 (회수 4파일 한정 픽션 라벨 일괄 치환), DECISION-SCM-P3-002 (변경분 외 일괄 치환 보류)
+
+### Notes
+- 본 라운드는 Phase 3.1 통합 하드닝 종결 + Phase 3.4 디자인 일부. Phase 3.2(stages 02~05 데이터, #11) / 3.3(프로토타입 통합) / 3.5(사용자 검수) 다음 라운드 예정
+- main 브랜치 머지 및 `v0.3.0` 태깅은 Phase 3 전체 종료 시 수행
+
 ## [0.2.0] - 2026-05-19 — Phase 2 완료
 
 ### Added
