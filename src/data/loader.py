@@ -66,6 +66,19 @@ class WaveDef:
 
 
 @dataclass(frozen=True)
+class StageReward:
+    """스테이지 클리어 보상 (DECISION-Q-011: grain 필드 추가).
+
+    비파괴 기본값: ``grain=0`` 으로 기존 JSON 에 grain 이 없어도 로드됨.
+    신규 스테이지는 반드시 grain 을 명시적으로 채울 것.
+    """
+
+    gold: int = 0
+    grain: int = 0
+    unlock: str | None = None
+
+
+@dataclass(frozen=True)
 class StageDef:
     id: str
     title: str
@@ -77,7 +90,7 @@ class StageDef:
     paths: tuple[PathDef, ...]
     build_zones: tuple[dict[str, int], ...]
     waves: tuple[WaveDef, ...]
-    reward: dict[str, Any] = field(default_factory=dict)
+    reward: StageReward = field(default_factory=StageReward)
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +139,15 @@ def load_enemies(data_root=DATA_ROOT) -> dict[str, EnemyDef]:  # type: ignore[no
     return out
 
 
+def _parse_reward(raw_reward: dict[str, Any]) -> StageReward:
+    """reward 딕셔너리를 ``StageReward`` dataclass 로 변환."""
+    return StageReward(
+        gold=int(raw_reward.get("gold", 0)),
+        grain=int(raw_reward.get("grain", 0)),
+        unlock=raw_reward.get("unlock"),
+    )
+
+
 def load_stage(stage_id: str, data_root=DATA_ROOT) -> StageDef:  # type: ignore[no-untyped-def]
     raw = _read_json(data_root / "stages" / f"{stage_id}.json")
     paths = tuple(
@@ -162,5 +184,5 @@ def load_stage(stage_id: str, data_root=DATA_ROOT) -> StageDef:  # type: ignore[
         paths=paths,
         build_zones=tuple(dict(z) for z in raw.get("build_zones", [])),
         waves=waves,
-        reward=dict(raw.get("reward", {})),
+        reward=_parse_reward(dict(raw.get("reward", {}))),
     )

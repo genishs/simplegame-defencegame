@@ -494,6 +494,12 @@ defensegame/
 
 **DECISION-4.1**: 의존 방향은 위 다이어그램으로 고정. 위반 시 PR reject. `import-linter`로 CI 강제 검사(차후).
 
+**CI 가드: systems/ 및 entities/ 는 tk-free** (Phase 3.1, closes #8)
+- `scripts/check_systems_no_tk.py` — AST 기반 스캔 (로컬 `python scripts/check_systems_no_tk.py --verbose` 로 즉시 확인 가능)
+- `tests/test_systems_no_tk.py` — pytest 통합 (1차 방어선, 로컬 `pytest -q` 에서 즉시 감지)
+- `.github/workflows/ci.yml` — grep + AST 이중 step (2차 방어선, PR 머지 전 CI 강제)
+- 위반 파일 예: `src/systems/foo.py` 에 `import tkinter` → CI 즉시 빨강.
+
 ---
 
 ## 5. 데이터 주도 설계 (Data-Driven Design)
