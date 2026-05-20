@@ -780,11 +780,26 @@ class TutorialScene(BaseScene):
         Issue #49 (DECISION-DL-P4D-001): spotlight 가 가리키는 HUD 대상의
         **mock placeholder** 를 마스크 위에 직접 그려, 동그라미 안이 비어 있는
         현상을 해소한다. z-order = mask → mock content → ring → arrow → label.
+
+        Issue #55 (DECISION-DL-P4D-009): 인터랙티브 단계의 spotlight 영역에
+        클릭 핸들러를 binding 한다. 단계 2(resource) → trigger_step2_done,
+        단계 3(buildzone) → trigger_step3_done. mask 는 hit-target 가로채지
+        못하도록 z-order 아래에, mock content/ring 에 직접 binding 한다.
         """
         canvas = self.app.canvas
         cx, cy, radius = _HUD_TARGETS[target_key]
 
+        # Issue #55 (DECISION-DL-P4D-009): mock content 가 그려지기 전에
+        # click handler 를 미리 설정해 _draw_mock_target_content 가 각 mock 아이템에
+        # binding 할 수 있도록 한다.
+        self._spotlight_click_handler = None
+        if target_key == "resource":
+            self._spotlight_click_handler = lambda _e: self.trigger_step2_done()
+        elif target_key == "buildzone":
+            self._spotlight_click_handler = lambda _e: self.trigger_step3_done()
+
         # 반투명 마스크 (전체 화면)
+        # Issue #55: 마스크에 클릭 binding 없음 → spotlight 안 콘텐츠가 우선.
         mx1, my1 = _sx(scaler, 0, 0)
         mx2, my2 = _sx(scaler, 1920, 1080)
         mask = canvas.create_rectangle(
@@ -800,11 +815,26 @@ class TutorialScene(BaseScene):
         self._step_ids.append(mask)
 
         # mock HUD placeholder (마스크 위, ring 아래) — Issue #49 fix
+        # Issue #55: mock content 에 단계별 클릭 핸들러 binding.
         self._draw_mock_target_content(scaler, target_key)
 
-        # spotlight ring (마스크 위, 진짜 컷아웃 대용)
+        # spotlight ring — Issue #55: filled transparent area 추가
+        # 원형 영역 자체에 클릭 binding 을 가능하게 하기 위해 fill 을 stipple 로 채운다.
+        # outline-only ring 은 영역이 아니라 윤곽선만 hit area 가 되므로 클릭이 어렵다.
         sx1, sy1 = _sx(scaler, cx - radius, cy - radius)
         sx2, sy2 = _sx(scaler, cx + radius, cy + radius)
+        # 투명한 내부 hit area (transparent 표시이지만 클릭 받음)
+        ring_fill = canvas.create_oval(
+            sx1,
+            sy1,
+            sx2,
+            sy2,
+            fill="",
+            outline="",
+            tags=(self._tag, "tutorial_spotlight_hit"),
+        )
+        self._step_ids.append(ring_fill)
+        # 외곽선 ring
         ring = canvas.create_oval(
             sx1,
             sy1,
@@ -815,6 +845,11 @@ class TutorialScene(BaseScene):
             tags=(self._tag, "tutorial_spotlight_ring"),
         )
         self._step_ids.append(ring)
+
+        # Issue #55 (DECISION-DL-P4D-009): 인터랙티브 단계의 spotlight 영역 클릭 핸들러.
+        # ring 자체는 outline-only 라 클릭이 어려우니 ring_fill 과 mock content 에
+        # 모두 바인딩. ring_fill 은 fill="" 라 clear 영역으로 z-order 위 콘텐츠를 안 가린다.
+        self._bind_spotlight_click(target_key, ring_fill, ring)
 
         # 화살표 (단순 polygon)
         arrow_origin_x = cx + radius + 20
@@ -855,6 +890,22 @@ class TutorialScene(BaseScene):
             )
             self._step_ids.append(label_id)
 
+    def _bind_spotlight_click(self, target_key: str, *canvas_ids: int) -> None:
+        """spotlight ring/hit-area 에 단계 진행 클릭 핸들러 binding (Issue #55).
+
+        ``_draw_spotlight`` 에서 미리 set 된 ``self._spotlight_click_handler`` 를 사용.
+        target_key 별 trigger 매핑은 _draw_spotlight 에서 결정한다.
+        """
+        canvas = self.app.canvas
+        handler = getattr(self, "_spotlight_click_handler", None)
+        if handler is None:
+            return
+        for cid in canvas_ids:
+            try:
+                canvas.tag_bind(cid, "<ButtonRelease-1>", handler)
+            except Exception:  # noqa: BLE001
+                pass
+
     def _draw_mock_target_content(self, scaler: Any, target_key: str) -> None:
         """spotlight 가 가리키는 HUD 대상의 mock placeholder (Issue #49, DECISION-DL-P4D-001).
 
@@ -864,12 +915,41 @@ class TutorialScene(BaseScene):
         - buildzone: 빈 배치 칸 사각형 + "?" 표시
         - hero: 영웅 placeholder 원 + 이름 글자
         - pause: 일시정지 버튼 placeholder (||)
+
+        Issue #55 (DECISION-DL-P4D-009): 인터랙티브 단계의 mock content 에 단계
+        진행 클릭 핸들러를 추가 — 사용자가 시각적으로 가리킨 위치를 직접 클릭할
+        수 있게 한다.
         """
         canvas = self.app.canvas
         cx, cy, _radius = _HUD_TARGETS[target_key]
+        # _draw_spotlight 에서 set 됐을 수도 있고, 단독 호출 시 없음
+        click_handler = getattr(self, "_spotlight_click_handler", None)
+
+        def _bind_if(iid: int) -> None:
+            if click_handler is None:
+                return
+            try:
+                canvas.tag_bind(iid, "<ButtonRelease-1>", click_handler)
+            except Exception:  # noqa: BLE001
+                pass
 
         if target_key == "resource":
             # 상단 곡식 HUD placeholder — battle_scene.hud 와 같은 라벨/값
+            # Issue #55: 라벨 + 값 카운터 영역을 덮는 투명 hit-area 사각형 추가.
+            # 단일 텍스트 anchor 만 클릭 받으면 hit area 가 좁아 사용자가 놓침.
+            hit_x1, hit_y1 = _sx(scaler, cx - 36, cy - 32)
+            hit_x2, hit_y2 = _sx(scaler, cx + 36, cy + 32)
+            hit_id = canvas.create_rectangle(
+                hit_x1,
+                hit_y1,
+                hit_x2,
+                hit_y2,
+                fill="",
+                outline="",
+                tags=(self._tag, "tutorial_mock_content", "tutorial_mock_hit"),
+            )
+            self._step_ids.append(hit_id)
+            _bind_if(hit_id)
             # 곡식 라벨 (상단)
             lx, ly = _sx(scaler, cx, cy - 18)
             label_id = canvas.create_text(
@@ -882,6 +962,7 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_mock_content"),
             )
             self._step_ids.append(label_id)
+            _bind_if(label_id)
             # 값 카운터 (큰 숫자)
             vx, vy = _sx(scaler, cx, cy + 12)
             val_id = canvas.create_text(
@@ -894,6 +975,7 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_mock_content"),
             )
             self._step_ids.append(val_id)
+            _bind_if(val_id)
         elif target_key == "buildzone":
             # 빈 배치 칸 placeholder — 점선 박스 + "?"
             half = 40.0
@@ -911,6 +993,7 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_mock_content"),
             )
             self._step_ids.append(rect_id)
+            _bind_if(rect_id)
             qx, qy = _sx(scaler, cx, cy)
             q_id = canvas.create_text(
                 qx,
@@ -922,6 +1005,7 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_mock_content"),
             )
             self._step_ids.append(q_id)
+            _bind_if(q_id)
         elif target_key == "hero":
             # 영웅 placeholder — 원 + 이름
             r = 36.0
