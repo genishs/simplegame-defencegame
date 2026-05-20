@@ -123,6 +123,11 @@ class BattleScene(BaseScene):
         # Issue #29 / DECISION-AUDIO-012: 웨이브 시작 SFX 트리거 추적.
         self._last_wave_index: int = -1
 
+        # DECISION-DL-P4D-006 (Issue #53): render() 가 생성한 entity canvas id
+        # 집합. 다음 틱에 world 에서 빠진 엔티티의 캔버스 아이템을 정리하기 위해
+        # 추적한다. teardown 은 ``self._tag`` 로 일괄 삭제하므로 별도 정리 불필요.
+        self._known_canvas_items: set[int] = set()
+
     # ------------------------------------------------------------------
     # lifecycle
     # ------------------------------------------------------------------
@@ -300,7 +305,228 @@ class BattleScene(BaseScene):
         self._refresh_hud()
 
     def render(self) -> None:
-        pass
+        """매 틱 entity 캔버스 아이템 갱신 (DECISION-DL-P4D-006, Issue #53).
+
+        BL-07 시뮬레이터(`tests/test_clear_rate_simulation.py`) 는 systems 만
+        직접 사용해 100% 클리어를 통과했으나, 실제 BattleScene 은 ``render()``
+        가 빈 함수(``pass``) 였다. 결과적으로 영웅·적·아군·발사체·이펙트가
+        시뮬레이션 상에는 존재하지만 캔버스에 그려지지 않아 stage 진입 후
+        "전투 시작이 안 됨" 으로 사용자에게 보였다 (검수 결함 3호, Issue #53).
+
+        본 구현은 entity 별로 ``canvas_id`` 가 None 이면 ``create_*`` 로 생성,
+        이후 틱부터는 ``coords`` 로 위치만 갱신해 churn 을 회피한다. 죽은
+        엔티티는 ``_cleanup_dead`` 가 world 리스트에서 제거하지만 캔버스 아이템
+        은 본 메서드에서 동기화 정리한다 (``_known_canvas_items`` 추적).
+
+        DECISION-DL-P4D-006 (Issue #53):
+          - 렌더 책임은 BattleScene 에 둔다 (entity 의 draw 는 tk import 회피
+            를 위해 no-op 유지 — 도메인 가드 src/entities tkinter-free).
+          - 좌표는 ``scaler.to_screen`` 으로 베이스(1920×1080) → 스크린 변환.
+          - 적/아군/영웅은 hp 비율에 따라 fill 변경, dying 상태는 회색.
+          - 시각 단순화 (Phase 3.5 placeholder 스타일 유지): 원형/사각형.
+          - 게임플레이 균형 영향 0 — 시뮬레이션 상태(좌표/hp) 만 시각화.
+        """
+        if self.stage is None:
+            return
+        canvas = getattr(self.app, "canvas", None)
+        scaler = getattr(self.app, "scaler", None)
+        if canvas is None or scaler is None:
+            return
+
+        # 현재 활성 엔티티의 canvas_id 추적 (cleanup 대비).
+        active_ids: set[int] = set()
+
+        # ----- 영웅 -----
+        hero = self.world.get("hero")
+        if hero is not None and getattr(hero, "alive", True):
+            self._render_hero(canvas, scaler, hero)
+            if hero.canvas_id is not None:
+                active_ids.add(int(hero.canvas_id))
+
+        # ----- 아군 -----
+        for ally in self.world.get("allies", []):
+            if not getattr(ally, "alive", True):
+                continue
+            self._render_ally(canvas, scaler, ally)
+            if ally.canvas_id is not None:
+                active_ids.add(int(ally.canvas_id))
+
+        # ----- 적 -----
+        for enemy in self.world.get("enemies", []):
+            if not getattr(enemy, "alive", True):
+                continue
+            self._render_enemy(canvas, scaler, enemy)
+            if enemy.canvas_id is not None:
+                active_ids.add(int(enemy.canvas_id))
+
+        # ----- 발사체 -----
+        for proj in self.world.get("projectiles", []):
+            if not getattr(proj, "alive", True):
+                continue
+            self._render_projectile(canvas, scaler, proj)
+            if proj.canvas_id is not None:
+                active_ids.add(int(proj.canvas_id))
+
+        # ----- 이펙트 -----
+        for fx in self.world.get("effects", []):
+            if not getattr(fx, "alive", True):
+                continue
+            self._render_effect(canvas, scaler, fx)
+            if fx.canvas_id is not None:
+                active_ids.add(int(fx.canvas_id))
+
+        # 죽어서 world 에서 빠진 엔티티의 canvas_id 정리.
+        stale = self._known_canvas_items - active_ids
+        for item_id in stale:
+            try:
+                canvas.delete(item_id)
+            except Exception:  # noqa: BLE001
+                pass
+        self._known_canvas_items = active_ids
+
+    # ------------------------------------------------------------------
+    # entity 렌더 헬퍼 (DECISION-DL-P4D-006, Issue #53)
+    #
+    # 도메인 가드: ``src/entities/*`` 는 tkinter import 금지. 렌더는 본 씬이
+    # 책임지며 entity 의 좌표·hp·상태만 읽는다.
+    # ------------------------------------------------------------------
+
+    # 베이스(1920×1080) 좌표계에서 보이는 반지름·크기 (PR #24 placeholder 톤).
+    _HERO_RADIUS_BASE: float = 22.0
+    _ALLY_RADIUS_BASE: float = 14.0
+    _ENEMY_RADIUS_BASE: float = 12.0
+    _PROJECTILE_RADIUS_BASE: float = 4.0
+    _EFFECT_RADIUS_BASE: float = 18.0
+
+    def _render_hero(self, canvas: Any, scaler: Any, hero: Any) -> None:
+        sx, sy = scaler.to_screen(float(hero.x), float(hero.y))
+        r = self._HERO_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
+        hp_ratio = 1.0
+        max_hp = getattr(hero, "max_hp", 0) or 1
+        if max_hp:
+            hp_ratio = max(0.0, min(1.0, float(getattr(hero, "hp", 0)) / float(max_hp)))
+        # 페이즈에 따라 외곽선 색 변경: phase1=청, phase2=황, phase3=주황, phase4=적
+        phase = int(getattr(hero, "current_phase", 1) or 1)
+        outline_by_phase = {1: "#4a8ad4", 2: "#d4b048", 3: "#d48848", 4: "#d44848"}
+        outline = outline_by_phase.get(phase, "#4a8ad4")
+        # 모드(자동/수동)에 따라 fill 강조.
+        fill = "#5a4ac4" if self._hero_direct_mode else "#3a2a8c"
+        if hp_ratio <= 0.0:
+            fill = "#404040"
+
+        if hero.canvas_id is None:
+            hero.canvas_id = canvas.create_oval(
+                sx - r,
+                sy - r,
+                sx + r,
+                sy + r,
+                fill=fill,
+                outline=outline,
+                width=3,
+                tags=(self._tag, "hero"),
+            )
+        else:
+            try:
+                canvas.coords(hero.canvas_id, sx - r, sy - r, sx + r, sy + r)
+                canvas.itemconfig(hero.canvas_id, fill=fill, outline=outline)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _render_ally(self, canvas: Any, scaler: Any, ally: Any) -> None:
+        sx, sy = scaler.to_screen(float(ally.x), float(ally.y))
+        r = self._ALLY_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
+        fill = "#2a7a4a"
+        outline = "#88d4a8"
+        if ally.canvas_id is None:
+            ally.canvas_id = canvas.create_rectangle(
+                sx - r,
+                sy - r,
+                sx + r,
+                sy + r,
+                fill=fill,
+                outline=outline,
+                width=2,
+                tags=(self._tag, "ally"),
+            )
+        else:
+            try:
+                canvas.coords(ally.canvas_id, sx - r, sy - r, sx + r, sy + r)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _render_enemy(self, canvas: Any, scaler: Any, enemy: Any) -> None:
+        sx, sy = scaler.to_screen(float(enemy.x), float(enemy.y))
+        r = self._ENEMY_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
+        # dying 상태이면 회색 페이드 (잔혹 묘사 회피, GDD §5)
+        if getattr(enemy, "dying", False):
+            fill = "#666666"
+            outline = "#888888"
+        else:
+            # boss 는 짙은 자주, 일반은 적색.
+            enemy_def = getattr(enemy, "enemy_def", None)
+            is_boss = bool(getattr(enemy_def, "is_boss", False)) if enemy_def else False
+            fill = "#7a2a5a" if is_boss else "#a04030"
+            outline = "#d8a060" if is_boss else "#e8c8a0"
+        if enemy.canvas_id is None:
+            enemy.canvas_id = canvas.create_oval(
+                sx - r,
+                sy - r,
+                sx + r,
+                sy + r,
+                fill=fill,
+                outline=outline,
+                width=2,
+                tags=(self._tag, "enemy"),
+            )
+        else:
+            try:
+                canvas.coords(enemy.canvas_id, sx - r, sy - r, sx + r, sy + r)
+                canvas.itemconfig(enemy.canvas_id, fill=fill, outline=outline)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _render_projectile(self, canvas: Any, scaler: Any, proj: Any) -> None:
+        sx, sy = scaler.to_screen(float(proj.x), float(proj.y))
+        r = self._PROJECTILE_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
+        if proj.canvas_id is None:
+            proj.canvas_id = canvas.create_oval(
+                sx - r,
+                sy - r,
+                sx + r,
+                sy + r,
+                fill="#e8d060",
+                outline="",
+                tags=(self._tag, "projectile"),
+            )
+        else:
+            try:
+                canvas.coords(proj.canvas_id, sx - r, sy - r, sx + r, sy + r)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _render_effect(self, canvas: Any, scaler: Any, fx: Any) -> None:
+        sx, sy = scaler.to_screen(float(fx.x), float(fx.y))
+        r = self._EFFECT_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
+        alpha = float(getattr(fx, "alpha", 1.0))
+        # tk Canvas 는 알파 미지원 → stipple 로 근사 (alpha < 0.5 일 때 gray50).
+        stipple = "" if alpha >= 0.5 else "gray50"
+        if fx.canvas_id is None:
+            fx.canvas_id = canvas.create_oval(
+                sx - r,
+                sy - r,
+                sx + r,
+                sy + r,
+                fill="#f0e8a8",
+                outline="",
+                stipple=stipple,
+                tags=(self._tag, "effect"),
+            )
+        else:
+            try:
+                canvas.coords(fx.canvas_id, sx - r, sy - r, sx + r, sy + r)
+                canvas.itemconfig(fx.canvas_id, stipple=stipple)
+            except Exception:  # noqa: BLE001
+                pass
 
     def teardown(self) -> None:
         self.hud.teardown()
