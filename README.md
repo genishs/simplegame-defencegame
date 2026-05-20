@@ -27,9 +27,9 @@
 
 ## 현재 진행 상태
 
-**Phase 4 자동 가드 완결 — `v0.4.0-rc.3` 사전 릴리즈 (2026-05-20, 사용자 .exe 검수용 RC, develop@9827245). 핵심 fix: PyInstaller spec `datas` 에 `src/data/` 추가 — rc.1·rc.2 .exe가 stage_01.json 등 데이터 누락으로 frozen이었던 결함(#51) 해결. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004).**
+**Phase 4 자동 가드 완결 — `v0.4.0-rc.4` 사전 릴리즈 (2026-05-20, 사용자 .exe 검수용 RC, develop@d5b5797). 핵심 fix: `BattleScene.render()`가 Phase 3.5부터 `pass` 한 줄이었던 결함(#53) — 영웅·적·발사체 캔버스 렌더 정식 구현. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004/005).**
 
-> **검수 진행 누적 결함 (모두 fix 완료)**: Issue #49 (spotlight 동그라미, rc.1 → rc.2), Issue #51 (튜토리얼 후 stage_01 frozen, rc.2 → rc.3). develop 머지 + RC 발급 + .exe 재빌드 완료.
+> **검수 진행 누적 결함 (모두 fix 완료)**: #49 (spotlight 동그라미, rc.1→rc.2), #51 (튜토리얼 후 stage_01 frozen, rc.2→rc.3), #53 (entities render 누락 — 영웅/적 안 보임, rc.3→rc.4). 모두 develop 머지 + RC 발급 + .exe 재빌드 완료.
 
 > **버전 매핑(메모리 규칙 정합)**: Phase 1 = v0.1.0, Phase 2 = v0.2.0, Phase 3 = v0.3.0, **Phase 4 = v0.4.0** (RC 발급, GA 대기), Phase 5 = v1.0.0 (RC→GA 직행, 중간 마이너 도입 여부 OPEN-PL-P5-006).
 > 이전: `v0.3.0-rc.1` 사전 릴리즈는 별도 검수 대기 — `v0.3.0` 정식 승격 단계는 Phase 4 자동 가드 완결과 분리, 사용자 검수 후 별도 SCM 라운드.

@@ -6,6 +6,31 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+## [0.4.0-rc.4] - 2026-05-20 — v0.4.0-rc.3 검수 결함 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #53) 결함 fix RC. develop@d5b5797(PR #54 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3 패턴(DECISION-SCM-P5K-003/004) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed
+- **Issue #53 (PR #54, DECISION-DL-P4D-006)**: v0.4.0-rc.3 사용자 검수 결함 3호 fix — "stage1 진입은 하는데 전투시작이 안돼" (영웅·적 모두 안 보임). 충격적 원인: **`BattleScene.render()`가 Phase 3.5부터 `pass` 한 줄**이었음. systems(wave/pathing/combat)가 정상 동작해 메모리에서는 spawn·이동·전투가 진행됐지만 캔버스에 한 번도 그려진 적 없음. BL-07 시뮬레이터는 systems만 직접 호출하므로 자동 가드가 결함을 잡지 못했음 (실 게임 ↔ 자동 가드 정합 빈약):
+  - `src/scenes/battle_scene.py`: `render()` 정식 구현 + 헬퍼 5개(`_render_hero/_ally/_enemy/_projectile/_effect`).
+  - `_known_canvas_items` set으로 stale canvas 정리, churn 회피.
+  - `scaler.to_screen` 좌표 변환으로 base↔screen 정합.
+  - entity.draw()는 no-op 유지 (도메인 가드 src/entities tkinter-free 보존).
+
+### Added
+- `tests/test_battle_scene_entities_render.py` (신규, 8건): 영웅 렌더 / 적 렌더 / wave 진행+render 통합 / render 멱등성 / 사망 후 canvas 정리 / 좌표 정합 / 멀티 엔티티 / App._tick(update+render) 사슬 모사.
+
+### Changed
+- pytest 누적 **464 → 472** (+8 회귀 가드, 회귀 0).
+
+### Decisions
+- **DECISION-SCM-P5K-005**: v0.4.0-rc.4 발급 (rc.2/rc.3 패턴 재사용). 메인 세션이 PR #54 머지 + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리.
+
+### Follow-up 권장 (별도 issue)
+- BL-07 시뮬레이터에 render 호출을 통합하면 동종 결함(render 누락)을 차후 자동 차단 가능. Phase 5 cleanup 라운드 후보.
+
 ## [0.4.0-rc.3] - 2026-05-20 — v0.4.0-rc.2 검수 결함 fix RC (.exe 재검수 대기)
 
 > 사용자 .exe 검수(Issue #51) 결함 fix RC. 핵심 원인은 PyInstaller spec `datas` 에 `src/data/` 디렉터리 누락이라 **rc.1·rc.2 .exe 모두 동일 결함을 가졌음**(개발 모드는 정상). develop@9827245(PR #52 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2 패턴(DECISION-SCM-P5K-003) 재사용으로 처리.
