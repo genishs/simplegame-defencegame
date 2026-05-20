@@ -27,11 +27,13 @@
 
 ## 현재 진행 상태
 
-**Phase 4 자동 가드 완결 — `v0.4.0-rc.5` 사전 릴리즈 (2026-05-21, 사용자 .exe 검수용 RC, develop@e42eeec). 핵심 fix: rc.4 검수에서 발견된 게임플레이 인터랙션 결함 4건 종합 — 영웅 평타·배치 UI·튜토리얼 클릭(#55/#56/#57/#58). `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004/005/006).**
+**Phase 4 자동 가드 완결 — `v0.4.0-rc.6` 사전 릴리즈 (2026-05-21, 사용자 .exe 검수용 RC, develop@46646a5). 자율 진행 통합 라운드: Phase 5.1 BGM 백엔드(#30) + BL-07 시뮬레이터 정합 보강(#60) + 통합 시뮬레이터가 사전 감지한 결함 2건(#62 lives 차감 / #64 enemies.json 4종) fix까지 한 RC에 묶음. pytest **530**. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004/005/006/007).**
 
-> **검수 진행 누적 결함 (모두 fix 완료)**: #49 (spotlight 동그라미, rc.1→rc.2), #51 (튜토리얼 후 stage_01 frozen, rc.2→rc.3), #53 (entities render 누락 — 영웅/적 안 보임, rc.3→rc.4), #55/#56/#57/#58 (게임플레이 인터랙션 4종 — 튜토리얼 곡식 클릭 / 아군 배치 UI / 영웅 자동 평타 / 수동 모드 영웅 전투, rc.4→rc.5). pytest 누적 **490 passed** → Issue #60 통합 시뮬레이터 +11 가드 적용 시 **501 passed**.
+> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json). pytest **530 passed**.
 
-> **Phase 5 cleanup 진행 중 (#60)**: BL-07 시뮬레이터가 systems 만 직접 호출해 rc.1~rc.5 결함 5건이 모두 통과한 정합 빈약 해결. 신규 `tests/battle_scene_simulator.py` (실 BattleScene + FakeApp 사슬) + `tests/test_battle_scene_simulator.py` (11 가드) 추가. 시뮬레이터 자체가 신규 결함 2건(#62 lives 차감 누락 / #64 enemies.json 누락) 사전 감지 — 별도 follow-up.
+> **Phase 5.1 진행**: BGM 백엔드(pygame.mixer) + Menu/Tutorial/Battle/Ending 4씬 통합 + BG-01~04 자동 가드. Issue #30 종결.
+
+> **Phase 5 cleanup**: BL-07 시뮬레이터 정합 보강 — 신규 `tests/battle_scene_simulator.py`(실 BattleScene + FakeApp/FakeCanvas) + 21 자동 가드(stage_01/02/03 통합 클리어 포함). 누적 결함 사전 감지망 확장 (DECISION-DL-P5C-001~006).
 
 > **버전 매핑(메모리 규칙 정합)**: Phase 1 = v0.1.0, Phase 2 = v0.2.0, Phase 3 = v0.3.0, **Phase 4 = v0.4.0** (RC 발급, GA 대기), Phase 5 = v1.0.0 (RC→GA 직행, 중간 마이너 도입 여부 OPEN-PL-P5-006).
 > 이전: `v0.3.0-rc.1` 사전 릴리즈는 별도 검수 대기 — `v0.3.0` 정식 승격 단계는 Phase 4 자동 가드 완결과 분리, 사용자 검수 후 별도 SCM 라운드.

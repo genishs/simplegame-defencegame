@@ -4,25 +4,57 @@
 
 ## [Unreleased]
 
-> Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
+> Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
-### Added (Issue #60 — BL-07 시뮬레이터 정합 보강, DECISION-DL-P5C-001/002)
+## [0.4.0-rc.6] - 2026-05-21 — Phase 5.1 BGM + BL-07 정합 + 결함 #62/#64 fix RC
 
-v0.4.0-rc.1~rc.5 누적 사용자 검수 결함 5건 (#51 spec datas / #53 render pass / #55 tutorial 클릭 / #56 배치 UI / #57+58 영웅 평타) 이 모두 기존 BL-07 시뮬레이터 (`src/systems/auto_mode_simulator.py`) 의 자동 가드를 통과한 뒤 사용자 시각 검수에서야 발견됨. 근본 원인은 BL-07 이 systems 만 직접 호출하고 실 BattleScene 의 build/render/UI 클릭 사슬을 거치지 않는 정합 빈약.
+> 사용자 부재(취침) 중 자율 진행 라운드. 3개 PR(#63 BGM / #65 BL-07 정합 / #66 #62/#64 fix) 통합 묶음으로 v0.4.0-rc.6 발급. develop@46646a5. release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드. 사용자 깨어난 후 결정.
 
-- `tests/battle_scene_simulator.py` (신규, `BattleSceneSimulator`): 실 BattleScene + FakeApp/FakeCanvas 위에서 `build → 유닛 선택 클릭 → build_zone 클릭 → update + render` 사슬을 그대로 굴리는 통합 시뮬레이터. BL-07 (성능 < 5s / 클리어율 회귀) 은 그대로 유지하고 사용자 경험 사슬 가드 책임을 본 시뮬레이터가 별도로 담당.
-- `tests/test_battle_scene_simulator.py` (신규, 11 케이스): spec datas 로드 / render canvas item 생성 / 배치 UI 클릭 사슬 / 영웅 평타 projectile 스폰 / stage_03 통합 클리어. 검수 결함 5종 카테고리 모두 자동 감지 가능함을 회귀 가드.
-- pytest 누적 **490 → 501** (+11, 회귀 0).
+### Added
 
-### Discovered (본 시뮬레이터가 잡아낸 신규 결함 — 별도 이슈로 후속 처리)
+#### Phase 5.1 BGM 백엔드 (Issue #30, PR #63, DECISION-AUDIO-015~017)
+- `src/core/sound.py`: `play_bgm(name, *, loop, fade_in)` / `stop_bgm(*, fade_out)` / `set_bgm_volume(v)` 정식 구현. pygame.mixer 백엔드, OGG/WAV 모두 지원, graceful fallback (헤드리스 CI).
+- 4씬 build() 진입 시 BGM 통합 (Menu/Tutorial/Battle/Ending). placeholder 무음이라 게임플레이 영향 0.
+- `tests/test_sound_bgm.py` (신규, 19건): BG-01~04 자동화 + pygame.mixer mock 검증.
+- `requirements.txt`: `pygame>=2.5.0` 추가 (DECISION-AUDIO-015 표준 pygame 채택). `AnsiseongDefense.spec` hiddenimports에 pygame/pygame.mixer 추가.
 
-- **Issue #62 (DECISION-DL-P5C-003)**: BattleScene 어디에서도 `enemy.goal_reached`/`reached_castle` → `world['goals_reached']` 증가 로직이 없어, stage_01 에서 적이 castle 도착해도 lives 차감 + defeat 판정이 발생하지 않음. 사용자 시각: "게임이 영원히 안 끝난다". BL-07 은 자체 처리하므로 통과했음.
-- **Issue #64 (DECISION-DL-P5C-004)**: `src/data/enemies.json` 에 `tang_archer`/`tang_scout` 정의가 누락되어, 이를 참조하는 stage_02/03 wave 가 BattleScene._spawn_enemy 에서 skip 되어 진행이 막힘. BL-07 은 `_FALLBACK_ENEMY_STATS` 인라인 사전으로 우회.
+#### BL-07 시뮬레이터 정합 보강 (Issue #60, PR #65, DECISION-DL-P5C-001/002/006)
+- `tests/battle_scene_simulator.py` (신규, `BattleSceneSimulator`): 실 BattleScene + FakeApp/FakeCanvas 위에서 build → UI 클릭 → update + render 사슬 그대로 굴리는 통합 시뮬레이터.
+- `tests/test_battle_scene_simulator.py` (신규, 11→21 케이스): spec datas / render canvas item / 배치 UI / 영웅 평타 projectile / **stage_01/02/03 통합 클리어** (DECISION-DL-P5C-006으로 전체 승격).
+- BL-07(`src/systems/auto_mode_simulator.py`)은 그대로 유지(성능 < 5s + 클리어율 회귀 책임).
+
+#### enemies.json 4종 추가 (Issue #64, PR #66, DECISION-DL-P5C-005)
+- `src/data/enemies.json`: tang_archer / tang_scout / tang_vanguard_captain / tang_night_raider 4종 정의 추가. stage_02/03 wave가 정상 spawn.
+
+### Fixed
+
+#### BattleScene castle_breach lives 차감 (Issue #62, PR #66, DECISION-DL-P5C-005)
+- `src/scenes/battle_scene.py`: `_apply_castle_breaches()` 메서드 신규 + update 사이클에 통합. PathingSystem이 세팅한 `enemy.goal_reached`/`reached_castle` 플래그를 BattleScene이 `world['goals_reached']` 누적으로 변환 → `_check_end_conditions`의 lives ≥ max_goals_reached 판정이 정상 작동.
+- 결함 증상: 사용자 시각 "게임이 영원히 안 끝난다". 자율 진행 사이 BL-07 신규 통합 시뮬레이터가 사전 감지.
+
+### Changed
+
+- 회귀 매트릭스 BG-01~04 ✗ → ✓ 자동 가드 전환.
+- pytest 누적 **490 → 530** (+40, 회귀 0). BGM 19 + BL-07 정합 11 + #62/#64 fix 10.
+- `.github/workflows/ci.yml`: ubuntu CI에 `SDL_AUDIODRIVER=dummy` env (pygame.mixer 헤드리스 호환).
 
 ### Decisions
 
-- **DECISION-DL-P5C-001**: 신규 통합 시뮬레이터를 BL-07 (`src/systems/auto_mode_simulator.py`) 확장이 아닌 `tests/battle_scene_simulator.py` 신설로 분리. BL-07 의 클리어율 회귀 + 성능 < 5s 책임 보존하면서, 사용자 경험 사슬 검증을 별도 모듈로 위임 (단일 책임 + 영향 격리).
-- **DECISION-DL-P5C-002**: 본 라운드 자동 가드는 stage_03 을 통합 클리어 대상으로 선정. stage_01/02 는 DECISION-DL-P5C-003/004 신규 결함의 영향을 받으므로 해당 이슈 종결 후 가드를 확장.
+- **DECISION-AUDIO-015**: pygame vs pygame-ce — 표준 pygame 채택 (안정성 우선).
+- **DECISION-AUDIO-016**: BGM placeholder WAV 유지, OGG 우선 탐색 → WAV fallback (실수급 시 자동 전환).
+- **DECISION-AUDIO-017**: Menu/Tutorial/Battle/Ending 4씬 build()에서 BGM 통합.
+- **DECISION-DL-P5C-001**: 신규 통합 시뮬레이터를 BL-07 확장이 아닌 별도 모듈로 분리 (단일 책임).
+- **DECISION-DL-P5C-002**: 본 라운드 자동 가드는 stage_03 통합 클리어부터 시작.
+- **DECISION-DL-P5C-005**: #62 + #64를 데이터+로직 동시 해소 — BL-07 처리 정책과 정합.
+- **DECISION-DL-P5C-006**: 통합 시뮬레이터 가드를 stage_01/02/03 전체로 승격 — 후속 결함 사전 감지망 확장.
+- **DECISION-SCM-P5K-007**: v0.4.0-rc.6 발급 (rc.2~rc.5 패턴 재사용). 메인 세션이 PR #63/#65/#66 머지 + Issue #30/#60/#62/#64 close + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리.
+
+### Follow-up 권장
+
+- 영웅 S1/S2/S3 스킬 시스템 (Issue #61). 현재 평타 + 궁극기만 작동.
+- HUD 상단 곡식 아이콘 + 좌하단 유닛 선택 패널을 SCN-05 디자인 와이어프레임과 통합 (DESIGN 라운드).
 
 ## [0.4.0-rc.5] - 2026-05-21 — v0.4.0-rc.4 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
 
