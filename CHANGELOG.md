@@ -6,17 +6,21 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
-### Phase 4 v0.4.0-rc.1 검수 결함 fix (2026-05-20, DECISION-SCM-P5K-002)
+## [0.4.0-rc.2] - 2026-05-20 — v0.4.0-rc.1 검수 결함 fix RC (.exe 재검수 대기)
 
-> v0.4.0-rc.1 사용자 검수(CAT-05) 진행 중 발견된 튜토리얼 결함 fix.
-> develop@b7f0fc4. RC2 발급 여부는 후속 결정.
+> 사용자 직접 요청("실행프로그램을 만들어줘")으로 v0.4.0-rc.2 발급. v0.4.0-rc.1 사용자 검수(CAT-05) 진행 중 발견된 튜토리얼 spotlight 결함 fix를 별도 RC로 출시하여 .exe 재검수 가능하도록 함. develop@18bb4a5(태그 시점 기준). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
 
-#### Fixed
+### Fixed
 - **Issue #49 (PR #50, DECISION-DL-P4D-001~002)**: TutorialScene spotlight 동그라미가 가리키는 위치에 실제 HUD 콘텐츠 부재 → mock HUD placeholder 직접 렌더 (곡식 100 / buildzone "?" / hero "楊" / pause 아이콘). Canvas z-order 명시: mask → mock content → ring → arrow → label.
 
-#### Changed
+### Changed
 - 회귀 매트릭스 v2.3 → v2.4 — TU-11 시나리오 신규 (총 69)
 - pytest 누적 448 → 453 (+5 회귀 가드, 회귀 0)
+
+### Decisions
+- **DECISION-SCM-P5K-003**: v0.4.0-rc.2 발급 (옵션 A 정석 채택 — RC2 → .exe 재검수 → v0.4.0 GA). 메인 세션이 사용자 직접 요청 + 단일 태그 작업으로 처리, SCM 라운드 spawn 비용 절약. 비가역 작업 위임 사례 — 향후 동일 패턴(사용자 직접 명시 + 단순 태그) 시 메인 세션 처리 허용 (DECISION-SCM-P4F-002 정신과 정합).
 
 ## [0.4.0-rc.1] - 2026-05-19 — Phase 4 자동 가드 완결 (RC, 사용자 검수 대기)
 
