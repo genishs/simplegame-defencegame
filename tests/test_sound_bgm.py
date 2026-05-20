@@ -29,7 +29,7 @@ from __future__ import annotations
 import inspect
 import os
 import wave
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -103,7 +103,6 @@ def test_bg01_play_bgm_signature():
 def test_bg01_play_bgm_with_pygame_mock(tmp_path):
     """BG-01: pygame.mixer mock — play_bgm이 music.load + music.play를 호출함."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     # tmp BGM 자산 (WAV placeholder)
@@ -146,7 +145,6 @@ def test_bg02_stage_transition_bgm_sequence(tmp_path):
     코드에서 올바르게 호출되는지 mock으로 검증한다.
     """
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     # tmp BGM 자산
@@ -259,7 +257,6 @@ def test_bg03_set_bgm_volume_independent_from_sfx():
 def test_bg03_set_bgm_volume_calls_pygame(tmp_path):
     """BG-03: set_bgm_volume이 pygame.mixer.music.set_volume을 호출함."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     mock_mixer = MagicMock()
@@ -319,7 +316,6 @@ def test_bg04_mute_unmute_sfx_independent():
 def test_bg04_mute_calls_pygame_set_volume():
     """BG-04: mute() 시 pygame.mixer.music.set_volume(0.0) 호출."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     mock_mixer = MagicMock()
@@ -342,7 +338,6 @@ def test_bg04_mute_calls_pygame_set_volume():
 def test_bg04_unmute_restores_bgm_volume():
     """BG-04: unmute() 시 pygame.mixer.music.set_volume(pre_mute_vol) 호출."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     mock_mixer = MagicMock()
@@ -371,7 +366,6 @@ def test_bg04_unmute_restores_bgm_volume():
 def test_bgm_graceful_fallback_no_pygame():
     """pygame.mixer 미설치 시 play_bgm/stop_bgm/set_bgm_volume 모두 noop."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     with patch.object(sound_module, "_PYGAME_AVAILABLE", False):
@@ -394,7 +388,6 @@ def test_bgm_graceful_fallback_missing_asset():
 def test_bgm_no_duplicate_play(tmp_path):
     """동일 BGM 중복 play_bgm 호출 시 music.play가 1회만 호출됨."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     # tmp BGM 자산
@@ -421,7 +414,6 @@ def test_bgm_no_duplicate_play(tmp_path):
 def test_bgm_current_bgm_tracking(tmp_path):
     """play_bgm 후 _current_bgm 상태 추적, stop_bgm 후 None으로 리셋."""
     import src.core.sound as sound_module
-
     from src.core.sound import SoundManager
 
     bgm_dir = tmp_path / "assets" / "audio" / "bgm"
@@ -448,7 +440,6 @@ def test_bgm_current_bgm_tracking(tmp_path):
 
 def test_bgm_ogg_takes_priority_over_wav(tmp_path):
     """DECISION-AUDIO-016: OGG 파일이 있으면 WAV보다 OGG를 우선 탐색함."""
-    import src.core.sound as sound_module
 
     from src.core.sound import _resolve_bgm_path
 

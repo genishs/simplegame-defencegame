@@ -47,13 +47,11 @@ def test_hero_has_auto_attack_method() -> None:
 
 def test_hero_finds_target_in_range() -> None:
     """find_target_in_range 는 사거리 내 최근접 살아있는 적을 반환한다."""
+    from src.data.loader import EnemyDef
     from src.entities.enemy import Enemy
     from src.entities.hero import Hero
-    from src.data.loader import EnemyDef
 
-    edef = EnemyDef(
-        id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x"
-    )
+    edef = EnemyDef(id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x")
     hero = Hero(x=500.0, y=500.0)
     near = Enemy(x=600.0, y=500.0, enemy_def=edef, path_id="p")  # 100 px
     far_in = Enemy(x=500.0, y=850.0, enemy_def=edef, path_id="p")  # 350 px (within 380)
@@ -64,13 +62,11 @@ def test_hero_finds_target_in_range() -> None:
 
 def test_hero_auto_attack_returns_fire_info_and_sets_cooldown() -> None:
     """auto_attack 은 사거리 내 적이 있으면 fire_info dict 반환 + cooldown 갱신."""
+    from src.data.loader import EnemyDef
     from src.entities.enemy import Enemy
     from src.entities.hero import Hero
-    from src.data.loader import EnemyDef
 
-    edef = EnemyDef(
-        id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x"
-    )
+    edef = EnemyDef(id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x")
     hero = Hero(x=500.0, y=500.0)
     enemy = Enemy(x=600.0, y=500.0, enemy_def=edef, path_id="p")
     fire = hero.auto_attack([enemy])
@@ -89,13 +85,11 @@ def test_hero_auto_attack_returns_none_when_no_target() -> None:
 
 def test_hero_auto_attack_blocked_by_cooldown() -> None:
     """발사 직후 같은 호출은 None 을 반환 (쿨다운)."""
+    from src.data.loader import EnemyDef
     from src.entities.enemy import Enemy
     from src.entities.hero import Hero
-    from src.data.loader import EnemyDef
 
-    edef = EnemyDef(
-        id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x"
-    )
+    edef = EnemyDef(id="x", name="x", hp=50, speed=60, armor=0, damage_to_castle=1, gold_drop=8, sprite="x")
     hero = Hero(x=500.0, y=500.0)
     enemy = Enemy(x=600.0, y=500.0, enemy_def=edef, path_id="p")
     assert hero.auto_attack([enemy]) is not None
@@ -109,16 +103,14 @@ def test_hero_auto_attack_blocked_by_cooldown() -> None:
 
 def test_battle_scene_spawns_hero_projectile_when_enemy_in_range() -> None:
     """BattleScene.update 가 영웅 사거리 내 적에 대해 발사체를 스폰한다."""
-    from src.entities.enemy import Enemy
     from src.data.loader import EnemyDef
+    from src.entities.enemy import Enemy
 
     scene = _make_battle_scene()
     hero = scene.world["hero"]
     assert hero is not None
     # 사거리(380) 안에 적 배치
-    edef = EnemyDef(
-        id="x", name="x", hp=50, speed=0, armor=0, damage_to_castle=1, gold_drop=8, sprite="x"
-    )
+    edef = EnemyDef(id="x", name="x", hp=50, speed=0, armor=0, damage_to_castle=1, gold_drop=8, sprite="x")
     enemy = Enemy(x=hero.x + 100.0, y=hero.y, enemy_def=edef, path_id="p_main")
     scene.world["enemies"].append(enemy)
 
@@ -130,16 +122,14 @@ def test_battle_scene_spawns_hero_projectile_when_enemy_in_range() -> None:
 
 def test_battle_scene_hero_attack_works_in_manual_mode() -> None:
     """Issue #58: 수동 모드에서도 평타가 자동 발사된다."""
-    from src.entities.enemy import Enemy
     from src.data.loader import EnemyDef
+    from src.entities.enemy import Enemy
 
     scene = _make_battle_scene()
     hero = scene.world["hero"]
     # 수동 모드 ON
     scene._hero_direct_mode = True
-    edef = EnemyDef(
-        id="x", name="x", hp=50, speed=0, armor=0, damage_to_castle=1, gold_drop=8, sprite="x"
-    )
+    edef = EnemyDef(id="x", name="x", hp=50, speed=0, armor=0, damage_to_castle=1, gold_drop=8, sprite="x")
     enemy = Enemy(x=hero.x + 100.0, y=hero.y, enemy_def=edef, path_id="p_main")
     scene.world["enemies"].append(enemy)
 
