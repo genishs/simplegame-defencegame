@@ -36,6 +36,20 @@ class FakeCanvas:
         self.items[i] = ("line", args, kw)
         return i
 
+    def create_oval(self, *args: Any, **kw: Any) -> int:
+        # Issue #51: TutorialScene 의 spotlight ring/circle 렌더 지원.
+        i = self._next
+        self._next += 1
+        self.items[i] = ("oval", args, kw)
+        return i
+
+    def create_polygon(self, *args: Any, **kw: Any) -> int:
+        # Issue #51: TutorialScene 의 spotlight 화살표 polygon 렌더 지원.
+        i = self._next
+        self._next += 1
+        self.items[i] = ("polygon", args, kw)
+        return i
+
     def itemconfig(self, i: int, **kw: Any) -> None:
         pass
 

@@ -78,6 +78,14 @@ class App:
         # 메인 루프.
         self.loop = GameLoop(self.root, self._tick)
 
+        # DECISION-DL-P4D-005 (Issue #51): _tick() 반복 예외 시 frozen 회피.
+        # 동일 예외가 연속 N회 발생하면 사용자에게 에러 메시지를 캔버스에 표시하고
+        # 메뉴 복귀 안내를 제공한다. silently catch 만으로는 사용자가 frozen 으로
+        # 인지할 수밖에 없는 결함(검수 결함 2호) 의 신뢰성 보강.
+        self._tick_error_streak: int = 0
+        self._tick_error_signature: str | None = None
+        self._tick_error_banner_id: int | None = None
+
         # 종료/리사이즈 훅.
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
         self.canvas.bind("<Configure>", self._on_configure)
@@ -101,6 +109,10 @@ class App:
             except Exception:  # noqa: BLE001
                 self._log.exception("scene teardown failed")
         self.canvas.delete("all")
+        # DECISION-DL-P4D-005: 씬 전환 시 tick 에러 배너/상태 리셋.
+        self._tick_error_streak = 0
+        self._tick_error_signature = None
+        self._tick_error_banner_id = None  # canvas.delete("all") 이 아이템을 제거함.
         self.current_scene = factory(self)
         self.current_scene.build()
 
@@ -130,6 +142,9 @@ class App:
     # ------------------------------------------------------------------
     # 내부 콜백
     # ------------------------------------------------------------------
+    # DECISION-DL-P4D-005: 동일 예외 연속 발생 임계. 60FPS 기준 약 0.05초 분량.
+    _TICK_ERROR_BANNER_THRESHOLD: int = 3
+
     def _tick(self, dt: float) -> None:
         scene = self.current_scene
         if scene is None:
@@ -137,9 +152,59 @@ class App:
         try:
             scene.update(dt)
             scene.render()
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             # 한 프레임 예외가 게임 전체를 종료시키지 않도록 격리.
             self._log.exception("scene tick failed")
+            # DECISION-DL-P4D-005 (Issue #51): 같은 예외가 연속 반복되면 frozen
+            # 상태로 보인다. 임계 초과 시 캔버스에 에러 배너를 한 번만 그려서
+            # 사용자가 무엇이 잘못되었는지 인지하고 메뉴로 복귀하도록 안내한다.
+            signature = f"{type(exc).__name__}:{exc}"
+            if signature == self._tick_error_signature:
+                self._tick_error_streak += 1
+            else:
+                self._tick_error_signature = signature
+                self._tick_error_streak = 1
+            if (
+                self._tick_error_streak >= self._TICK_ERROR_BANNER_THRESHOLD
+                and self._tick_error_banner_id is None
+            ):
+                self._show_tick_error_banner(signature)
+        else:
+            # 정상 tick 한 번이면 streak 리셋.
+            if self._tick_error_streak > 0:
+                self._tick_error_streak = 0
+                self._tick_error_signature = None
+                self._clear_tick_error_banner()
+
+    def _show_tick_error_banner(self, signature: str) -> None:
+        """반복 예외 발생 시 사용자에게 에러 배너 표시 (DECISION-DL-P4D-005)."""
+        try:
+            w = self.canvas.winfo_width() or self.scaler.canvas_w
+            h = self.canvas.winfo_height() or self.scaler.canvas_h
+            text = (
+                "⚠ 내부 오류가 반복 발생했습니다.\n"
+                f"({signature})\n"
+                "ESC 키로 일시정지 후 메뉴로 돌아가거나 게임을 다시 실행하시오."
+            )
+            self._tick_error_banner_id = self.canvas.create_text(
+                w / 2,
+                h / 2,
+                text=text,
+                fill="#ff8a6a",
+                font=("", 14, "bold"),
+                justify="center",
+                tags=("__app_tick_error_banner",),
+            )
+        except Exception:  # noqa: BLE001
+            self._log.exception("failed to render tick error banner")
+
+    def _clear_tick_error_banner(self) -> None:
+        if self._tick_error_banner_id is not None:
+            try:
+                self.canvas.delete(self._tick_error_banner_id)
+            except Exception:  # noqa: BLE001
+                pass
+            self._tick_error_banner_id = None
 
     def _on_configure(self, event: tk.Event[tk.Canvas]) -> None:
         if event.widget is not self.canvas:

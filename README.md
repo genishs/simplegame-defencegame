@@ -29,6 +29,8 @@
 
 **Phase 4 자동 가드 완결 — `v0.4.0-rc.2` 사전 릴리즈 (2026-05-20, 사용자 .exe 검수용 RC, develop@18bb4a5). 이전 `v0.4.0-rc.1`(2026-05-19)에서 발견된 튜토리얼 spotlight 결함(#49) fix 포함. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003).**
 
+> **검수 진행 누적 결함**: Issue #49 (spotlight 동그라미, v0.4.0-rc.1 → rc.2 fix), **Issue #51 (튜토리얼 후 stage_01 frozen, fix 진행 중 / PR `fix/tutorial-to-stage1-frozen`)**. 후자는 PyInstaller spec `datas` 누락 + `BattleScene.stage=None` early return 결함, develop 머지 후 다음 RC 발급 예정.
+
 > **버전 매핑(메모리 규칙 정합)**: Phase 1 = v0.1.0, Phase 2 = v0.2.0, Phase 3 = v0.3.0, **Phase 4 = v0.4.0** (RC 발급, GA 대기), Phase 5 = v1.0.0 (RC→GA 직행, 중간 마이너 도입 여부 OPEN-PL-P5-006).
 > 이전: `v0.3.0-rc.1` 사전 릴리즈는 별도 검수 대기 — `v0.3.0` 정식 승격 단계는 Phase 4 자동 가드 완결과 분리, 사용자 검수 후 별도 SCM 라운드.
 
@@ -66,7 +68,7 @@
   - 회귀 매트릭스 v2.2→v2.3 (55→64 시나리오, WV/CB 신규 10건)
   - **`docs/qa/v0_3_0_ga_checklist.md`** 발행 — 자동 가드 8/8 ✓ / 사용자 검수 0/7 ☐ / DPI 0/2 ☐
   - **`docs/qa/phase4_completion_report.md`** Phase 4 종료 보고서
-  - pytest 누적 **448 passed** (Phase 4 종료 시점, slow 별도 시 BL-07 5/5)
+  - pytest 누적 **448 passed** (Phase 4 종료 시점, slow 별도 시 BL-07 5/5) → `v0.4.0-rc.2` 시점 **453 passed** → Issue #51 fix 누적 **464 passed**
 - **GA 진입 (사용자 의존)**: CAT-01~07 + DPI 매트릭스 통과 후 별도 SCM 라운드에서 develop → main 머지 + `v0.3.0` 태그 + GitHub Release prerelease=false 갱신.
 - **Phase 4 종료 — `v0.4.0-rc.1` 사전 릴리즈 (2026-05-19, SCM 발급)**: Phase 4 R1+R2+R3 자동 가드 완결 시점에 발급. 사용자 검수(CAT-01~07 + DPI 매트릭스) 통과 시 별도 SCM 라운드에서 `v0.4.0` 정식 GA 승격.
 - **Phase 5 진입 (2026-05-19, DECISION-PL-P5-001~006 + SCM 정정 DECISION-SCM-P5K-001)**: `docs/14_phase5_plan.md` 발행 — 전체 스토리 통합 + 최종 완성 + 패키징/릴리즈(1.0.0). 4 sub-phase 분할 (메모리 규칙 정합: 1.0.0 = Phase 5 완료):
