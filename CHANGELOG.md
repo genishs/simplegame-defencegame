@@ -6,19 +6,28 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+## [0.4.0-rc.3] - 2026-05-20 — v0.4.0-rc.2 검수 결함 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #51) 결함 fix RC. 핵심 원인은 PyInstaller spec `datas` 에 `src/data/` 디렉터리 누락이라 **rc.1·rc.2 .exe 모두 동일 결함을 가졌음**(개발 모드는 정상). develop@9827245(PR #52 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2 패턴(DECISION-SCM-P5K-003) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
 ### Fixed
-- **Issue #51 (DECISION-DL-P4D-003~005)**: v0.4.0-rc.2 사용자 검수 결함 2호 fix — "튜토리얼 끝나고 stage01에서 더이상 동작하지 않아" (frozen). 원인은 **PyInstaller spec 의 ``datas`` 에 ``src/data/`` JSON 자원이 누락**되어 .exe 실행 시 ``load_stage("stage_01")`` 가 FileNotFoundError → ``BattleScene.stage = None`` → ``update()`` 매 tick early return → 사용자에게 frozen 으로 보이는 현상. 3중 보강:
+- **Issue #51 (PR #52, DECISION-DL-P4D-003~005)**: v0.4.0-rc.2 사용자 검수 결함 2호 fix — "튜토리얼 끝나고 stage01에서 더이상 동작하지 않아" (frozen). 원인은 **PyInstaller spec 의 `datas` 에 `src/data/` JSON 자원이 누락**되어 .exe 실행 시 `load_stage("stage_01")` 가 FileNotFoundError → `BattleScene.stage = None` → `update()` 매 tick early return → 사용자에게 frozen 으로 보이는 현상. 3중 보강:
   - `AnsiseongDefense.spec`: `src/data` 디렉토리를 `datas` 에 추가 (stage_*.json, enemies.json, units.json 번들).
-  - `src/core/settings.py`: `resolve_data_root()` 헬퍼 신규 — PyInstaller `sys._MEIPASS` 환경 우선 해석, 개발 모드 폴백 (`Path(__file__).parents[2]/src/data`).
-  - `src/scenes/battle_scene.py`: stage 로드 실패 시 frozen 대신 사용자에게 시각적 에러 placeholder 표시 (사유 + 경로 + 메뉴 복귀 안내).
+  - `src/core/settings.py`: `resolve_data_root()` 헬퍼 신규 — PyInstaller `sys._MEIPASS` 환경 우선 해석, 개발 모드 폴백.
+  - `src/scenes/battle_scene.py`: stage 로드 실패 시 frozen 대신 사용자에게 시각적 에러 placeholder 표시.
   - `src/core/app.py`: `_tick()` silent catch 보강 — 동일 예외 연속 3회 이상 시 캔버스에 에러 배너 1회 표시, 정상 tick 복귀 시 자동 클리어 (DECISION-DL-P4D-005).
 
 ### Added
-- `tests/test_tutorial_to_battle_routing.py` (신규, 11 케이스): 튜토리얼 종료 → stage_select → BattleScene 진입 사슬 회귀 가드. JSON 자원 존재 + spec 번들 정적 검증 + stage 로드 실패 사용자 메시지 + `_tick()` 배너 동작.
-- `tests/test_battle_scene_flow.py`: FakeCanvas 에 `create_oval` / `create_polygon` 추가 (TutorialScene spotlight 렌더 지원).
+- `tests/test_tutorial_to_battle_routing.py` (신규, 11 케이스): 튜토리얼 종료 → stage_select → BattleScene 진입 사슬 회귀 가드.
+- `tests/test_battle_scene_flow.py`: FakeCanvas 확장.
 
 ### Changed
 - pytest 누적 **453 → 464** (+11 회귀 가드, 회귀 0).
+
+### Decisions
+- **DECISION-SCM-P5K-004**: v0.4.0-rc.3 발급 (rc.2 패턴 재사용). 메인 세션이 PR #52 squash 머지 + 태그 push + 로컬 .exe 재빌드까지 직접 처리. CHANGELOG/README 정합 commit은 태그 push 후 보강.
 
 ## [0.4.0-rc.2] - 2026-05-20 — v0.4.0-rc.1 검수 결함 fix RC (.exe 재검수 대기)
 
