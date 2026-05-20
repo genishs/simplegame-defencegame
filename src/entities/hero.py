@@ -139,7 +139,6 @@ class Hero(Entity):
         Returns:
             가장 가까운 Enemy, 없으면 None.
         """
-        import math
 
         best: Any | None = None
         best_dist_sq = self.range_px * self.range_px

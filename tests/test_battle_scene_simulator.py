@@ -78,9 +78,9 @@ class TestRenderChain:
         assert scene.world["hero"] is not None
         assert scene.world["hero"].canvas_id is None
         scene.render()
-        assert scene.world["hero"].canvas_id is not None, (
-            "render() 후 영웅 canvas_id 가 할당되어야 한다 (Issue #53)"
-        )
+        assert (
+            scene.world["hero"].canvas_id is not None
+        ), "render() 후 영웅 canvas_id 가 할당되어야 한다 (Issue #53)"
 
     def test_run_invokes_render_many_times(self) -> None:
         """run() 은 update 와 render 를 동등 횟수로 호출한다."""
@@ -98,9 +98,9 @@ class TestRenderChain:
         result = sim.run()
         assert result.enemies_spawned >= 1, "wave 1 동안 적이 1체 이상 spawn 되어야 한다"
         # 캔버스 아이템 peak 가 build 직후 + entity 분만큼 증가.
-        assert result.canvas_items_peak > 10, (
-            "render 사슬 정합 — entities 가 캔버스에 그려져야 한다 (Issue #53)"
-        )
+        assert (
+            result.canvas_items_peak > 10
+        ), "render 사슬 정합 — entities 가 캔버스에 그려져야 한다 (Issue #53)"
 
 
 # ---------------------------------------------------------------------------
@@ -136,9 +136,9 @@ class TestPlacementUI:
         sim = BattleSceneSimulator("stage_01")
         scene = sim.build_scene()
         for uid in scene._units_db:
-            assert uid in scene._placement_btn_state, (
-                f"유닛 {uid} 에 대응하는 클릭 버튼이 패널에 없음 (Issue #56)"
-            )
+            assert (
+                uid in scene._placement_btn_state
+            ), f"유닛 {uid} 에 대응하는 클릭 버튼이 패널에 없음 (Issue #56)"
 
 
 # ---------------------------------------------------------------------------
@@ -154,9 +154,9 @@ class TestHeroAutoAttack:
         sim = BattleSceneSimulator("stage_01")
         sim.MAX_SIM_TIME = 15.0  # wave 1 진입 + 영웅 사거리 진입 충분
         result = sim.run()
-        assert result.hero_projectiles_spawned > 0, (
-            "BattleScene 이 영웅 평타로 projectile 을 스폰해야 한다 (Issue #57/#58)"
-        )
+        assert (
+            result.hero_projectiles_spawned > 0
+        ), "BattleScene 이 영웅 평타로 projectile 을 스폰해야 한다 (Issue #57/#58)"
 
     def test_hero_attack_works_with_zero_allies(self) -> None:
         """영웅만으로도 (ally 없이) 평타가 시동된다 — 수동 모드 회귀."""
