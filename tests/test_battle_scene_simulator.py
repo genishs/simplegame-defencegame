@@ -363,3 +363,189 @@ class TestEnemiesDataIntegrity:
         db = load_enemies()
         assert "tang_vanguard_captain" in db, "stage_02 보스 정의 필요"
         assert "tang_night_raider" in db, "stage_03 보스 정의 필요"
+
+
+# ---------------------------------------------------------------------------
+# 8. 적 HP 시각 피드백 가드 — Issue #71, DECISION-DL-P4D-010
+# ---------------------------------------------------------------------------
+
+
+class TestEnemyHpVisualFeedback:
+    """Issue #71 패밀리: 적이 피해를 받을 때 hp 바가 시각화되어야 한다.
+
+    rc.6 사용자 검수 결함 #71: 적이 공격을 받고 소멸 이펙트가 보이지만
+    적 자체는 아무 변화 없이 전진. 진단 결과 영웅 평타 + Projectile sweep 모두
+    정상 작동하며 적 hp 가 실제로 감소하나, **외형상 hp 변화가 보이지 않아**
+    사용자는 적이 무적으로 인식. 본 가드는 ``_render_enemy`` 가 적 본체와
+    함께 hp 바 (배경/전경) 를 캔버스에 생성함을 검증한다.
+    """
+
+    def test_render_enemy_creates_hp_bar(self) -> None:
+        """단일 적이 spawn 후 render 시 hp 바 (배경/전경) 캔버스 아이템이 생성된다."""
+        sim = BattleSceneSimulator("stage_01")
+        scene = sim.build_scene()
+
+        from src.data.loader import EnemyDef
+        from src.entities.enemy import Enemy
+
+        edef = EnemyDef(
+            id="x",
+            name="x",
+            hp=80,
+            speed=0,
+            armor=0,
+            damage_to_castle=1,
+            gold_drop=8,
+            sprite="x",
+        )
+        enemy = Enemy(x=400.0, y=300.0, enemy_def=edef, path_id="p_main")
+        scene.world["enemies"].append(enemy)
+        scene.render()
+        # hp 바 attribute 가 부착되었는지 확인.
+        assert getattr(enemy, "_hp_bg_id", None) is not None, (
+            "Issue #71 fix: enemy hp 바 배경 canvas item 누락"
+        )
+        assert getattr(enemy, "_hp_fg_id", None) is not None, (
+            "Issue #71 fix: enemy hp 바 전경 canvas item 누락"
+        )
+
+    def test_hp_bar_reflects_damage(self) -> None:
+        """적이 데미지를 받으면 hp 바 전경 너비가 감소한다."""
+        sim = BattleSceneSimulator("stage_01")
+        scene = sim.build_scene()
+
+        from src.data.loader import EnemyDef
+        from src.entities.enemy import Enemy
+
+        edef = EnemyDef(
+            id="x",
+            name="x",
+            hp=100,
+            speed=0,
+            armor=0,
+            damage_to_castle=1,
+            gold_drop=8,
+            sprite="x",
+        )
+        enemy = Enemy(x=400.0, y=300.0, enemy_def=edef, path_id="p_main")
+        scene.world["enemies"].append(enemy)
+        scene.render()
+        fg_id = enemy._hp_fg_id
+        # 초기 hp=100/100 → 전경 너비 = bar 전체.
+        canvas = scene.app.canvas
+        initial_coords = canvas.items[fg_id][1]  # (x1, y1, x2, y2)
+        initial_w = initial_coords[2] - initial_coords[0]
+        # 데미지 적용 → render 재호출.
+        enemy.take_damage(50)
+        scene.render()
+        new_coords = canvas.items[fg_id][1]
+        new_w = new_coords[2] - new_coords[0]
+        assert new_w < initial_w, (
+            f"Issue #71 fix: hp 감소 후 hp 바 전경 너비도 줄어야 한다 "
+            f"(initial={initial_w:.1f}, new={new_w:.1f})"
+        )
+
+    def test_dying_enemy_hides_hp_bar(self) -> None:
+        """dying 상태 적은 hp 바를 hidden 으로 전환 (잔혹 묘사 회피)."""
+        sim = BattleSceneSimulator("stage_01")
+        scene = sim.build_scene()
+
+        from src.data.loader import EnemyDef
+        from src.entities.enemy import Enemy
+
+        edef = EnemyDef(
+            id="x",
+            name="x",
+            hp=10,
+            speed=0,
+            armor=0,
+            damage_to_castle=1,
+            gold_drop=8,
+            sprite="x",
+        )
+        enemy = Enemy(x=400.0, y=300.0, enemy_def=edef, path_id="p_main")
+        scene.world["enemies"].append(enemy)
+        scene.render()
+        # 처치 → dying=True.
+        enemy.take_damage(15)
+        assert enemy.dying is True
+        scene.render()
+        # hp 바 state=hidden 확인.
+        canvas = scene.app.canvas
+        fg_id = enemy._hp_fg_id
+        # FakeCanvas itemconfig 적용된 kwargs.state 확인 — items dict 에서 kw 가져오기.
+        _kind, _args, kw = canvas.items[fg_id]
+        assert kw.get("state") == "hidden", (
+            "Issue #71 fix: dying 적은 hp 바 hidden 으로 전환되어야 한다"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 9. HUD wave 표시 명확화 가드 — Issue #70, DECISION-DL-P4D-011
+# ---------------------------------------------------------------------------
+
+
+class TestHudWaveLabel:
+    """Issue #70 패밀리: HUD wave 카운터가 풀어쓰기로 표현되어야 한다."""
+
+    def test_initial_wave_label_says_start_waiting(self) -> None:
+        """build 직후 (wave 미시작) HUD wave_progress 텍스트가 풀어쓰기로 표시된다."""
+        sim = BattleSceneSimulator("stage_01")
+        scene = sim.build_scene()
+        scene.update(0.0)  # 초기 HUD refresh
+        hud_ids = scene.hud._ids
+        wid = hud_ids.get("wave_progress")
+        assert wid is not None
+        _kind, _args, kw = scene.app.canvas.items[wid]
+        text = kw.get("text", "")
+        # Issue #70: "웨이브 N / 총 M" 또는 "웨이브 시작 대기 / 총 M" 풀어쓰기.
+        assert "총" in text, (
+            f"Issue #70 fix: HUD wave 표시에 '총' 풀어쓰기가 포함되어야 함, 현재 텍스트: {text!r}"
+        )
+        assert ("웨이브" in text) or ("진군" in text), (
+            f"Issue #70 fix: HUD wave 표시에 한국어 라벨 (웨이브/진군) 포함 필요: {text!r}"
+        )
+
+    def test_wave_label_updates_after_progress(self) -> None:
+        """wave 1 시작 후 HUD wave_progress 텍스트가 '웨이브 1 / 총 N' 으로 갱신된다."""
+        sim = BattleSceneSimulator("stage_01")
+        sim.MAX_SIM_TIME = 5.0
+        scene = sim.build_scene()
+        # wave 1 delay = 3s → 5s 이내에 진입.
+        elapsed = 0.0
+        while elapsed < sim.MAX_SIM_TIME and scene.wave.current_wave < 1:
+            scene.update(sim.DT)
+            elapsed += sim.DT
+        wid = scene.hud._ids["wave_progress"]
+        _kind, _args, kw = scene.app.canvas.items[wid]
+        text = kw.get("text", "")
+        assert "1" in text and "총" in text, (
+            f"Issue #70 fix: wave 1 진입 후 풀어쓰기 라벨 누락: {text!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 10. 튜토리얼 인터랙티브 단계 fallback 자동 진행 제거 가드
+#     — Issue #67/#68/#69, DECISION-DL-P4D-012/013/014
+# ---------------------------------------------------------------------------
+
+
+class TestTutorialNoAutoAdvance:
+    """Issue #67/#68/#69 패밀리: 인터랙티브 단계는 사용자 입력 없이 진행되지 않는다.
+
+    rc.6 사용자 검수: "누르지 않아도 약간의 시간으로 넘어가는 바람에 기능을
+    확인하지도 못한다". 본 가드는 _STEP_DEFS 의 인터랙티브 단계 time_limit 이
+    모두 inf 임을 검증.
+    """
+
+    def test_interactive_steps_have_inf_time_limit(self) -> None:
+        """인터랙티브 단계 2/3/5/6 의 time_limit 이 모두 inf."""
+        from src.scenes.tutorial_scene import _STEP_DEFS
+
+        for step_no, mode, _key, time_limit, _hud in _STEP_DEFS:
+            if step_no in (2, 3, 5, 6):
+                assert mode == "I", f"단계 {step_no} 는 인터랙티브여야 함"
+                assert time_limit == float("inf"), (
+                    f"Issue #67/#68/#69 fix: 단계 {step_no} time_limit 은 inf 여야 함 "
+                    f"(현재 {time_limit}) — fallback 자동 진행이 결함의 원인이었다"
+                )

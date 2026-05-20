@@ -308,11 +308,16 @@ def test_tutorial_step2_click_advances_to_step3() -> None:
 
 
 def test_tutorial_step3_click_advances_to_step4() -> None:
-    """단계 3 (buildzone) 클릭은 단계 4 로 진행."""
+    """단계 3 (buildzone) 클릭은 궁수 mock 패널 선택 후 단계 4 로 진행 (Issue #67)."""
     scene = _tutorial_with_recording_canvas()
     scene._enter_step(3)
     handler = scene._spotlight_click_handler
     assert handler is not None
+    # Issue #67 (DECISION-DL-P4D-012): buildzone 클릭 단독으로는 진행 X.
+    handler(None)
+    assert scene.step == 3, "궁수 선택 없이 buildzone 만 누르면 진행 X"
+    # 궁수 mock 패널 선택 후 다시 buildzone → 진행.
+    scene._step3_archer_selected = True
     handler(None)
     assert scene.step == 4
 

@@ -6,6 +6,34 @@
 
 > Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+### Fixed — v0.4.0-rc.6 사용자 검수 결함 5건 (#67/#68/#69/#70/#71)
+
+- **Issue #71 (DECISION-DL-P4D-010, 게임 클리어 핵심)**: 적이 피해를 입어도 시각 변화 없어 사용자가 "적이 죽지 않고 그냥 전진한다"고 인식. 진단 결과 영웅 평타 + Projectile sweep + take_damage 모두 정상 작동하나 **외형상 피드백 부재**가 원인. `src/scenes/battle_scene.py:_render_enemy()`에 hp 바 (배경/전경, 색약 친화 빨/노/초) 신규 추가. dying 상태에서는 hp 바 hidden 처리 (잔혹 묘사 회피, GDD §5 준수). 데미지 적용 시 매 틱 비율 갱신.
+- **Issue #70 (DECISION-DL-P4D-011)**: HUD wave 카운터 "진군 3"이 "총 3번"인지 "남은 3번"인지 모호. `src/ui/hud.py`에서 표시를 "웨이브 {N} / 총 {M}", "다음 진군 {N}초 후", "진군 진행 중", "진군 종료"로 풀어쓰기. 게임 시작 직후(wave=0)는 "웨이브 시작 대기 / 총 {M}"로 명확화.
+- **Issue #69 (DECISION-DL-P4D-014)**: 튜토리얼 단계 6 Space 일시정지가 작동 안 함 + 미입력 자동 진행. `src/scenes/tutorial_scene.py`: 첫 Space → 반투명 dim overlay + "■ 일시정지 ■" 안내 + step_elapsed 시간 정지, 두 번째 Space → overlay 제거 + 단계 진행. `_STEP_DEFS` 단계 6 time_limit 15s → `inf` (fallback 자동 진행 결함 제거).
+- **Issue #68 (DECISION-DL-P4D-013)**: 튜토리얼 단계 5 M키가 영웅 컨트롤 시뮬레이션 없이 그냥 다음 단계로. `src/scenes/tutorial_scene.py`: M키 누름 → 영웅 placeholder 노란 ring 강조 + "직접 조작 모드 ON" 라벨, 1.5초 후 update가 자동 진행 호출 (사용자 인지 시간 확보). time_limit 20s → `inf`.
+- **Issue #67 (DECISION-DL-P4D-012)**: 튜토리얼 단계 3 좌측 궁수 패널 미표시 + 미입력 자동 진행. `src/scenes/tutorial_scene.py`: 단계 3 진입 시 좌측 하단에 mock 궁수 선택 패널 (rect + 이름 + 곡식 50 비용) 직접 렌더. `trigger_step3_done()` 재정의로 궁수 선택 + buildzone 클릭 양쪽 모두 필요 — 선택 없이 buildzone만 누르면 hint만 갱신. time_limit 30s → `inf`.
+
+#### 회귀 가드 신규 6건 (tests/test_battle_scene_simulator.py)
+
+- `TestEnemyHpVisualFeedback` 3건: render_enemy_creates_hp_bar / hp_bar_reflects_damage / dying_enemy_hides_hp_bar (Issue #71).
+- `TestHudWaveLabel` 2건: initial_wave_label_says_start_waiting / wave_label_updates_after_progress (Issue #70).
+- `TestTutorialNoAutoAdvance` 1건: interactive_steps_have_inf_time_limit — `_STEP_DEFS` 의 인터랙티브 단계 2/3/5/6 time_limit 이 모두 `inf` 임을 보장 (Issue #67/#68/#69 fallback 제거 가드).
+- `tests/test_battle_scene_flow.py:FakeCanvas.itemconfig/coords` 보강 — kw 누적 + coords 갱신을 dict 에 반영. rc.6 가드 테스트들이 hp 바 상태 변화·HUD 텍스트 갱신을 검증할 수 있도록 한다.
+
+#### pytest 누적
+
+- v0.4.0-rc.6 기준 530 → **536** (+6 신규 가드, 회귀 0). 기존 `test_tutorial_scene.py` 6건은 새 정책에 맞춰 `_advance_step3` / `_advance_step5` 헬퍼로 전환 (단순 trigger 호출 → mock 인터랙션 시뮬레이션).
+
+### Decisions
+
+- **DECISION-DL-P4D-010** (Issue #71): 적 hp 바를 BattleScene 렌더 책임으로 추가. src/entities/enemy.py 의 도메인 가드(tkinter-free) 유지. 색약 친화 3색 분기 + dying hidden.
+- **DECISION-DL-P4D-011** (Issue #70): HUD wave/next_wave 표시를 풀어쓰기. 게임플레이 균형 영향 0 — 텍스트만 변경.
+- **DECISION-DL-P4D-012** (Issue #67): 튜토리얼 단계 3 mock 궁수 패널 직접 렌더 + trigger_step3_done 정책 변경 (양쪽 클릭 필요).
+- **DECISION-DL-P4D-013** (Issue #68): 튜토리얼 단계 5 M키에 시각 토글 + 1.5s 인지 지연 후 자동 진행. 실 영웅 컨트롤 모드는 BattleScene 진입 후 학습 (단계 5는 시각 시뮬레이션).
+- **DECISION-DL-P4D-014** (Issue #69): 튜토리얼 단계 6 Space에 paused overlay + step_elapsed 정지. fallback time_limit 모두 제거 (Issue #67/#68/#69 공통).
+- **DECISION-DL-P5K-008**: rc.6 결함 5건을 단일 PR로 묶음 — 모두 사용자 검수 동일 라운드 누적, 도메인이 BattleScene/HUD/TutorialScene 3개로 명확히 분리되어 분할 비용 대비 이점 적음.
+
 ## [0.4.0-rc.6] - 2026-05-21 — Phase 5.1 BGM + BL-07 정합 + 결함 #62/#64 fix RC
 
 > 사용자 부재(취침) 중 자율 진행 라운드. 3개 PR(#63 BGM / #65 BL-07 정합 / #66 #62/#64 fix) 통합 묶음으로 v0.4.0-rc.6 발급. develop@46646a5. release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드.

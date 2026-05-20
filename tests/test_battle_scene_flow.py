@@ -51,10 +51,25 @@ class FakeCanvas:
         return i
 
     def itemconfig(self, i: int, **kw: Any) -> None:
-        pass
+        """기존 item 의 kw 에 새 kw 를 병합 (Issue #70/#71 가드 지원).
+
+        rc.6 fix: hp 바 state 전환, HUD wave_progress 텍스트 갱신 등
+        itemconfig 호출 결과를 테스트가 검증할 수 있도록 kw 를 누적한다.
+        없는 item id 는 silently 무시 — 기존 동작 보존.
+        """
+        if i not in self.items:
+            return
+        kind, args, existing_kw = self.items[i]
+        merged = dict(existing_kw)
+        merged.update(kw)
+        self.items[i] = (kind, args, merged)
 
     def coords(self, i: int, *args: Any) -> None:
-        pass
+        """기존 item 의 좌표 (args) 를 갱신 (Issue #71 hp 바 너비 가드 지원)."""
+        if i not in self.items:
+            return
+        kind, _old_args, kw = self.items[i]
+        self.items[i] = (kind, args, kw)
 
     def delete(self, i: Any) -> None:
         if isinstance(i, int):

@@ -141,16 +141,28 @@ class HUD:
         lx2, ly2 = sx(580, 60)
         self._ids["sep1"] = c.create_line(lx1, ly1, lx2, ly2, fill="#5a4a30", tags=(tag,))
 
-        # ── 웨이브 진행 (HUD-12) ─────────────────────────────────────────
+        # ── 웨이브 진행 (HUD-12) — Issue #70 풀어쓰기 라벨 ──────────────
         wx, wy = sx(1120, 40)
         self._ids["wave_progress"] = c.create_text(
-            wx, wy, text="진군 0/0", fill="#f0c060", font=font(18, bold=True), anchor="center", tags=(tag,)
+            wx,
+            wy,
+            text="웨이브 시작 대기 / 총 0",
+            fill="#f0c060",
+            font=font(18, bold=True),
+            anchor="center",
+            tags=(tag,),
         )
 
-        # ── 다음 진군 카운트다운 (HUD-13) ────────────────────────────────
-        nx, ny = sx(1340, 40)
+        # ── 다음 진군 카운트다운 (HUD-13) — Issue #70 풀어쓰기 ─────────
+        nx, ny = sx(1380, 40)
         self._ids["next_wave"] = c.create_text(
-            nx, ny, text="다음 --:--", fill="#a0c0e0", font=font(16), anchor="center", tags=(tag,)
+            nx,
+            ny,
+            text="다음 진군 -- 초 후",
+            fill="#a0c0e0",
+            font=font(16),
+            anchor="center",
+            tags=(tag,),
         )
 
         # ── 일시정지 버튼 (HUD-09) ─────────────────────────────────────
@@ -266,14 +278,25 @@ class HUD:
         total = state.get("total_waves", 0)
         time_to_next = state.get("time_to_next", -1.0)
 
+        # Issue #70 (DECISION-DL-P4D-011): wave 표시 명확화.
+        # rc.6 사용자 검수: "웨이브 3" 표시가 "총 3번" 인지 "3번째" 인지 모호.
+        # 풀어쓰기 "현재 N / 전체 M" 으로 의미를 명확히 한다.
+        # 게임 시작 직후 wave=0 (대기) 인 동안은 "곧 시작" 표기.
         if "wave_progress" in ids:
-            c.itemconfig(ids["wave_progress"], text=f"진군 {wave}/{total}")
+            if wave <= 0:
+                wave_text = f"웨이브 시작 대기 / 총 {total}"
+            else:
+                wave_text = f"웨이브 {wave} / 총 {total}"
+            c.itemconfig(ids["wave_progress"], text=wave_text)
 
         if "next_wave" in ids:
+            # Issue #70: 다음 웨이브 카운트다운 표기도 풀어쓰기.
             if time_to_next > 0:
-                c.itemconfig(ids["next_wave"], text=f"다음 {time_to_next:.0f}초")
+                c.itemconfig(ids["next_wave"], text=f"다음 진군 {time_to_next:.0f}초 후")
+            elif time_to_next == 0:
+                c.itemconfig(ids["next_wave"], text="진군 진행 중")
             else:
-                c.itemconfig(ids["next_wave"], text="다음 --")
+                c.itemconfig(ids["next_wave"], text="진군 종료")
 
         # 영웅 HP
         hero_hp = state.get("hero_hp", 0)

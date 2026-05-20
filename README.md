@@ -27,9 +27,9 @@
 
 ## 현재 진행 상태
 
-**Phase 4 자동 가드 완결 — `v0.4.0-rc.6` 사전 릴리즈 (2026-05-21, 사용자 .exe 검수용 RC, develop@46646a5). 자율 진행 통합 라운드: Phase 5.1 BGM 백엔드(#30) + BL-07 시뮬레이터 정합 보강(#60) + 통합 시뮬레이터가 사전 감지한 결함 2건(#62 lives 차감 / #64 enemies.json 4종) fix까지 한 RC에 묶음. pytest **530**. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004/005/006/007).**
+**Phase 4 자동 가드 완결 — `v0.4.0-rc.6` 사전 릴리즈 (2026-05-21, 사용자 .exe 검수용 RC, develop@46646a5). 자율 진행 통합 라운드: Phase 5.1 BGM 백엔드(#30) + BL-07 시뮬레이터 정합 보강(#60) + 통합 시뮬레이터가 사전 감지한 결함 2건(#62 lives 차감 / #64 enemies.json 4종) fix까지 한 RC에 묶음. pytest **530**. v0.4.0-rc.6 사용자 검수 결함 5건(#67/#68/#69/#70/#71) develop 누적 fix (PR pending), pytest **536**. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003/004/005/006/007).**
 
-> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json). pytest **530 passed**.
+> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json), **#67/#68/#69/#70/#71 (rc.6 검수 결함 — 튜토리얼 단계 3/5/6 인터랙션 + HUD wave 표시 + 적 hp 시각 피드백)**. pytest **530 → 536 passed**.
 
 > **Phase 5.1 진행**: BGM 백엔드(pygame.mixer) + Menu/Tutorial/Battle/Ending 4씬 통합 + BG-01~04 자동 가드. Issue #30 종결.
 
