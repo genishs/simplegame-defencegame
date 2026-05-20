@@ -836,9 +836,7 @@ class BattleScene(BaseScene):
         if text is None:
             if self._selected_unit_id and self._selected_unit_id in self._units_db:
                 udef = self._units_db[self._selected_unit_id]
-                text = _UI_STRINGS_DEFAULT["battle.placement.hint_selected"].format(
-                    unit_name=udef.name
-                )
+                text = _UI_STRINGS_DEFAULT["battle.placement.hint_selected"].format(unit_name=udef.name)
                 fill = "#f0d080"
             else:
                 text = _UI_STRINGS_DEFAULT["battle.placement.hint_idle"]
@@ -895,9 +893,7 @@ class BattleScene(BaseScene):
         food = int(self.world.get("food", 0))
         if food < unit_def.cost:
             self._refresh_placement_hint(
-                text=_UI_STRINGS_DEFAULT["battle.placement.insufficient_food"].format(
-                    need=unit_def.cost
-                ),
+                text=_UI_STRINGS_DEFAULT["battle.placement.insufficient_food"].format(need=unit_def.cost),
                 fill="#e08840",
             )
             return
