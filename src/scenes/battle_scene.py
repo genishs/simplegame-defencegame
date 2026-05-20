@@ -3,7 +3,9 @@
 DESIGN:
 - 단일 캔버스 + World 딕셔너리 + 시스템 오케스트레이션.
 - update 순서: WaveSystem → PathingSystem → CombatSystem → HUD.
-- 패배 조건: hero hp<=0 OR enemy.goal_reached 누적 >= lives.
+- 패배 조건: hero hp<=0 OR enemy.goal_reached 누적 >= lives
+  (DECISION-DL-P5C-005, Issue #62 — BattleScene._apply_castle_breaches 가
+  goal_reached/reached_castle 플래그를 world['goals_reached'] 로 변환).
 - 승리 조건: WaveSystem.all_clear AND len(enemies alive)==0.
 - Esc/Space → PauseDialog show.
 - M키 = 영웅 직접 조작 모드 토글 (OPEN-D-201, Issue #4).
@@ -352,6 +354,14 @@ class BattleScene(BaseScene):
                     self.app.sound.play_sfx("sfx.hero_skill")
                 except Exception:  # noqa: BLE001
                     pass
+
+        # 적이 castle(마지막 waypoint)에 도달했는지 검사 → lives 차감.
+        # DECISION-DL-P5C-005 (Issue #62): PathingSystem 이 goal_reached/
+        # reached_castle 플래그만 세팅하므로 BattleScene 이 누적 lives 손실로
+        # 변환해야 게임이 끝날 수 있다. BL-07 시뮬레이터(`auto_mode_simulator.py`)
+        # 의 처리 로직과 정합 — damage_to_castle 만큼 goals_reached 증가 +
+        # 적 alive=False 처리. 이중 카운트 방지를 위해 dying 상태 적은 제외.
+        self._apply_castle_breaches()
 
         # 죽은 적 정리
         self._cleanup_dead()
@@ -1025,6 +1035,48 @@ class BattleScene(BaseScene):
             if new_phase != hero._prev_phase:  # noqa: SLF001
                 hero.phase_changed = True
                 hero._prev_phase = new_phase  # noqa: SLF001
+
+    def _apply_castle_breaches(self) -> None:
+        """적이 castle 도달 시 lives 차감 + 적 제거 (Issue #62, DECISION-DL-P5C-005).
+
+        BattleScene.update 매 틱마다 호출. PathingSystem 이 마지막 waypoint
+        도달한 적에 ``goal_reached=True`` (및 ``reached_castle=True``) 를 세팅
+        하지만, 이를 ``world['goals_reached']`` 누적 손실로 변환하는 책임은
+        BattleScene 에 있다. 본 메서드는 BL-07 시뮬레이터의 처리
+        (``auto_mode_simulator.StageSimulator``) 와 동일 정책::
+
+          breach 1회 = enemy.enemy_def.damage_to_castle 만큼 goals_reached 증가
+          breach 후 enemy.alive = False (다음 _cleanup_dead 에서 정리)
+
+        이중 카운트 방지를 위해 이미 dying (사망 페이드 중) 인 적은 건너뛴다.
+        """
+        enemies = self.world.get("enemies", [])
+        if not enemies:
+            return
+        breach_count = 0
+        for enemy in enemies:
+            if not getattr(enemy, "alive", False):
+                continue
+            if getattr(enemy, "dying", False):
+                continue
+            if not (
+                getattr(enemy, "goal_reached", False)
+                or getattr(enemy, "reached_castle", False)
+            ):
+                continue
+            # damage_to_castle 만큼 손실. EnemyDef 가 누락된 경우 1 로 fallback.
+            edef = getattr(enemy, "enemy_def", None)
+            damage = int(getattr(edef, "damage_to_castle", 1) or 1)
+            self.world["goals_reached"] = int(self.world.get("goals_reached", 0)) + damage
+            # 살아있는 채로 제거 (페이드 없이 곧장 사라짐 — castle 진입 묘사).
+            enemy.alive = False
+            breach_count += 1
+        if breach_count > 0:
+            self._log.debug(
+                "castle breach: %d enemies reached goal (goals_reached=%d)",
+                breach_count,
+                self.world.get("goals_reached", 0),
+            )
 
     def _cleanup_dead(self) -> None:
         """alive==False인 엔티티를 world 목록에서 제거.
