@@ -427,3 +427,120 @@ def test_tutorial_scene_teardown_clears_canvas(scene: Any) -> None:
     scene.teardown()
     # teardown 후 step_ids 비어 있음
     assert scene._step_ids == []
+
+
+# ---------------------------------------------------------------------------
+# 8. Issue #49 — 동그라미 안 콘텐츠 렌더 (DECISION-DL-P4D-001/002)
+# ---------------------------------------------------------------------------
+
+
+def _has_text_value(canvas: Any, value: str) -> bool:
+    """canvas.items 에 텍스트 값이 등장하는가 (mock content 검증용)."""
+    for kind, _args, kw in canvas.items.values():
+        if kind == "text" and kw.get("text") == value:
+            return True
+    return False
+
+
+def _items_with_tag(canvas: Any, tag_substr: str) -> list[tuple[str, Any, Any]]:
+    """tags kwarg 에 특정 substring 이 포함된 아이템만 추출."""
+    out: list[tuple[str, Any, Any]] = []
+    for kind, args, kw in canvas.items.values():
+        tags = kw.get("tags") or ()
+        if any(tag_substr in (t or "") for t in tags):
+            out.append((kind, args, kw))
+    return out
+
+
+def test_tutorial_step2_spotlight_has_inner_content(scene: Any) -> None:
+    """Issue #49 fix — 단계 2 동그라미 안에 곡식 mock 콘텐츠가 그려져야 한다.
+
+    DECISION-DL-P4D-001: spotlight 가 가리키는 위치가 비어 있으면 사용자는
+    "동그라미 안에 아무것도 안 나옴" 으로 인식. mock placeholder 로 해소.
+    """
+    scene.trigger_cta_click()  # 1 → 2
+    assert scene.step == 2
+
+    # spotlight ring 존재
+    rings = _items_with_tag(scene.app.canvas, "tutorial_spotlight_ring")
+    assert len(rings) == 1, "단계 2 에서 spotlight ring 이 정확히 1개 그려져야 함"
+
+    # mock content (곡식 라벨 + 값) 존재
+    mock_items = _items_with_tag(scene.app.canvas, "tutorial_mock_content")
+    assert len(mock_items) >= 2, "단계 2 spotlight 안에 mock 콘텐츠가 비어 있음 (Issue #49 회귀)"
+
+    # 곡식 라벨이 텍스트로 등장 + 값 카운터 등장
+    assert _has_text_value(scene.app.canvas, "곡식"), "단계 2 mock 콘텐츠에 '곡식' 라벨 누락"
+    # 값 카운터 (어떤 숫자라도) 존재
+    values = [
+        kw.get("text")
+        for kind, _a, kw in mock_items
+        if kind == "text" and (kw.get("text") or "").isdigit()
+    ]
+    assert values, "단계 2 mock 콘텐츠에 곡식 값 카운터 누락"
+
+
+def test_tutorial_step3_spotlight_has_buildzone_placeholder(scene: Any) -> None:
+    """Issue #49 fix — 단계 3 buildzone spotlight 안에 빈 배치 칸 + '?' placeholder."""
+    scene.trigger_cta_click()  # 1 → 2
+    scene.trigger_step2_done()  # 2 → 3
+    assert scene.step == 3
+
+    mock_items = _items_with_tag(scene.app.canvas, "tutorial_mock_content")
+    assert len(mock_items) >= 2, "단계 3 spotlight 안에 buildzone placeholder 누락"
+    assert _has_text_value(scene.app.canvas, "?"), "단계 3 buildzone '?' placeholder 누락"
+
+
+def test_tutorial_step5_spotlight_has_hero_placeholder(scene: Any) -> None:
+    """Issue #49 fix — 단계 5 hero spotlight 안에 영웅 placeholder (원 + 글자)."""
+    # 1 → 2 → 3 → 4 → 5
+    scene.trigger_cta_click()
+    scene.trigger_step2_done()
+    scene.trigger_step3_done()
+    for _ in range(20):
+        scene.update(0.2)
+    scene.trigger_cta_click()
+    assert scene.step == 5
+
+    mock_items = _items_with_tag(scene.app.canvas, "tutorial_mock_content")
+    assert len(mock_items) >= 2, "단계 5 spotlight 안에 hero placeholder 누락"
+    # 영웅 글자 "楊" (양만춘 약자) 등장
+    assert _has_text_value(scene.app.canvas, "楊"), "단계 5 hero placeholder 글자 누락"
+
+
+def test_tutorial_spotlight_z_order_mock_under_ring(scene: Any) -> None:
+    """Issue #49 fix — Canvas z-order: mask → mock → ring → arrow → label.
+
+    Canvas 의 z-order 는 item id 생성 순서. 단계 2 진입 시 mock content 의
+    item id 가 ring item id 보다 작아야 ring 이 mock 위에 그려진다.
+    DECISION-DL-P4D-002.
+    """
+    scene.trigger_cta_click()  # 1 → 2
+    mock_items_ids = [
+        iid
+        for iid, (kind, _a, kw) in scene.app.canvas.items.items()
+        if any("tutorial_mock_content" in (t or "") for t in (kw.get("tags") or ()))
+    ]
+    ring_ids = [
+        iid
+        for iid, (kind, _a, kw) in scene.app.canvas.items.items()
+        if any("tutorial_spotlight_ring" in (t or "") for t in (kw.get("tags") or ()))
+    ]
+    assert mock_items_ids, "mock content 누락"
+    assert ring_ids, "ring 누락"
+    assert max(mock_items_ids) < min(ring_ids), (
+        "z-order 위반: mock content 가 ring 보다 늦게 그려져 ring 을 가림"
+    )
+
+
+def test_tutorial_step1_no_spotlight_no_mock(scene: Any) -> None:
+    """단계 1 은 hud_target=None — spotlight 와 mock content 모두 없어야 한다.
+
+    사용자 보고("동그라미가 있는데 안이 비어")가 단계 1 자체에서 일어나지
+    않음을 회귀 가드로 박는다.
+    """
+    assert scene.step == 1
+    rings = _items_with_tag(scene.app.canvas, "tutorial_spotlight_ring")
+    mock_items = _items_with_tag(scene.app.canvas, "tutorial_mock_content")
+    assert rings == [], "단계 1 에 spotlight ring 이 그려지면 안 됨"
+    assert mock_items == [], "단계 1 에 mock content 가 그려지면 안 됨"
