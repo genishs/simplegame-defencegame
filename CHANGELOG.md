@@ -6,6 +6,12 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+## [0.4.0-rc.5] - 2026-05-21 — v0.4.0-rc.4 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #55/#56/#57/#58) 게임플레이 인터랙션 결함 4건을 한 PR로 종합 fix. develop@e42eeec(PR #59 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3/rc.4 패턴(DECISION-SCM-P5K-003/004/005) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드. 사용자 부재(취침) 중이라 GA는 깨어난 후로 보류.
+
 ### Fixed (게임플레이 인터랙션 4건 종합 — Issue #55/#56/#57/#58, DECISION-DL-P4D-007/008/009)
 
 v0.4.0-rc.4 사용자 검수에서 발견된 게임플레이 인터랙션 결함 4건을 한 PR 로 종합 fix. 모두 동일한 근본 원인 — BL-07 시뮬레이터(systems 직접 호출)는 통과하지만 실 BattleScene/UI 인터랙션이 결여되어 사용자가 게임을 진행할 수 없는 현상.
@@ -42,6 +48,9 @@ v0.4.0-rc.4 사용자 검수에서 발견된 게임플레이 인터랙션 결함
 - BL-07 시뮬레이터에 BattleScene 의 영웅 평타 + 배치 UI 호출을 통합 (현재 시뮬레이터는 ally 자동 배치 + 영웅 비활성). Phase 5 cleanup 라운드 후보.
 - 본 PR 의 영웅 평타는 GDD 의 S1/S2/S3 스킬 미구현 — 현재 평타와 궁극기만 작동. 스킬 시스템은 Phase 5 후속 작업.
 - HUD 상단 곡식 아이콘과 좌하단 유닛 선택 패널을 SCN-05 디자인 와이어프레임과 통합 (DESIGN 라운드).
+
+### Decisions (SCM rc.5 발급)
+- **DECISION-SCM-P5K-006**: v0.4.0-rc.5 발급 (rc.2/rc.3/rc.4 패턴 재사용). 메인 세션이 PR #59 머지 + Issue #55/#56/#57/#58 close + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리. 사용자 취침 중 자율 진행 위임 범위 내 (사용자 명시: "scm agent에게 pr과 수락까지 모두 내 결정없이 진행해줘").
 
 ## [0.4.0-rc.4] - 2026-05-20 — v0.4.0-rc.3 검수 결함 fix RC (.exe 재검수 대기)
 
