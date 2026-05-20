@@ -193,12 +193,34 @@ def test_tutorial_step_2_clickthrough(scene: Any) -> None:
     assert scene.step == 3
 
 
+# Issue #67/#68/#69 (DECISION-DL-P4D-012/013/014): 인터랙티브 단계 진행 헬퍼.
+# 새 정책: 단계 3 는 mock 궁수 패널 선택 후 buildzone trigger, 단계 5 는 M 키
+# + 1.5s 인지 지연, 단계 6 는 Space 2회 (사이 일시정지 overlay).
+# 자동 시간 상한은 모두 inf 로 해제 — fallback 자동 진행 결함 제거.
+
+def _advance_step3(scene: Any) -> None:
+    """단계 3 진행 헬퍼: 궁수 mock 패널 선택 후 buildzone trigger."""
+    scene._step3_archer_selected = True
+    scene.trigger_step3_done()
+
+
+def _advance_step5(scene: Any) -> None:
+    """단계 5 진행 헬퍼: M 키 누름 + 1.5s 지연 후 자동 진행."""
+    scene._on_m_key(None)
+    # 1.5초 인지 지연 후 update 가 trigger_step5_done 호출 — 16ms × 100 = 1.6s
+    for _ in range(110):
+        scene.update(0.016)
+
+
 def test_tutorial_step_3_buildzone(scene: Any) -> None:
-    """단계 3: 궁수 배치 완료 → 단계 4."""
+    """단계 3: 궁수 mock 패널 선택 + buildzone 클릭 → 단계 4 (Issue #67)."""
     for _ in range(2):  # 1 → 2 → 3
         scene.trigger_cta_click() if scene.step == 1 else scene.trigger_step2_done()
     assert scene.step == 3
+    # Issue #67: buildzone trigger 만으로는 진행 X — 궁수 선택 필요.
     scene.trigger_step3_done()
+    assert scene.step == 3, "궁수 선택 없이 buildzone 만 누르면 진행 X"
+    _advance_step3(scene)
     assert scene.step == 4
 
 
@@ -207,7 +229,7 @@ def test_tutorial_step_4_cta_disabled_until_mock_wave_ends(scene: Any) -> None:
     # 1 → 2 → 3 → 4
     scene.trigger_cta_click()
     scene.trigger_step2_done()
-    scene.trigger_step3_done()
+    _advance_step3(scene)
     assert scene.step == 4
     # 비활성 상태
     assert scene._cta_enabled is False
@@ -225,35 +247,37 @@ def test_tutorial_step_4_cta_disabled_until_mock_wave_ends(scene: Any) -> None:
 
 
 def test_tutorial_step_5_m_key(scene: Any) -> None:
-    """단계 5: M 키 입력 → 단계 6."""
+    """단계 5: M 키 입력 + 1.5s 인지 지연 → 단계 6 (Issue #68)."""
     # 1 → 2 → 3 → 4
     scene.trigger_cta_click()
     scene.trigger_step2_done()
-    scene.trigger_step3_done()
+    _advance_step3(scene)
     # 4 → 5 via mock wave
     for _ in range(20):
         scene.update(0.2)
     scene.trigger_cta_click()
     assert scene.step == 5
-    scene._on_m_key(None)
+    _advance_step5(scene)
     assert scene.step == 6
 
 
 def test_tutorial_step_6_space_toggle_cycle(scene: Any) -> None:
-    """단계 6: Space 2회 → 단계 7."""
+    """단계 6: Space 2회 → 단계 7 (Issue #69 paused overlay 포함)."""
     # 단계 6 까지 빠르게
     scene.trigger_cta_click()
     scene.trigger_step2_done()
-    scene.trigger_step3_done()
+    _advance_step3(scene)
     for _ in range(20):
         scene.update(0.2)
     scene.trigger_cta_click()
-    scene._on_m_key(None)
+    _advance_step5(scene)
     assert scene.step == 6
     scene._on_space(None)
-    assert scene.step == 6  # 한 번 만 누름
+    assert scene.step == 6  # 한 번 만 누름 — paused overlay
+    assert scene._step6_paused is True  # Issue #69 visual 가드
     scene._on_space(None)
     assert scene.step == 7
+    assert scene._step6_paused is False
 
 
 def test_tutorial_step_8_complete_to_stage_select(scene: Any) -> None:
@@ -261,11 +285,11 @@ def test_tutorial_step_8_complete_to_stage_select(scene: Any) -> None:
     # 전부 진행
     scene.trigger_cta_click()  # 1→2
     scene.trigger_step2_done()  # 2→3
-    scene.trigger_step3_done()  # 3→4
+    _advance_step3(scene)  # 3→4 (Issue #67 새 정책)
     for _ in range(20):
         scene.update(0.2)
     scene.trigger_cta_click()  # 4→5
-    scene._on_m_key(None)  # 5→6
+    _advance_step5(scene)  # 5→6 (Issue #68 새 정책)
     scene._on_space(None)
     scene._on_space(None)  # 6→7
     scene.trigger_cta_click()  # 7→8
@@ -281,17 +305,22 @@ def test_tutorial_step_8_complete_to_stage_select(scene: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. 표시 시간 상한 fallback
+# 3. 표시 시간 상한 fallback — Issue #67/#68/#69 (DECISION-DL-P4D-012/013/014)
+#    인터랙티브 단계 2/3/5/6 의 time_limit 은 inf 로 해제됨.
+#    "누르지 않아도 시간이 지나면 다음으로 넘어간다" 결함 제거 가드.
 # ---------------------------------------------------------------------------
 
 
-def test_tutorial_step_2_time_limit_auto_advance(scene: Any) -> None:
-    """단계 2 (인터랙티브) 표시 시간 상한 15초 후 자동 진행."""
+def test_tutorial_step_2_no_auto_advance_without_input(scene: Any) -> None:
+    """단계 2 (인터랙티브) 는 사용자 입력 없이 시간만으로 진행되지 않는다 (Issue #69 family)."""
     scene.trigger_cta_click()  # 1→2
     assert scene.step == 2
-    # 16초 시뮬
-    for _ in range(80):  # 80 × 0.2 = 16s
+    # 60초 시뮬레이션 — 옛 정책이면 15초에 자동 진행했을 것.
+    for _ in range(300):  # 300 × 0.2 = 60s
         scene.update(0.2)
+    assert scene.step == 2, "Issue #67/#68/#69 정책: 입력 없이 자동 진행하지 않음"
+    # 사용자 클릭이 들어와야 비로소 진행
+    scene.trigger_step2_done()
     assert scene.step == 3
 
 
@@ -523,10 +552,10 @@ def test_tutorial_step3_spotlight_has_buildzone_placeholder(scene: Any) -> None:
 
 def test_tutorial_step5_spotlight_has_hero_placeholder(scene: Any) -> None:
     """Issue #49 fix — 단계 5 hero spotlight 안에 영웅 placeholder (원 + 글자)."""
-    # 1 → 2 → 3 → 4 → 5
+    # 1 → 2 → 3 → 4 → 5 (Issue #67 새 정책 적용)
     scene.trigger_cta_click()
     scene.trigger_step2_done()
-    scene.trigger_step3_done()
+    _advance_step3(scene)
     for _ in range(20):
         scene.update(0.2)
     scene.trigger_cta_click()

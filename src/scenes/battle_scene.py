@@ -426,6 +426,12 @@ class BattleScene(BaseScene):
             self._render_enemy(canvas, scaler, enemy)
             if enemy.canvas_id is not None:
                 active_ids.add(int(enemy.canvas_id))
+            # Issue #71: hp 바 (배경/전경) 도 active_ids 에 등록해 죽었을 때
+            # 함께 cleanup 되도록 한다.
+            for cid_attr in ("_hp_bg_id", "_hp_fg_id"):
+                cid = getattr(enemy, cid_attr, None)
+                if cid is not None:
+                    active_ids.add(int(cid))
 
         # ----- 발사체 -----
         for proj in self.world.get("projectiles", []):
@@ -523,6 +529,18 @@ class BattleScene(BaseScene):
                 pass
 
     def _render_enemy(self, canvas: Any, scaler: Any, enemy: Any) -> None:
+        """적 본체 + HP 바 (Issue #71, DECISION-DL-P4D-010).
+
+        rc.6 검수 결함 #71: 사용자가 "적이 공격받는데 죽지 않고 그냥 지나간다"
+        고 보고. 진단 결과 영웅 평타가 데미지를 입히고 적이 사망 페이드도 정상
+        진입하지만, **외형상 적의 hp 변화가 보이지 않아** 사용자는 적이 무적
+        인 듯한 인상을 받음. 본 메서드는 적 본체 아래에 hp 바를 그려 매 틱
+        hp 비율로 갱신해 시각 피드백을 제공한다 (단순 색약 친화 빨/노/초).
+
+        도메인 가드: src/entities/enemy.py 변경 없음. 본 BattleScene 의 렌더
+        책임만 확장. hp 바도 ``_known_canvas_items`` 에 등록되어 죽은 적
+        cleanup 시 함께 삭제됨.
+        """
         sx, sy = scaler.to_screen(float(enemy.x), float(enemy.y))
         r = self._ENEMY_RADIUS_BASE * float(getattr(scaler, "scale", 1.0))
         # dying 상태이면 회색 페이드 (잔혹 묘사 회피, GDD §5)
@@ -550,6 +568,66 @@ class BattleScene(BaseScene):
             try:
                 canvas.coords(enemy.canvas_id, sx - r, sy - r, sx + r, sy + r)
                 canvas.itemconfig(enemy.canvas_id, fill=fill, outline=outline)
+            except Exception:  # noqa: BLE001
+                pass
+
+        # HP 바 (Issue #71, DECISION-DL-P4D-010) — dying 상태에서는 숨김.
+        edef = getattr(enemy, "enemy_def", None)
+        max_hp = int(getattr(edef, "hp", 0) or getattr(enemy, "hp", 1) or 1)
+        cur_hp = max(0, int(getattr(enemy, "hp", 0)))
+        ratio = max(0.0, min(1.0, cur_hp / max_hp)) if max_hp > 0 else 0.0
+        bar_w = r * 1.6  # 본체보다 약간 좁게
+        bar_h = max(3.0, 4.0 * float(getattr(scaler, "scale", 1.0)))
+        bx1 = sx - bar_w
+        bx2 = sx + bar_w
+        by1 = sy - r - bar_h - 4.0
+        by2 = sy - r - 4.0
+        bg_id = getattr(enemy, "_hp_bg_id", None)
+        fg_id = getattr(enemy, "_hp_fg_id", None)
+        if getattr(enemy, "dying", False):
+            # 페이드 중에는 hp 바 숨김
+            for cid in (bg_id, fg_id):
+                if cid is not None:
+                    try:
+                        canvas.itemconfig(cid, state="hidden")
+                    except Exception:  # noqa: BLE001
+                        pass
+            return
+        # 비율에 따른 색상 — 색약 친화 (빨/노/초 분리)
+        if ratio > 0.6:
+            bar_fill = "#3fbf6f"
+        elif ratio > 0.3:
+            bar_fill = "#e8c860"
+        else:
+            bar_fill = "#d44040"
+        # 배경
+        if bg_id is None:
+            enemy._hp_bg_id = canvas.create_rectangle(
+                bx1, by1, bx2, by2,
+                fill="#1c1c1c",
+                outline="#3a3a3a",
+                width=1,
+                tags=(self._tag, "enemy_hp_bg"),
+            )
+        else:
+            try:
+                canvas.coords(bg_id, bx1, by1, bx2, by2)
+                canvas.itemconfig(bg_id, state="normal")
+            except Exception:  # noqa: BLE001
+                pass
+        # 전경 (hp 비율)
+        fg_x2 = bx1 + (bx2 - bx1) * ratio
+        if fg_id is None:
+            enemy._hp_fg_id = canvas.create_rectangle(
+                bx1, by1, fg_x2, by2,
+                fill=bar_fill,
+                outline="",
+                tags=(self._tag, "enemy_hp_fg"),
+            )
+        else:
+            try:
+                canvas.coords(fg_id, bx1, by1, fg_x2, by2)
+                canvas.itemconfig(fg_id, fill=bar_fill, state="normal")
             except Exception:  # noqa: BLE001
                 pass
 

@@ -74,17 +74,17 @@ _STRINGS: dict[str, str] = {
     "tutorial.step2.body": "위에 곡식이 있소. 이걸로 병사를 모집하시오.",
     "tutorial.step2.cta": "상단의 곡식을 누르시오",
     "tutorial.step3.title": "3. 아군 배치",
-    "tutorial.step3.body": "왼쪽에서 궁수를 골라 빈 칸에 배치하시오.",
-    "tutorial.step3.cta": "궁수를 빈 칸에 배치하시오",
+    "tutorial.step3.body": "왼쪽 패널에서 궁수를 고른 뒤 녹색 빈 칸에 배치하시오.",
+    "tutorial.step3.cta": "좌측 궁수 패널을 누르고, 녹색 칸을 누르시오",
     "tutorial.step4.title": "4. 첫 진군",
     "tutorial.step4.body": "당군이 옵니다. 양만춘과 병사들이 막을 것이오.",
     "tutorial.step4.cta": "다음",
     "tutorial.step5.title": "5. 영웅",
-    "tutorial.step5.body": "양만춘은 자동입니다. M 키로 직접 움직일 수 있소.",
-    "tutorial.step5.cta": "M 키를 누르시오",
+    "tutorial.step5.body": "양만춘은 자동입니다. M 키를 누르면 직접 조작 모드로 전환됩니다.",
+    "tutorial.step5.cta": "M 키를 누르시오 (영웅 컨트롤 모드 토글)",
     "tutorial.step6.title": "6. 일시정지",
     "tutorial.step6.body": "Space 키로 잠시 멈출 수 있소. 다시 누르면 재개됩니다.",
-    "tutorial.step6.cta": "Space 를 한 번 누르고, 다시 누르시오",
+    "tutorial.step6.cta": "Space 를 한 번 누르면 정지, 다시 누르면 재개",
     "tutorial.step7.title": "7. 보상",
     "tutorial.step7.body": "진군을 막아내면 곡식과 명성을 얻습니다.",
     "tutorial.step7.cta": "다음",
@@ -94,6 +94,12 @@ _STRINGS: dict[str, str] = {
     "tutorial.hud_arrow.resource": "여기",
     "tutorial.hud_arrow.buildzone": "여기에 배치",
     "tutorial.hud_arrow.hero": "양만춘",
+    # Issue #67/#68/#69 (DECISION-DL-P4D-012/013/014): 인터랙티브 단계 추가 안내.
+    "tutorial.step3.archer_panel": "고구려 궁수\n곡식 50",
+    "tutorial.step5.manual_on": "직접 조작 모드 ON\n(2초 뒤 다음으로 진행)",
+    "tutorial.step5.manual_off": "자동 모드",
+    "tutorial.step6.paused_overlay": "■ 일시정지 ■\n(Space 를 다시 누르면 재개)",
+    "tutorial.step6.resumed": "재개됨",
 }
 
 
@@ -124,13 +130,16 @@ MODE_INTERACTIVE = "I"
 
 # 단계 정의: (step_no, mode, key_prefix, time_limit_s, hud_target_key)
 # hud_target_key 는 _HUD_TARGETS 의 키. None 이면 강조 없음.
+# Issue #67/#68/#69 (DECISION-DL-P4D-012/013/014): 인터랙티브 단계의 자동
+# 진행 시간 상한을 inf 로 변경 — 사용자가 실제로 입력할 때까지 대기. fallback
+# 자동 진행이 결함 #67/#68/#69 의 "누르지 않아도 넘어감" 현상을 일으켰다.
 _STEP_DEFS: list[tuple[int, str, str, float, str | None]] = [
     (1, MODE_PASSIVE, "tutorial.step1", float("inf"), None),
-    (2, MODE_INTERACTIVE, "tutorial.step2", 15.0, "resource"),
-    (3, MODE_INTERACTIVE, "tutorial.step3", 30.0, "buildzone"),
+    (2, MODE_INTERACTIVE, "tutorial.step2", float("inf"), "resource"),
+    (3, MODE_INTERACTIVE, "tutorial.step3", float("inf"), "buildzone"),
     (4, MODE_PASSIVE, "tutorial.step4", 45.0, None),
-    (5, MODE_INTERACTIVE, "tutorial.step5", 20.0, "hero"),
-    (6, MODE_INTERACTIVE, "tutorial.step6", 15.0, "pause"),
+    (5, MODE_INTERACTIVE, "tutorial.step5", float("inf"), "hero"),
+    (6, MODE_INTERACTIVE, "tutorial.step6", float("inf"), "pause"),
     (7, MODE_PASSIVE, "tutorial.step7", float("inf"), None),
     (8, MODE_PASSIVE, "tutorial.step8", float("inf"), None),
 ]
@@ -446,6 +455,16 @@ class TutorialScene(BaseScene):
         # M 키 토글 검증 — 메뉴 진입 시 False 로 초기화
         self._m_pressed: bool = False
 
+        # Issue #68 (DECISION-DL-P4D-013): 단계 5 M 키 인터랙션 — 토글 ON 표시
+        # 후 짧은 지연 뒤 자동 진행 (사용자가 토글 결과를 인지하도록).
+        self._step5_manual_on: bool = False
+        self._step5_manual_on_at: float = -1.0  # M 키 누른 시각 (step_elapsed 기준)
+
+        # Issue #69 (DECISION-DL-P4D-014): 단계 6 Space 일시정지 — 첫 Space 시
+        # paused overlay 표시, 두 번째 Space 에 다음 단계로 진행.
+        self._step6_paused: bool = False
+        self._step6_overlay_ids: list[int] = []
+
     # ------------------------------------------------------------------
     # lifecycle
     # ------------------------------------------------------------------
@@ -503,11 +522,28 @@ class TutorialScene(BaseScene):
         if self._skip_dialog is not None and self._skip_dialog.visible:
             return
 
+        # Issue #69 (DECISION-DL-P4D-014): 단계 6 일시정지 중에는 시간 흐름 정지
+        # → "Space 안 눌러도 넘어감" 결함 방지. 사용자 두번째 Space 가 진행 트리거.
+        if self._step == 6 and self._step6_paused:
+            return
+
         self._step_elapsed += dt
 
         # 단계 4 mock wave 진행
         if self._step == 4 and not self._mock_wave_done:
             self._tick_mock_wave(dt)
+
+        # Issue #68 (DECISION-DL-P4D-013): 단계 5 M 키 후 1.5초 인지 지연 후
+        # 자동 진행 — 사용자가 토글 결과(영웅 placeholder 색상 + 라벨)를 인지
+        # 한 뒤 다음 단계로 넘어가도록.
+        if (
+            self._step == 5
+            and self._step5_manual_on
+            and not self._step_completed
+            and self._step5_manual_on_at >= 0.0
+            and (self._step_elapsed - self._step5_manual_on_at) >= 1.5
+        ):
+            self.trigger_step5_done()
 
         # 표시 시간 상한 → 자동 진행 (인터랙티브 단계 fallback)
         time_limit = self._current_time_limit()
@@ -537,6 +573,13 @@ class TutorialScene(BaseScene):
             except Exception:  # noqa: BLE001
                 pass
         self._step_ids = []
+        # Issue #69: step 6 overlay 정리 (다른 단계 진입 시).
+        for i in self._step6_overlay_ids:
+            try:
+                canvas.delete(i)
+            except Exception:  # noqa: BLE001
+                pass
+        self._step6_overlay_ids = []
 
         # 상태 리셋
         self._step = step
@@ -548,6 +591,14 @@ class TutorialScene(BaseScene):
         self._mock_wave_dt = 0.0
         self._mock_spawn_count = 0
         self._mock_wave_done = False
+        # Issue #68/#69 리셋
+        self._step5_manual_on = False
+        self._step5_manual_on_at = -1.0
+        self._step6_paused = False
+        # Issue #67: 단계 3 mock 패널 상태 리셋
+        self._step3_archer_selected = False
+        # Issue #67/#68/#69: cta hint id 리셋 (이전 단계의 잔존 참조 방지)
+        self._cta_hint_id = None
 
         # 단계별 build
         self._build_step(step)
@@ -565,6 +616,14 @@ class TutorialScene(BaseScene):
         # HUD 강조 (인터랙티브 단계 중 hud_target 지정 시)
         if hud_target is not None and hud_target in _HUD_TARGETS:
             self._draw_spotlight(scaler, hud_target)
+
+        # Issue #67 (DECISION-DL-P4D-012): 단계 3 좌측에 mock 궁수 선택 패널.
+        # rc.6 결함 #67: 사용자가 "왼편에 궁수가 나타나지 않는다" 고 보고.
+        # 튜토리얼 단계 3 는 실 BattleScene 을 통합하지 않으므로 spotlight 만으로
+        # 는 좌측 유닛 패널을 인지할 수 없다. 본 단계에 직접 mock 패널을 그려
+        # "패널 클릭 → buildzone 클릭" 흐름을 시뮬레이션한다.
+        if step == 3:
+            self._draw_step3_unit_panel(scaler)
 
         # 본문 텍스트 박스
         self._draw_text_box(scaler, title, body)
@@ -606,11 +665,9 @@ class TutorialScene(BaseScene):
             self._step_completed = True
             self._advance_step()
 
-    def trigger_step3_done(self) -> None:
-        """단계 3: 궁수 배치 완료."""
-        if self._step == 3 and not self._step_completed:
-            self._step_completed = True
-            self._advance_step()
+    # Issue #67 (DECISION-DL-P4D-012): trigger_step3_done 은 mock 궁수 패널
+    # 선택을 검증하는 새 구현으로 아래쪽에 재정의되었다. 기존 단순 trigger 는
+    # "패널 클릭 없이도 buildzone 만 누르면 진행" 결함을 일으켜 제거.
 
     def _is_auto_advance_step(self) -> bool:
         """완료 조건 충족 시 자동으로 다음 단계로 가는 단계인가."""
@@ -651,18 +708,48 @@ class TutorialScene(BaseScene):
         self._show_skip_dialog()
 
     def _on_space(self, _event: Any) -> None:
+        """Issue #69 (DECISION-DL-P4D-014): 단계 6 Space 인터랙션.
+
+        rc.6 검수 결함 #69: "Space 를 누르면 정지되고 메뉴가 나올 것을 기대
+        했는데 그냥 다음 단계로 넘어간다 / 누르지 않아도 시간이 지나면 넘어간다".
+
+        본 fix:
+          - 첫 Space → 일시정지 placeholder overlay 표시 + 안내 텍스트 갱신.
+          - 두 번째 Space → overlay 제거 + 단계 진행.
+          - 자동 시간 상한은 inf 로 해제 (_STEP_DEFS) — 사용자 입력 대기.
+        """
         # 스킵 다이얼로그 떠 있으면 닫기 (아니오 효과)
         if self._skip_dialog is not None and self._skip_dialog.visible:
             return
         if self._step == 6 and not self._step_completed:
             self._pause_toggle_count += 1
-            if self._pause_toggle_count >= 2:
+            if self._pause_toggle_count == 1:
+                # 첫 Space — paused overlay 표시.
+                self._step6_paused = True
+                self._draw_step6_paused_overlay()
+            elif self._pause_toggle_count >= 2:
+                # 두 번째 Space — overlay 제거 + 단계 진행.
+                self._step6_paused = False
+                self._clear_step6_paused_overlay()
                 self.trigger_step6_done()
 
     def _on_m_key(self, _event: Any) -> None:
-        if self._step == 5 and not self._step_completed:
+        """Issue #68 (DECISION-DL-P4D-013): 단계 5 M 키 인터랙션.
+
+        rc.6 검수 결함 #68: "M 키를 누르면 컨트롤이 되는 게 아니라 다음으로
+        이동해 버린다".
+
+        본 fix:
+          - M 누름 → 영웅 placeholder 색상 변경 + "직접 조작 모드 ON" 표시.
+          - 1.5초 후 update 루프가 자동으로 다음 단계 진행 (인지 시간 확보).
+          - 자동 시간 상한은 inf 로 해제 (_STEP_DEFS) — 사용자 입력 대기.
+        """
+        if self._step == 5 and not self._step_completed and not self._step5_manual_on:
             self._m_pressed = True
-            self.trigger_step5_done()
+            self._step5_manual_on = True
+            self._step5_manual_on_at = self._step_elapsed
+            self._show_step5_manual_on()
+            # trigger_step5_done 는 update() 에서 일정 시간 후 호출.
 
     def trigger_step5_done(self) -> None:
         if self._step == 5 and not self._step_completed:
@@ -1150,7 +1237,11 @@ class TutorialScene(BaseScene):
                 pass
 
     def _draw_cta_hint(self, scaler: Any, hint: str) -> None:
-        """인터랙티브 단계 안내 텍스트 (CTA 버튼 대신)."""
+        """인터랙티브 단계 안내 텍스트 (CTA 버튼 대신).
+
+        Issue #67/#68/#69 (DECISION-DL-P4D-012/013/014): hint id 를 인스턴스
+        속성으로 보관해 단계 진행 중 텍스트/색상을 갱신 가능하도록 한다.
+        """
         canvas = self.app.canvas
         hx, hy = _sx(scaler, 960, 1020)
         hint_id = canvas.create_text(
@@ -1163,6 +1254,249 @@ class TutorialScene(BaseScene):
             tags=(self._tag, "tutorial_cta_hint"),
         )
         self._step_ids.append(hint_id)
+        # Issue #67/#68/#69: 단계 진행 중 갱신용 참조.
+        self._cta_hint_id = hint_id
+
+    # ------------------------------------------------------------------
+    # Issue #67 (DECISION-DL-P4D-012): 단계 3 mock 궁수 선택 패널
+    # ------------------------------------------------------------------
+
+    def _draw_step3_unit_panel(self, scaler: Any) -> None:
+        """단계 3 — 좌측 mock 궁수 선택 패널.
+
+        rc.6 결함 #67 fix: BattleScene 의 ``_draw_unit_selection_panel`` 모방.
+        실 ally 배치는 발생하지 않고 클릭 → 선택 표시 → buildzone 클릭으로
+        진행 트리거. 인지 부하 우선 원칙(DECISION-DL-P4-002) 유지.
+        """
+        canvas = self.app.canvas
+        # 패널 박스 (베이스 1920×1080 좌측 하단)
+        px1, py1 = _sx(scaler, 28, 814)
+        px2, py2 = _sx(scaler, 252, 932)
+        panel_id = canvas.create_rectangle(
+            px1,
+            py1,
+            px2,
+            py2,
+            fill="#1a1208",
+            outline=_CLR_PANEL_OUTLINE,
+            width=2,
+            tags=(self._tag, "tutorial_step3_panel"),
+        )
+        self._step_ids.append(panel_id)
+
+        # 타이틀
+        title_x, title_y = _sx(scaler, 40, 832)
+        title_id = canvas.create_text(
+            title_x,
+            title_y,
+            text="아군 배치",
+            fill="#f0d080",
+            font=_font(scaler, 14, bold=True),
+            anchor="w",
+            tags=(self._tag, "tutorial_step3_panel"),
+        )
+        self._step_ids.append(title_id)
+
+        # 궁수 버튼 (clickable)
+        bx1, by1 = _sx(scaler, 40, 850)
+        bx2, by2 = _sx(scaler, 240, 920)
+        btn_rect = canvas.create_rectangle(
+            bx1,
+            by1,
+            bx2,
+            by2,
+            fill="#3a2a1c",
+            outline="#a88a5c",
+            width=2,
+            tags=(self._tag, "tutorial_step3_archer_btn"),
+        )
+        self._step_ids.append(btn_rect)
+        self._step3_archer_btn_rect = btn_rect
+        nx, ny = _sx(scaler, 52, 862)
+        name_id = canvas.create_text(
+            nx,
+            ny,
+            text="고구려 궁수",
+            fill="#f0e0c0",
+            font=_font(scaler, 14, bold=True),
+            anchor="nw",
+            tags=(self._tag, "tutorial_step3_archer_btn"),
+        )
+        self._step_ids.append(name_id)
+        cx, cy = _sx(scaler, 52, 892)
+        cost_id = canvas.create_text(
+            cx,
+            cy,
+            text="곡식 50",
+            fill="#e8c860",
+            font=_font(scaler, 12),
+            anchor="nw",
+            tags=(self._tag, "tutorial_step3_archer_btn"),
+        )
+        self._step_ids.append(cost_id)
+
+        # 선택 상태 플래그 (튜토리얼 mock — 실 ally 생성 X)
+        self._step3_archer_selected: bool = False
+
+        def _select_archer(_e: Any) -> None:
+            if self._step != 3 or self._step_completed:
+                return
+            self._step3_archer_selected = True
+            # 버튼 강조
+            try:
+                canvas.itemconfig(btn_rect, fill="#5a4a2c", outline="#d4a84a")
+            except Exception:  # noqa: BLE001
+                pass
+            # 안내 텍스트 갱신
+            self._refresh_cta_hint_step3()
+
+        for iid in (btn_rect, name_id, cost_id):
+            try:
+                canvas.tag_bind(iid, "<ButtonRelease-1>", _select_archer)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _refresh_cta_hint_step3(self) -> None:
+        """단계 3 hint 갱신 — 궁수 선택 후 buildzone 안내 강조."""
+        hint_id = getattr(self, "_cta_hint_id", None)
+        if hint_id is None:
+            return
+        try:
+            self.app.canvas.itemconfig(
+                hint_id,
+                text="궁수 선택됨 — 녹색 칸을 누르시오",
+                fill="#3fbf6f",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Issue #67: step3 buildzone(spotlight) 클릭은 _draw_spotlight 의
+    # _spotlight_click_handler 가 trigger_step3_done 으로 라우팅. 선택 없이
+    # buildzone 만 누르면 hint 갱신만, 양쪽 다 누르면 진행.
+    def trigger_step3_done(self) -> None:  # type: ignore[no-redef]
+        """단계 3 진행 트리거 — 궁수 선택 + buildzone 클릭 모두 필요.
+
+        Issue #55 의 단순 trigger 와 달리 ``self._step3_archer_selected`` 가
+        True 일 때만 진행. False 면 hint 만 갱신해 사용자가 패널을 누르도록
+        유도. 본 메서드는 ``_spotlight_click_handler`` (buildzone) 에서 호출.
+        """
+        if self._step != 3 or self._step_completed:
+            return
+        if not getattr(self, "_step3_archer_selected", False):
+            # 궁수 선택 안 됨 — 안내만 갱신.
+            hint_id = getattr(self, "_cta_hint_id", None)
+            if hint_id is not None:
+                try:
+                    self.app.canvas.itemconfig(
+                        hint_id,
+                        text="먼저 좌측 궁수 패널을 누르시오",
+                        fill="#e08840",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            return
+        self._step_completed = True
+        self._advance_step()
+
+    # ------------------------------------------------------------------
+    # Issue #68 (DECISION-DL-P4D-013): 단계 5 영웅 컨트롤 시각화
+    # ------------------------------------------------------------------
+
+    def _show_step5_manual_on(self) -> None:
+        """단계 5 — M 키 누름 후 영웅 placeholder + 모드 라벨 갱신."""
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        # 영웅 placeholder 색상 강조 (자동 → 직접 조작) — _HUD_TARGETS["hero"] 좌표 사용.
+        cx, cy, _r = _HUD_TARGETS["hero"]
+        r = 36.0
+        x1, y1 = _sx(scaler, cx - r, cy - r)
+        x2, y2 = _sx(scaler, cx + r, cy + r)
+        ring_id = canvas.create_oval(
+            x1,
+            y1,
+            x2,
+            y2,
+            outline="#f0c040",
+            width=5,
+            tags=(self._tag, "tutorial_step5_manual_ring"),
+        )
+        self._step_ids.append(ring_id)
+        # 모드 라벨 (영웅 옆)
+        lx, ly = _sx(scaler, cx, cy - r - 24)
+        label_id = canvas.create_text(
+            lx,
+            ly,
+            text=_STRINGS["tutorial.step5.manual_on"],
+            fill="#f0c040",
+            font=_font(scaler, 16, bold=True),
+            anchor="center",
+            justify="center",
+            tags=(self._tag, "tutorial_step5_manual_label"),
+        )
+        self._step_ids.append(label_id)
+        # hint 갱신
+        hint_id = getattr(self, "_cta_hint_id", None)
+        if hint_id is not None:
+            try:
+                canvas.itemconfig(hint_id, text="직접 조작 모드 ON — 잠시 후 다음 단계로", fill="#3fbf6f")
+            except Exception:  # noqa: BLE001
+                pass
+
+    # ------------------------------------------------------------------
+    # Issue #69 (DECISION-DL-P4D-014): 단계 6 일시정지 시각화
+    # ------------------------------------------------------------------
+
+    def _draw_step6_paused_overlay(self) -> None:
+        """단계 6 — 첫 Space 시 paused overlay (반투명 dim + 안내)."""
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        # 반투명 dim — 전체 화면. 이미 step_ids 의 spotlight mask 가 있어도
+        # 별도로 추가해 "일시정지" 명확화.
+        mx1, my1 = _sx(scaler, 0, 0)
+        mx2, my2 = _sx(scaler, 1920, 1080)
+        dim_id = canvas.create_rectangle(
+            mx1,
+            my1,
+            mx2,
+            my2,
+            fill=_CLR_DIM,
+            outline="",
+            stipple="gray50",
+            tags=(self._tag, "tutorial_step6_dim"),
+        )
+        self._step6_overlay_ids.append(dim_id)
+        # 중앙 안내 텍스트
+        tcx, tcy = _sx(scaler, 960, 480)
+        text_id = canvas.create_text(
+            tcx,
+            tcy,
+            text=_STRINGS["tutorial.step6.paused_overlay"],
+            fill="#f0c040",
+            font=_font(scaler, 36, bold=True),
+            anchor="center",
+            justify="center",
+            tags=(self._tag, "tutorial_step6_paused_text"),
+        )
+        self._step6_overlay_ids.append(text_id)
+        # hint 갱신
+        hint_id = getattr(self, "_cta_hint_id", None)
+        if hint_id is not None:
+            try:
+                canvas.itemconfig(
+                    hint_id, text="일시정지됨 — Space 다시 누르면 재개", fill="#f0c040"
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _clear_step6_paused_overlay(self) -> None:
+        """단계 6 — 두 번째 Space 시 overlay 제거."""
+        canvas = self.app.canvas
+        for iid in self._step6_overlay_ids:
+            try:
+                canvas.delete(iid)
+            except Exception:  # noqa: BLE001
+                pass
+        self._step6_overlay_ids = []
 
     def _refresh_cta_state(self) -> None:
         """단계 4: mock wave 종료 시 CTA 활성화로 전환."""
