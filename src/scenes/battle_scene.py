@@ -16,9 +16,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from src.core.fonts import family_bold as _family_bold
 from src.core.fonts import family_regular as _family_regular
 from src.core.logger import get_logger
-from src.data.loader import EnemyDef, StageDef, load_enemies, load_stage
+from src.data.loader import EnemyDef, StageDef, UnitDef, load_enemies, load_stage, load_units
 from src.scenes.base_scene import BaseScene
 from src.systems.combat import CombatSystem
 from src.systems.economy import EconomySystem
@@ -57,6 +58,11 @@ _UI_STRINGS_DEFAULT: dict[str, str] = {
     "battle.placeholder.intro": (
         "전투 — {stage_id}\n웨이브: {waves}\n" "ESC/Space = 일시정지 | M = 직접조작 모드"
     ),
+    # Issue #56 (DECISION-DL-P4D-008): 배치 UI 안내.
+    "battle.placement.hint_idle": "아래에서 유닛을 골라 녹색 칸을 클릭하시오",
+    "battle.placement.hint_selected": "녹색 칸을 클릭해 {unit_name}을(를) 배치하시오",
+    "battle.placement.insufficient_food": "곡식이 부족합니다 ({need} 필요)",
+    "battle.placement.zone_taken": "이미 유닛이 배치된 칸입니다",
 }
 
 
@@ -128,6 +134,20 @@ class BattleScene(BaseScene):
         # 추적한다. teardown 은 ``self._tag`` 로 일괄 삭제하므로 별도 정리 불필요.
         self._known_canvas_items: set[int] = set()
 
+        # DECISION-DL-P4D-008 (Issue #56): 유닛 배치 UI 상태.
+        # - _units_db: 가용 유닛 사전 (data/units.json)
+        # - _selected_unit_id: 현재 선택된 유닛 id (배치 대기). None 이면 선택 없음.
+        # - _build_zone_occupants: index → Ally 매핑 (한 zone 당 1체).
+        # - _placement_hint_id: 하단 안내 텍스트 canvas id.
+        # - _placement_btn_ids: 좌측 유닛 선택 버튼 (rect, label, cost_text, key).
+        # - _build_zone_canvas_ids: zone index → canvas rectangle id.
+        self._units_db: dict[str, UnitDef] = {}
+        self._selected_unit_id: str | None = None
+        self._build_zone_occupants: dict[int, Any] = {}
+        self._placement_hint_id: int | None = None
+        self._placement_btn_state: dict[str, dict[str, Any]] = {}
+        self._build_zone_canvas_ids: dict[int, int] = {}
+
     # ------------------------------------------------------------------
     # lifecycle
     # ------------------------------------------------------------------
@@ -166,6 +186,13 @@ class BattleScene(BaseScene):
         except (FileNotFoundError, OSError) as exc:
             self._log.warning("enemies.json load failed: %s", exc)
             self._enemy_defs = {}
+
+        # 유닛 정의 데이터 로드 (Issue #56, DECISION-DL-P4D-008).
+        try:
+            self._units_db = load_units()
+        except (FileNotFoundError, OSError) as exc:
+            self._log.warning("units.json load failed: %s", exc)
+            self._units_db = {}
 
         # 배경
         canvas.create_rectangle(0, 0, w, h, fill="#0c1410", outline="", tags=(self._tag, "bg"))
@@ -246,6 +273,11 @@ class BattleScene(BaseScene):
             tags=(self._tag, "manual_mode_label"),
         )
 
+        # 유닛 선택 패널 + 배치 안내 (Issue #56, DECISION-DL-P4D-008).
+        if self.stage is not None and self._units_db:
+            self._draw_unit_selection_panel()
+            self._draw_placement_hint()
+
         # 키 바인딩
         self.app.root.bind("<Escape>", self._on_escape)
         self.app.root.bind("<space>", self._on_space)
@@ -279,14 +311,24 @@ class BattleScene(BaseScene):
         # 영웅 업데이트 (Issue #4, DECISION-DL-P3-3-003).
         # 자동 모드: Hero.update 로 쿨다운/페이즈 갱신.
         # 수동 모드: 누적된 이동 입력만 처리. AI 자동 update 호출하지 않음.
+        # Issue #57/#58 (DECISION-DL-P4D-007): 자동·수동 모두 평타 자동 공격
+        # 트리거. 수동 모드에서도 영웅이 적과 전투할 수 있어야 한다.
         hero = self.world.get("hero")
         if hero is not None:
             prev_phase = getattr(hero, "current_phase", None)
             if self._hero_direct_mode:
                 self._apply_hero_manual_move(hero, dt)
+                # 수동 모드도 쿨다운/페이즈는 흘러야 평타가 가능 (Issue #58).
+                if hasattr(hero, "update"):
+                    try:
+                        hero.update(dt)
+                    except Exception:  # noqa: BLE001
+                        pass
             else:
                 if hasattr(hero, "update"):
                     hero.update(dt)
+            # Hero 평타 자동 공격 (Issue #57/#58, DECISION-DL-P4D-007)
+            self._tick_hero_attack(hero)
             # Issue #29 / DECISION-AUDIO-012: 영웅 페이즈 변화(스킬 발동) SFX
             new_phase = getattr(hero, "current_phase", None)
             if prev_phase is not None and new_phase is not None and new_phase != prev_phase:
@@ -566,15 +608,54 @@ class BattleScene(BaseScene):
                 )
 
     def _draw_build_zones(self) -> None:
+        """build_zone 사각형 + 클릭 핸들러 (Issue #56, DECISION-DL-P4D-008).
+
+        zone index 를 클로저로 캡처해 ``_on_build_zone_click(idx)`` 으로 라우팅.
+        """
         assert self.stage is not None
         canvas = self.app.canvas
         scaler = self.app.scaler
-        for zone in self.stage.build_zones:
+        self._build_zone_canvas_ids.clear()
+        for idx, zone in enumerate(self.stage.build_zones):
             x1, y1 = scaler.to_screen(zone["x"], zone["y"])
             x2, y2 = scaler.to_screen(zone["x"] + zone["w"], zone["y"] + zone["h"])
-            canvas.create_rectangle(
-                x1, y1, x2, y2, outline="#5fa860", width=2, tags=(self._tag, "build_zone")
+            rect_id = canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y2,
+                fill="#1c2c1c",
+                outline="#5fa860",
+                width=2,
+                dash=(6, 4),
+                tags=(self._tag, "build_zone", f"build_zone_{idx}"),
             )
+            # 중앙에 "+" 글리프 — 빈 슬롯 시각화 (배치 후 hidden).
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            plus_id = canvas.create_text(
+                cx,
+                cy,
+                text="+",
+                fill="#88c088",
+                font=(_family_bold(), 32),
+                anchor="center",
+                tags=(self._tag, "build_zone", f"build_zone_plus_{idx}"),
+            )
+
+            def _make_handler(i: int) -> Any:
+                def _h(_e: Any) -> None:
+                    self._on_build_zone_click(i)
+
+                return _h
+
+            handler = _make_handler(idx)
+            try:
+                canvas.tag_bind(rect_id, "<ButtonRelease-1>", handler)
+                canvas.tag_bind(plus_id, "<ButtonRelease-1>", handler)
+            except Exception:  # noqa: BLE001
+                pass
+            self._build_zone_canvas_ids[idx] = rect_id
 
     def _populate_waypoints(self) -> None:
         """Stage.paths 의 waypoint 시퀀스를 world['waypoints'] 에 주입한다.
@@ -631,6 +712,277 @@ class BattleScene(BaseScene):
             )
         except Exception as exc:  # noqa: BLE001
             self._log.warning("spawn_enemy failed: %s", exc)
+
+    # ------------------------------------------------------------------
+    # 유닛 배치 UI (Issue #56, DECISION-DL-P4D-008)
+    # ------------------------------------------------------------------
+
+    def _draw_unit_selection_panel(self) -> None:
+        """하단 좌측 유닛 선택 패널 (Issue #56, DECISION-DL-P4D-008).
+
+        units.json 의 각 유닛에 대해 버튼 1개 (이름 + 곡식 비용).
+        클릭 시 ``self._selected_unit_id`` 가 토글된다.
+        """
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        # 베이스 좌표 1920×1080 기준 — 좌측 하단 (40, 840) 시작.
+        base_x = 40
+        base_y = 850
+        btn_w = 200
+        btn_h = 70
+        spacing = 12
+
+        # 패널 배경
+        panel_x1, panel_y1 = scaler.to_screen(base_x - 12, base_y - 36)
+        panel_x2, panel_y2 = scaler.to_screen(
+            base_x + btn_w + 12,
+            base_y + (btn_h + spacing) * len(self._units_db) + 12,
+        )
+        canvas.create_rectangle(
+            panel_x1,
+            panel_y1,
+            panel_x2,
+            panel_y2,
+            fill="#1a1208",
+            outline="#7a5c3a",
+            width=2,
+            tags=(self._tag, "placement_panel_bg"),
+        )
+        title_x, title_y = scaler.to_screen(base_x, base_y - 18)
+        canvas.create_text(
+            title_x,
+            title_y,
+            text="아군 배치",
+            fill="#f0d080",
+            font=(_family_bold(), 14),
+            anchor="w",
+            tags=(self._tag, "placement_panel_title"),
+        )
+
+        for i, (unit_id, unit_def) in enumerate(self._units_db.items()):
+            bx = base_x
+            by = base_y + i * (btn_h + spacing)
+            x1, y1 = scaler.to_screen(bx, by)
+            x2, y2 = scaler.to_screen(bx + btn_w, by + btn_h)
+            rect_id = canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y2,
+                fill="#3a2a1c",
+                outline="#a88a5c",
+                width=2,
+                tags=(self._tag, "placement_btn", f"placement_btn_{unit_id}"),
+            )
+            name_x, name_y = scaler.to_screen(bx + 12, by + 14)
+            name_id = canvas.create_text(
+                name_x,
+                name_y,
+                text=unit_def.name,
+                fill="#f0e0c0",
+                font=(_family_bold(), 14),
+                anchor="nw",
+                tags=(self._tag, "placement_btn", f"placement_btn_{unit_id}"),
+            )
+            cost_x, cost_y = scaler.to_screen(bx + 12, by + 42)
+            cost_id = canvas.create_text(
+                cost_x,
+                cost_y,
+                text=f"곡식 {unit_def.cost}",
+                fill="#e8c860",
+                font=(_family_regular(), 12),
+                anchor="nw",
+                tags=(self._tag, "placement_btn", f"placement_btn_{unit_id}"),
+            )
+
+            def _make_select(uid: str) -> Any:
+                def _h(_e: Any) -> None:
+                    self._on_unit_button_click(uid)
+
+                return _h
+
+            handler = _make_select(unit_id)
+            for iid in (rect_id, name_id, cost_id):
+                try:
+                    canvas.tag_bind(iid, "<ButtonRelease-1>", handler)
+                except Exception:  # noqa: BLE001
+                    pass
+
+            self._placement_btn_state[unit_id] = {
+                "rect_id": rect_id,
+                "name_id": name_id,
+                "cost_id": cost_id,
+            }
+
+    def _draw_placement_hint(self) -> None:
+        """배치 안내 텍스트 (패널 위 또는 하단)."""
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        hx, hy = scaler.to_screen(260, 1040)
+        self._placement_hint_id = canvas.create_text(
+            hx,
+            hy,
+            text=_UI_STRINGS_DEFAULT["battle.placement.hint_idle"],
+            fill="#d4a84a",
+            font=(_family_regular(), 13),
+            anchor="w",
+            tags=(self._tag, "placement_hint"),
+        )
+
+    def _refresh_placement_hint(self, text: str | None = None, fill: str = "#d4a84a") -> None:
+        if self._placement_hint_id is None:
+            return
+        canvas = self.app.canvas
+        if text is None:
+            if self._selected_unit_id and self._selected_unit_id in self._units_db:
+                udef = self._units_db[self._selected_unit_id]
+                text = _UI_STRINGS_DEFAULT["battle.placement.hint_selected"].format(
+                    unit_name=udef.name
+                )
+                fill = "#f0d080"
+            else:
+                text = _UI_STRINGS_DEFAULT["battle.placement.hint_idle"]
+        try:
+            canvas.itemconfig(self._placement_hint_id, text=text, fill=fill)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _on_unit_button_click(self, unit_id: str) -> None:
+        """유닛 선택 버튼 클릭 — 같은 유닛 다시 누르면 토글 해제."""
+        if self._paused or self._game_over:
+            return
+        if self._selected_unit_id == unit_id:
+            # 토글 해제
+            self._selected_unit_id = None
+        else:
+            self._selected_unit_id = unit_id
+        self._refresh_unit_button_highlight()
+        self._refresh_placement_hint()
+
+    def _refresh_unit_button_highlight(self) -> None:
+        canvas = self.app.canvas
+        for uid, state in self._placement_btn_state.items():
+            selected = uid == self._selected_unit_id
+            fill = "#5a4a2c" if selected else "#3a2a1c"
+            outline = "#d4a84a" if selected else "#a88a5c"
+            try:
+                canvas.itemconfig(state["rect_id"], fill=fill, outline=outline)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _on_build_zone_click(self, zone_idx: int) -> None:
+        """build_zone 클릭 — 선택된 유닛을 배치 (Issue #56, DECISION-DL-P4D-008).
+
+        - 선택 유닛 없음: 안내 텍스트만 갱신.
+        - 곡식 부족: 안내 + 동작 안 함.
+        - zone 이미 점유: 안내.
+        - 정상: Ally 생성 → world['allies'] 에 추가 → 곡식 차감 → 점유 표시.
+        """
+        if self._paused or self._game_over or self.stage is None:
+            return
+        if self._selected_unit_id is None or self._selected_unit_id not in self._units_db:
+            self._refresh_placement_hint(
+                text=_UI_STRINGS_DEFAULT["battle.placement.hint_idle"],
+            )
+            return
+        if zone_idx in self._build_zone_occupants:
+            self._refresh_placement_hint(
+                text=_UI_STRINGS_DEFAULT["battle.placement.zone_taken"],
+                fill="#e08840",
+            )
+            return
+        unit_def = self._units_db[self._selected_unit_id]
+        food = int(self.world.get("food", 0))
+        if food < unit_def.cost:
+            self._refresh_placement_hint(
+                text=_UI_STRINGS_DEFAULT["battle.placement.insufficient_food"].format(
+                    need=unit_def.cost
+                ),
+                fill="#e08840",
+            )
+            return
+
+        zone = self.stage.build_zones[zone_idx]
+        cx = float(zone["x"]) + float(zone["w"]) / 2.0
+        cy = float(zone["y"]) + float(zone["h"]) / 2.0
+        try:
+            from src.entities.ally import Ally
+
+            ally = Ally(x=cx, y=cy, unit_def=unit_def)
+            self.world["allies"].append(ally)
+            self._build_zone_occupants[zone_idx] = ally
+            # 곡식 차감
+            self.world["food"] = food - unit_def.cost
+            self.world["gold"] = max(0, int(self.world.get("gold", food)) - unit_def.cost)
+            # 빈 zone "+" 글리프 숨김
+            canvas = self.app.canvas
+            try:
+                canvas.itemconfig(f"build_zone_plus_{zone_idx}", state="hidden")
+            except Exception:  # noqa: BLE001
+                pass
+            # 점유 표시 — zone 외곽선 색 변경
+            try:
+                canvas.itemconfig(self._build_zone_canvas_ids[zone_idx], outline="#3c6a3c")
+            except Exception:  # noqa: BLE001
+                pass
+            self._log.info(
+                "ally placed: %s at (%.1f, %.1f) zone=%d",
+                unit_def.name,
+                cx,
+                cy,
+                zone_idx,
+            )
+            self._refresh_placement_hint()
+            # 튜토리얼 단계 3 진행 트리거 — TutorialScene 이 통합되면 이벤트 발행.
+            bus = self.world.get("events")
+            if bus is not None:
+                try:
+                    bus.publish("battle.ally.placed", {"unit_id": self._selected_unit_id, "zone": zone_idx})
+                except Exception:  # noqa: BLE001
+                    pass
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("ally place failed: %s", exc)
+
+    def _tick_hero_attack(self, hero: Any) -> None:
+        """매 틱 영웅 평타 자동 공격 트리거 (Issue #57/#58, DECISION-DL-P4D-007).
+
+        Hero.auto_attack 이 발사 가능하면 dict 반환, 아니면 None.
+        Projectile 을 world['projectiles'] 에 추가 → CombatSystem 이 매 틱
+        update 로 명중·데미지·이펙트 처리를 그대로 가져감.
+
+        도메인 가드: Hero 는 발사 정보만 반환, 발사체 생성은 본 씬이 담당.
+        """
+        if hero is None or not getattr(hero, "alive", True):
+            return
+        if not hasattr(hero, "auto_attack"):
+            return
+        enemies = self.world.get("enemies", [])
+        if not enemies:
+            return
+        try:
+            fire_info = hero.auto_attack(enemies)
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("hero auto_attack failed: %s", exc)
+            return
+        if fire_info is None:
+            return
+        # Projectile 스폰 — 아군 발사체와 동일한 경로로 CombatSystem 명중 처리.
+        try:
+            from src.entities.projectile import Projectile
+
+            target = fire_info["target"]
+            proj = Projectile(
+                x=float(fire_info["x"]),
+                y=float(fire_info["y"]),
+                target_x=float(target.x),
+                target_y=float(target.y),
+                damage=int(fire_info["damage"]),
+                speed=520.0,  # 영웅 활은 일반 궁수보다 약간 빠름
+                target=target,
+            )
+            self.world["projectiles"].append(proj)
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("hero projectile spawn failed: %s", exc)
 
     def _apply_hero_manual_move(self, hero: Any, dt: float) -> None:
         """수동 모드 영웅 이동 적용 + 페이즈/쿨다운 부분 갱신.

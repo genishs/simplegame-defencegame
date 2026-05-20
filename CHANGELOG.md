@@ -6,6 +6,43 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+### Fixed (게임플레이 인터랙션 4건 종합 — Issue #55/#56/#57/#58, DECISION-DL-P4D-007/008/009)
+
+v0.4.0-rc.4 사용자 검수에서 발견된 게임플레이 인터랙션 결함 4건을 한 PR 로 종합 fix. 모두 동일한 근본 원인 — BL-07 시뮬레이터(systems 직접 호출)는 통과하지만 실 BattleScene/UI 인터랙션이 결여되어 사용자가 게임을 진행할 수 없는 현상.
+
+- **Issue #58 / DECISION-DL-P4D-007**: 영웅 양만춘 평타 자동 공격 미구현 — GDD §3.1 사양(atk 35 / range 380px / 1.0/s)이 정의만 되어 있고 실행 코드 없음. `Hero.auto_attack(enemies)` / `find_target_in_range` 신규 추가. BattleScene 이 매 틱 호출 → Projectile 스폰 → CombatSystem 명중 처리. 자동·수동 모드 모두에서 발사 트리거 (수동 모드도 적과 전투 가능, Issue #58 사용자 보고). 발사체 스폰은 BattleScene 책임으로 도메인 가드 (src/entities tkinter-free) 유지.
+- **Issue #57 / DECISION-DL-P4D-007**: 영웅이 무반응 상태 — Hero.update 가 페이즈/궁극기 쿨다운만 처리하고 적 타겟팅·발사가 없었음. 위 #58 fix 가 본 결함도 동시 해결.
+- **Issue #56 / DECISION-DL-P4D-008**: 아군 유닛 배치 UI 부재 — BattleScene 에 유닛 선택 패널·build_zone 클릭 핸들러·곡식 차감 로직 신규 추가. 좌하단 패널에 units.json 의 가용 유닛 표시(이름·곡식 비용), 선택 → build_zone 클릭 → Ally 가 world['allies'] 에 추가. 곡식 부족·zone 점유 시 안내 텍스트 갱신.
+- **Issue #55 / DECISION-DL-P4D-009**: 튜토리얼 단계 2·3 spotlight 클릭 미반응 — mock placeholder/spotlight ring 에 클릭 핸들러가 binding 안 됐음. 단계 2(resource)·단계 3(buildzone) 의 mock content/ring 에 `trigger_step2_done`/`trigger_step3_done` binding. 단일 텍스트 클릭 좁은 hit area 우회용으로 spotlight 영역에 투명 hit-area 사각형 추가.
+
+### Added
+
+- `tests/test_gameplay_interaction_overhaul.py` (신규, 18 케이스):
+  - Hero 평타 7케이스 (auto_attack/find_target_in_range/cooldown/empty list/manual mode 발사).
+  - BattleScene 배치 UI 5케이스 (units_db 로드/토글/배치/점유/곡식 부족).
+  - Tutorial spotlight 클릭 4케이스 (step 2/3 binding/handler 존재/step 5 핸들러 없음).
+  - hero update tick 2케이스 (수동 모드 cooldown 유지 회귀).
+
+### Changed
+
+- `src/entities/hero.py`: `_atk_cooldown` / `target` 필드 + `auto_attack` / `find_target_in_range` / `atk_cooldown` 프로퍼티 신규.
+- `src/scenes/battle_scene.py`: `_tick_hero_attack` / `_on_build_zone_click` / `_on_unit_button_click` / `_draw_unit_selection_panel` / `_draw_placement_hint` 헬퍼 + `_units_db`·`_selected_unit_id`·`_build_zone_occupants` state 신규. 수동 모드도 hero.update 호출 (평타 쿨다운 진행).
+- `src/scenes/tutorial_scene.py`: `_bind_spotlight_click` + mock content 각 아이템에 클릭 binding. 단계 진입 시 `_spotlight_click_handler` 사전 설정.
+- `tests/test_hero_manual_mode.py`: `test_manual_mode_skips_hero_auto_update` → `test_manual_mode_still_ticks_hero_cooldowns` (Issue #58 정책 갱신 반영).
+- pytest 누적 **472 → 490** (+18 회귀 가드, 회귀 0).
+
+### Decisions
+
+- **DECISION-DL-P4D-007**: 영웅 평타 자동 공격을 Hero 도메인(tkinter-free) 으로 구현, 발사체 스폰은 BattleScene 가 위임 받음. 자동·수동 모드 모두 평타 트리거 (GDD §3.1 사양 일치).
+- **DECISION-DL-P4D-008**: 유닛 배치 UI를 BattleScene 직접 구현 (별도 widget 클래스 미사용 — Phase 4 인지부하 최소 원칙 유지). units.json 의 cost 가 곡식 비용. 한 zone 당 1 유닛 정책.
+- **DECISION-DL-P4D-009**: Tutorial spotlight 클릭 영역을 mock content + 투명 hit-area 사각형 + ring fill 3중으로 binding. 작은 텍스트 hit area 미스를 회피.
+
+### Follow-up 권장 (별도 issue)
+
+- BL-07 시뮬레이터에 BattleScene 의 영웅 평타 + 배치 UI 호출을 통합 (현재 시뮬레이터는 ally 자동 배치 + 영웅 비활성). Phase 5 cleanup 라운드 후보.
+- 본 PR 의 영웅 평타는 GDD 의 S1/S2/S3 스킬 미구현 — 현재 평타와 궁극기만 작동. 스킬 시스템은 Phase 5 후속 작업.
+- HUD 상단 곡식 아이콘과 좌하단 유닛 선택 패널을 SCN-05 디자인 와이어프레임과 통합 (DESIGN 라운드).
+
 ## [0.4.0-rc.4] - 2026-05-20 — v0.4.0-rc.3 검수 결함 fix RC (.exe 재검수 대기)
 
 > 사용자 .exe 검수(Issue #53) 결함 fix RC. develop@d5b5797(PR #54 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3 패턴(DECISION-SCM-P5K-003/004) 재사용으로 처리.
