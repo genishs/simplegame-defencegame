@@ -89,11 +89,43 @@ class FakeRoot:
         self._bindings.pop(key, None)
 
 
+class FakeSoundManager:
+    """SoundManager stub — Phase 5.1 BGM 통합 후 FakeApp에서 사용."""
+
+    def play_bgm(self, name: str, *, loop: bool = True, fade_in: float = 1.0) -> None:
+        pass
+
+    def stop_bgm(self, *, fade_out: float = 1.0) -> None:
+        pass
+
+    def set_bgm_volume(self, v: float) -> None:
+        pass
+
+    def play_sfx(self, name: str) -> None:
+        pass
+
+    def play_ui(self, name: str) -> None:
+        pass
+
+    def stop_all(self) -> None:
+        pass
+
+    def set_master_volume(self, v: float) -> None:
+        pass
+
+    def mute(self) -> None:
+        pass
+
+    def unmute(self) -> None:
+        pass
+
+
 class FakeApp:
     def __init__(self) -> None:
         self.canvas = FakeCanvas()
         self.scaler = FakeScaler()
         self.root = FakeRoot()
+        self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
         self.goto_calls: list[str] = []
 
     def goto(self, name: str, **kw: Any) -> None:
@@ -473,9 +505,7 @@ def test_tutorial_step2_spotlight_has_inner_content(scene: Any) -> None:
     assert _has_text_value(scene.app.canvas, "곡식"), "단계 2 mock 콘텐츠에 '곡식' 라벨 누락"
     # 값 카운터 (어떤 숫자라도) 존재
     values = [
-        kw.get("text")
-        for kind, _a, kw in mock_items
-        if kind == "text" and (kw.get("text") or "").isdigit()
+        kw.get("text") for kind, _a, kw in mock_items if kind == "text" and (kw.get("text") or "").isdigit()
     ]
     assert values, "단계 2 mock 콘텐츠에 곡식 값 카운터 누락"
 
@@ -528,9 +558,9 @@ def test_tutorial_spotlight_z_order_mock_under_ring(scene: Any) -> None:
     ]
     assert mock_items_ids, "mock content 누락"
     assert ring_ids, "ring 누락"
-    assert max(mock_items_ids) < min(ring_ids), (
-        "z-order 위반: mock content 가 ring 보다 늦게 그려져 ring 을 가림"
-    )
+    assert max(mock_items_ids) < min(
+        ring_ids
+    ), "z-order 위반: mock content 가 ring 보다 늦게 그려져 ring 을 가림"
 
 
 def test_tutorial_step1_no_spotlight_no_mock(scene: Any) -> None:

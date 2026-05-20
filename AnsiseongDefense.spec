@@ -52,7 +52,11 @@ a = Analysis(
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=datas,
-    hiddenimports=["_simpleaudio"],  # DECISION-AUDIO-012: simpleaudio C 확장 모듈 안전망
+    hiddenimports=[
+        "_simpleaudio",  # DECISION-AUDIO-012: simpleaudio C 확장 모듈 안전망
+        "pygame",        # DECISION-AUDIO-013/015: pygame.mixer BGM 백엔드 (Phase 5.1)
+        "pygame.mixer",  # pygame.mixer 단독 초기화 패턴 — tkinter 충돌 회피 (§4)
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

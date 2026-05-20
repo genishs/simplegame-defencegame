@@ -5,3 +5,10 @@ Pillow>=10.0,<12.0
 # 크로스플랫폼 WAV 재생, 다채널 동시 재생 지원. BGM은 Phase 5 #30에서 별도 처리.
 # Linux CI: sudo apt-get install -y libasound2-dev 필요 (헤드리스 sound device 없음 fallback 내장).
 simpleaudio>=1.0.4
+# DECISION-AUDIO-015 (2026-05-21, Audio Engineer 자율 결정):
+#   pygame vs pygame-ce 검토 결과 표준 pygame 채택.
+#   pygame-ce는 footprint 소폭 감소 장점이 있으나 PyPI 패키지명·바이너리 배포 안정성이
+#   pygame 대비 낮아, DECISION-AUDIO-010 번들 예산(30MB) 내에서 pygame 유지가 더 안전.
+#   pygame.mixer 모듈만 단독 초기화 — pygame.init() 미호출로 tkinter 이벤트 루프 충돌 회피.
+#   (DECISION-AUDIO-013, docs/audio/03_bgm_backend_proposal.md §4 참조)
+pygame>=2.5.0

@@ -70,6 +70,9 @@ class MenuScene(BaseScene):
     # ------------------------------------------------------------------
 
     def build(self) -> None:
+        # BGM — 메인 메뉴 진입 시 재생 (Phase 5.1, Issue #30)
+        self.app.sound.play_bgm("bgm.menu", loop=True, fade_in=2.0)
+
         canvas = self.app.canvas
         scaler = self.app.scaler
         w = canvas.winfo_width() or scaler.canvas_w

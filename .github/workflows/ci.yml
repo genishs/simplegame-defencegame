@@ -42,6 +42,14 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get install -y libasound2-dev
 
+      # Issue #30 / DECISION-AUDIO-013: pygame.mixer는 ubuntu 헤드리스에서 SDL 오디오
+      # 드라이버가 없으면 초기화 실패 가능. SDL_AUDIODRIVER=dummy 설정으로 가상 드라이버
+      # 사용 — pygame.mixer.init() 정상 완료, BGM 재생은 no-op (출력 없음).
+      # Windows 러너는 실제 오디오 드라이버가 있으므로 불필요.
+      - name: Set SDL_AUDIODRIVER=dummy for headless CI (ubuntu only)
+        if: runner.os == 'Linux'
+        run: echo "SDL_AUDIODRIVER=dummy" >> $GITHUB_ENV
+
       - name: Install dependencies (if requirements.txt exists)
         shell: bash
         run: |
