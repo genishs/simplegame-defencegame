@@ -1,10 +1,11 @@
-# 회귀 매트릭스 — Phase 4 (v2.3, 누적 모드)
+# 회귀 매트릭스 — Phase 4 (v2.4, 누적 모드)
 
 > v1 → v2 갱신: QA Lead (DECISION-PERSONA-002 활성화, 2026-05-19)
 > v2.1 갱신: SCM (PR #40/#41/#42 머지 후, DECISION-SCM-P4-002/003)
 > v2.2 갱신: QA Lead (Phase 4 cleanup markers, DECISION-QA-P4M-003/004) + Dev Lead (Phase 5 준비, DECISION-DL-P5P-001/002)
 > v2.3 갱신: Audio Engineer (Phase 5.1 BGM prep, Issue #30, DECISION-AUDIO-013) — BG-01~BG-04 추가
-> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 추가 + Phase 5 준비 9건 추가 + Phase 5.1 BGM 4건 추가 = **총 68 시나리오**
+> v2.4 갱신: Dev Lead (Issue #49 fix — 튜토리얼 spotlight 콘텐츠, DECISION-DL-P4D-001/002) — TU-11 추가
+> v1 30 시나리오 전체 유지 + Phase 4 신규 25건 + Phase 5 준비 9건 + Phase 5.1 BGM 4건 + Phase 4 디버그(Issue #49) 1건 = **총 69 시나리오**
 
 **DECISION-TL-P3-5-001**: 매트릭스 열 구성은 현행 씬/시스템 아키텍처(Menu·StageSelect·Battle·Ending·Font·DPI·Persistence·Audio) 8개 모듈 기준으로 설정. *(v1 유지)*
 **DECISION-TL-P3-5-002**: 자동 테스트 표기(✓)는 현재 `tests/` 디렉터리에 동작하는 케이스가 존재할 때만 표기. headless 불가 UI 테스트는 ✗ 로 표기. *(v1 유지)*
@@ -14,7 +15,7 @@
 **DECISION-QA-P4M-003**: v2.2 — BL-07 (PR #41) · AU-01~07 (PR #42) 머지로 자동화 ✓ 전환. pytest markers 일관 적용 (5개 파일) 완료.
 **DECISION-QA-P4M-004**: v2.2 — pytest markers 체계: `regression_p4` (71건) / `slow` (5건) / `audio` (18건) / `network` (0건, 미사용). CI 3-step 분리.
 
-마지막 갱신: 2026-05-19 | 기준 커밋: `0773a5f` | 작성: QA Lead (DECISION-QA-P4M-003/004) | v2.3 갱신: Audio Engineer (DECISION-AUDIO-013)
+마지막 갱신: 2026-05-20 | 기준 커밋: `edbb716` | 작성: QA Lead (DECISION-QA-P4M-003/004) | v2.3 갱신: Audio Engineer (DECISION-AUDIO-013) | v2.4 갱신: Dev Lead (DECISION-DL-P4D-001/002, Issue #49 fix)
 
 ---
 
@@ -119,6 +120,7 @@ pytest                            # 전체 424건 (slow 포함)
 
 > TU-01~TU-10: Dev Lead(Issue #26 / PR #36) 머지 완료. `src/scenes/tutorial_scene.py` + `src/core/save_slot.py` + `tests/test_tutorial_scene.py` (23건 자동 테스트) 활성.
 > 본 SCM 라운드(Phase 4 R1, DECISION-SCM-P4-002) 에서 자동 가드 가능 항목 ✓ 전환. headless 불가 항목(TU-04/06/07/08) 은 ✗ 유지하고 scenario_catalog.md 수동 검수 의존.
+> TU-11: Dev Lead(Issue #49 fix, DECISION-DL-P4D-001/002) — 사용자 검수(CAT-05) 결함 "동그라미 안 콘텐츠 비어 있음" 회귀 가드. `tests/test_tutorial_scene.py` 신규 5건 (28건 총).
 
 | # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
 |---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
@@ -132,8 +134,10 @@ pytest                            # 전체 424건 (slow 포함)
 | TU-08 | 단계 8 시작하기 클릭 → stage_select 화면 이동 (DECISION-PL-P4-002) | — | ✗ | — | — | — | — | ✗ | — | ✗ |
 | TU-09 | tutorial_dismissed=True 상태에서 재실행 → 자동 진입 없음 (DECISION-PL-P4-002) | — | — | — | — | — | — | ✓ | — | ✓ |
 | TU-10 | tutorial_completed=False + tutorial_dismissed=False → 이어하기 시 자동 진입 없음, 메뉴 버튼만 가능 (DECISION-PL-P4-002) | ✓ | — | — | — | — | — | ✓ | — | ✓ |
+| TU-11 | spotlight 동그라미 안에 mock HUD placeholder(곡식·buildzone·hero·pause) 렌더 + z-order(mock < ring) 가드 (DECISION-DL-P4D-001/002, Issue #49) | — | — | — | — | — | — | — | — | ✓ |
 
 > 갱신 안내: TU-04/06/07/08 은 tkinter 창·이벤트 루프 의존으로 headless 자동화 불가 — scenario_catalog.md CAT-05~07 수동 검수 의존. DECISION-SCM-P4-003 (본 라운드).
+> TU-11 은 FakeCanvas 기반 자동 가드 ✓ — 사용자 검수 CAT-05 결함(2026-05-20) 재발 방지.
 
 ---
 
@@ -293,3 +297,5 @@ BL-07 클리어율 시뮬레이션은 느릴 수 있으므로 `slow` 마커 분�
 | v2.1 (Phase 4 R1) | 2026-05-19 | SCM (DECISION-SCM-P4-002) | PR #34/#36 머지 후 자동 가드 가능 시나리오 ✗→✓ 전환. TU-01/02/03/05/09/10 ✓ (자동 가드, test_tutorial_scene.py + test_regression_p4.py 활용). TU-04/06/07/08 은 headless 자동화 불가로 ✗ 유지(수동 검수 의존). BL-01/02/03/06 ✓ (test_stage_balance.py 자동 가드). BL-07 은 후속 라운드. |
 | v2.2 (Phase 4 cleanup) | 2026-05-19 | QA Lead (DECISION-QA-P4M-003/004) | BL-07 ✗→✓ (PR #41, test_clear_rate_simulation.py 9건). AU-01~07 ✓ 확인 (PR #42, test_sound_simpleaudio.py 18건). pytest markers 5개 파일 일관 적용 (regression_p4 71건 선택 가능). markers 체계 표 추가. CI 3-step 분리. |
 | v2.2 (Phase 5 준비) | 2026-05-19 | Dev Lead (DECISION-DL-P5P-001/002) | Phase 5 준비 라운드 신규 9 시나리오 추가: WV-01~05 (보스 path resolution, Issue #43) + CB-01~05 (Projectile swept-circle 충돌, Issue #44). 모두 자동 가드 (test_wave_boss_path.py 13건 + test_combat_sweep.py 11건). |
+| v2.3 (Phase 5.1 BGM) | 2026-05-19 | Audio Engineer (DECISION-AUDIO-013) | Phase 5.1 BGM prep — BG-01~BG-04 추가. |
+| v2.4 (Issue #49 fix) | 2026-05-20 | Dev Lead (DECISION-DL-P4D-001/002) | v0.4.0-rc.1 사용자 검수(CAT-05) 결함 "튜토리얼 동그라미 안 콘텐츠 비어 있음" 회귀 가드. TU-11 추가 — spotlight 위치 mock HUD placeholder(곡식·buildzone·hero·pause) 렌더 + z-order 검증. tests/test_tutorial_scene.py 신규 5건(23 → 28). 전체 pytest 448 → 453 (회귀 0). |

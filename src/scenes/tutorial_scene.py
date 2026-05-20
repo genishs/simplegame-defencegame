@@ -15,6 +15,19 @@ DECISION (Dev Lead, P4):
 - mock wave 는 self._mock_wave_dt 누적으로 단순 spawn 콜백 호출
   (전투 시스템 통합 없음 — 인지 부하 우선).
 - ui_strings placeholder 는 키와 같은 한글 한 줄 (Design Lead 라운드가 채움).
+
+DECISION (Dev Lead, P4 디버그, 2026-05-20 — Issue #49 fix):
+- **DECISION-DL-P4D-001**: 동그라미 안 콘텐츠 비어 있는 결함. 튜토리얼 씬이
+  BattleScene 을 통합하지 않아 spotlight 가 가리키는 HUD 대상이 실제로 존재하지
+  않았다. 사용자가 "여기를 누르시오" 안내만 보고 동그라미 안에 아무것도 없는
+  현상을 보고. 인지부하 우선 원칙(DECISION-DL-P4-002) 을 유지하면서, 각 spotlight
+  위치에 **mock placeholder 콘텐츠**(곡식 카운터·배치 빈 칸·영웅 placeholder·
+  일시정지 버튼) 를 직접 그려 동그라미가 의미를 가지도록 한다.
+- **DECISION-DL-P4D-002**: Canvas z-order 는 생성 순서 = 그리기 순서. 마스크가
+  먼저 그려지고 mock 콘텐츠가 그 위에 그려져 spotlight 영역에 "컷아웃" 효과를
+  내며, ring/arrow/label 은 마지막에 그려져 최상단에 위치한다.
+- 게임플레이 균형 영향 0: stage_01 데이터 변형 없음, mock wave 카운트 그대로,
+  save_slot 스키마 변경 없음.
 """
 
 from __future__ import annotations
@@ -758,11 +771,15 @@ class TutorialScene(BaseScene):
                 pass
 
     def _draw_spotlight(self, scaler: Any, target_key: str) -> None:
-        """HUD 강조 — 반투명 마스크 + 노란 원형 outline + 화살표 + 라벨.
+        """HUD 강조 — 반투명 마스크 + mock 콘텐츠 + 노란 원형 outline + 화살표 + 라벨.
 
         Canvas 의 alpha 가 제한적이므로 stipple ``gray50`` 으로 근사.
         spotlight 원형 컷아웃은 진정한 컷아웃이 아니라 노란 원형 outline 으로 표현
         (마스크 위에 그려진다).
+
+        Issue #49 (DECISION-DL-P4D-001): spotlight 가 가리키는 HUD 대상의
+        **mock placeholder** 를 마스크 위에 직접 그려, 동그라미 안이 비어 있는
+        현상을 해소한다. z-order = mask → mock content → ring → arrow → label.
         """
         canvas = self.app.canvas
         cx, cy, radius = _HUD_TARGETS[target_key]
@@ -781,6 +798,9 @@ class TutorialScene(BaseScene):
             tags=(self._tag, "tutorial_spotlight_mask"),
         )
         self._step_ids.append(mask)
+
+        # mock HUD placeholder (마스크 위, ring 아래) — Issue #49 fix
+        self._draw_mock_target_content(scaler, target_key)
 
         # spotlight ring (마스크 위, 진짜 컷아웃 대용)
         sx1, sy1 = _sx(scaler, cx - radius, cy - radius)
@@ -834,6 +854,130 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_arrow_label"),
             )
             self._step_ids.append(label_id)
+
+    def _draw_mock_target_content(self, scaler: Any, target_key: str) -> None:
+        """spotlight 가 가리키는 HUD 대상의 mock placeholder (Issue #49, DECISION-DL-P4D-001).
+
+        실제 BattleScene HUD 를 통합하지 않고, spotlight 안에 의미 있는
+        콘텐츠를 직접 그려 동그라미가 가리키는 대상을 사용자가 인식할 수 있게 한다.
+        - resource: 곡식 라벨 + 값 카운터
+        - buildzone: 빈 배치 칸 사각형 + "?" 표시
+        - hero: 영웅 placeholder 원 + 이름 글자
+        - pause: 일시정지 버튼 placeholder (||)
+        """
+        canvas = self.app.canvas
+        cx, cy, _radius = _HUD_TARGETS[target_key]
+
+        if target_key == "resource":
+            # 상단 곡식 HUD placeholder — battle_scene.hud 와 같은 라벨/값
+            # 곡식 라벨 (상단)
+            lx, ly = _sx(scaler, cx, cy - 18)
+            label_id = canvas.create_text(
+                lx,
+                ly,
+                text="곡식",
+                fill="#e8c860",
+                font=_font(scaler, 14, bold=True),
+                anchor="center",
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(label_id)
+            # 값 카운터 (큰 숫자)
+            vx, vy = _sx(scaler, cx, cy + 12)
+            val_id = canvas.create_text(
+                vx,
+                vy,
+                text="100",
+                fill="#f0e0c0",
+                font=_font(scaler, 22, bold=True),
+                anchor="center",
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(val_id)
+        elif target_key == "buildzone":
+            # 빈 배치 칸 placeholder — 점선 박스 + "?"
+            half = 40.0
+            x1, y1 = _sx(scaler, cx - half, cy - half)
+            x2, y2 = _sx(scaler, cx + half, cy + half)
+            rect_id = canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y2,
+                fill="#1a2a1a",
+                outline="#88aa88",
+                width=2,
+                dash=(6, 4),
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(rect_id)
+            qx, qy = _sx(scaler, cx, cy)
+            q_id = canvas.create_text(
+                qx,
+                qy,
+                text="?",
+                fill="#aaccaa",
+                font=_font(scaler, 36, bold=True),
+                anchor="center",
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(q_id)
+        elif target_key == "hero":
+            # 영웅 placeholder — 원 + 이름
+            r = 36.0
+            x1, y1 = _sx(scaler, cx - r, cy - r)
+            x2, y2 = _sx(scaler, cx + r, cy + r)
+            circ_id = canvas.create_oval(
+                x1,
+                y1,
+                x2,
+                y2,
+                fill="#3a2a8c",
+                outline="#a8a0d8",
+                width=2,
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(circ_id)
+            nx, ny = _sx(scaler, cx, cy)
+            name_id = canvas.create_text(
+                nx,
+                ny,
+                text="楊",
+                fill="#f0e8d0",
+                font=_font(scaler, 28, bold=True),
+                anchor="center",
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(name_id)
+        elif target_key == "pause":
+            # 일시정지 버튼 placeholder — battle_scene.hud 의 pause_btn 모방
+            half_w = 30.0
+            half_h = 24.0
+            x1, y1 = _sx(scaler, cx - half_w, cy - half_h)
+            x2, y2 = _sx(scaler, cx + half_w, cy + half_h)
+            rect_id = canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y2,
+                fill="#2a2010",
+                outline="#8a7040",
+                width=2,
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(rect_id)
+            px, py = _sx(scaler, cx, cy)
+            p_id = canvas.create_text(
+                px,
+                py,
+                text="||",
+                fill="#e0d0a0",
+                font=_font(scaler, 18, bold=True),
+                anchor="center",
+                tags=(self._tag, "tutorial_mock_content"),
+            )
+            self._step_ids.append(p_id)
+        # 다른 target_key 는 mock 콘텐츠 없음 (의도).
 
     def _draw_text_box(self, scaler: Any, title: str, body: str) -> None:
         """본문 텍스트 박스 (하단 중앙)."""
