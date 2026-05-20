@@ -134,11 +134,25 @@ class BattleScene(BaseScene):
         h = canvas.winfo_height() or scaler.canvas_h
 
         # 스테이지 데이터 로드
+        # DECISION-DL-P4D-004 (Issue #51): 데이터 로드 실패 사유를 보존해 사용자
+        # 가 frozen 화면 대신 명확한 에러 메시지를 볼 수 있게 한다. .exe 환경에서
+        # JSON 자원 번들 누락(DECISION-DL-P4D-003 의 spec 수정 전 빌드)이 가장
+        # 흔한 실패 시나리오. 메시지에는 stage_id 와 검색한 DATA_ROOT 가 포함된다.
+        self._stage_load_error: str | None = None
         try:
             self.stage = load_stage(self.stage_id)
-        except FileNotFoundError:
-            self._log.warning("stage file missing: %s", self.stage_id)
+        except FileNotFoundError as exc:
+            self._log.warning("stage file missing: %s (%s)", self.stage_id, exc)
             self.stage = None
+            self._stage_load_error = (
+                f"스테이지 데이터를 찾을 수 없습니다: {self.stage_id}\n" f"경로: {exc.filename or exc}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._log.exception("stage load failed: %s", self.stage_id)
+            self.stage = None
+            self._stage_load_error = (
+                f"스테이지 로드 중 오류가 발생했습니다: {self.stage_id}\n" f"{type(exc).__name__}: {exc}"
+            )
 
         # 적 정의 데이터 로드 (Issue #1, DECISION-DL-P3-3-006).
         # 누락된 enemies.json 은 치명적이지 않으므로 경고만 남기고 빈 맵 유지.
@@ -190,15 +204,25 @@ class BattleScene(BaseScene):
         )
 
         # 전투 진입 안내 텍스트 (Issue #12, DECISION-DL-P3-5-005)
-        waves_count = len(self.stage.waves) if self.stage else 0
+        # DECISION-DL-P4D-004: stage 로드 실패 시 frozen 대신 사용자에게 사유 표시.
+        if self._stage_load_error is not None:
+            placeholder_text = (
+                f"⚠ {self._stage_load_error}\n\n"
+                f"메인 메뉴로 돌아가려면 ESC 또는 일시정지 메뉴를 사용하시오."
+            )
+            placeholder_fill = "#ff8a6a"
+        else:
+            waves_count = len(self.stage.waves) if self.stage else 0
+            placeholder_text = _UI_STRINGS_DEFAULT["battle.placeholder.intro"].format(
+                stage_id=self.stage_id,
+                waves=waves_count,
+            )
+            placeholder_fill = "#e0d0a0"
         self._placeholder_id = canvas.create_text(
             w / 2,
             h / 2,
-            text=_UI_STRINGS_DEFAULT["battle.placeholder.intro"].format(
-                stage_id=self.stage_id,
-                waves=waves_count,
-            ),
-            fill="#e0d0a0",
+            text=placeholder_text,
+            fill=placeholder_fill,
             font=(_family_regular(), 16),
             justify="center",
             tags=(self._tag, "placeholder"),
