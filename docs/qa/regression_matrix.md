@@ -15,7 +15,7 @@
 **DECISION-QA-P4M-003**: v2.2 — BL-07 (PR #41) · AU-01~07 (PR #42) 머지로 자동화 ✓ 전환. pytest markers 일관 적용 (5개 파일) 완료.
 **DECISION-QA-P4M-004**: v2.2 — pytest markers 체계: `regression_p4` (71건) / `slow` (5건) / `audio` (18건) / `network` (0건, 미사용). CI 3-step 분리.
 
-마지막 갱신: 2026-05-20 | 기준 커밋: `edbb716` | 작성: QA Lead (DECISION-QA-P4M-003/004) | v2.3 갱신: Audio Engineer (DECISION-AUDIO-013) | v2.4 갱신: Dev Lead (DECISION-DL-P4D-001/002, Issue #49 fix)
+마지막 갱신: 2026-05-21 | 기준 커밋: feat/phase5-bgm-pygame-mixer | v2.3 갱신: Audio Engineer (DECISION-AUDIO-013) | v2.4 갱신: Dev Lead (DECISION-DL-P4D-001/002, Issue #49 fix) | v2.5 갱신: Audio Engineer (DECISION-AUDIO-015/016/017, Issue #30, BG-01~04 ✓ 전환)
 
 ---
 
@@ -200,20 +200,24 @@ pytest                            # 전체 424건 (slow 포함)
 
 ## Phase 5.1 신규 시나리오 — [BG] BGM 재생 회귀 (Issue #30, DECISION-AUDIO-013)
 
-> BG-01~BG-04: Phase 5.1 BGM 백엔드(pygame.mixer) 구현 후 자동화 전환 예정.
-> 현재: 모두 ✗ (자동화 대기 — BGM 백엔드 미구현, play_bgm stub 상태).
-> `src/core/sound.py` play_bgm() Phase 5.1 구현 완료 시 ✓ 전환.
+> BG-01~BG-04: Phase 5.1 BGM 백엔드(pygame.mixer) 구현 완료 (Issue #30, PR feat/phase5-bgm-pygame-mixer).
+> 모두 ✓ 전환 (2026-05-21, Audio Engineer, DECISION-AUDIO-015/016).
+> `tests/test_sound_bgm.py` (19 케이스) — pytest + pygame.mixer mock 패턴.
 
 | # | 시나리오 | Menu | StageSelect | Battle | Ending | Font | DPI | Persistence | Audio | Tutorial |
 |---|----------|------|-------------|--------|--------|------|-----|-------------|-------|----------|
-| BG-01 | 메인 메뉴 진입 시 SoundManager.play_bgm("bgm.menu") 호출 — 예외 없음, BGM 시작 로그 확인 | ✗ | — | — | — | — | — | — | ✗ | — |
-| BG-02 | 스테이지 전환(stage_01→stage_02) 시 BGM 페이드 아웃·인 — stop_bgm(fade_out=1.0) 후 play_bgm(fade_in=1.0) 순서 보장 | — | — | ✗ | — | — | — | — | ✗ | — |
-| BG-03 | 일시정지(ESC) 시 BGM 볼륨 dimming — set_bgm_volume(0.2) 호출, 재개 시 원래 볼륨 복원 | — | — | ✗ | — | — | — | — | ✗ | — |
-| BG-04 | 음소거 토글(mute/unmute) 시 BGM 정지·재개 — SFX mute와 BGM mute 독립 동작 검증 | ✗ | — | ✗ | — | — | — | — | ✗ | — |
+| BG-01 | 메인 메뉴 진입 시 SoundManager.play_bgm("bgm.menu") 호출 — 예외 없음, BGM 시작 로그 확인 | ✓ | — | — | — | — | — | — | ✓ | — |
+| BG-02 | 스테이지 전환(stage_01→stage_02) 시 BGM 페이드 아웃·인 — stop_bgm(fade_out=1.0) 후 play_bgm(fade_in=1.0) 순서 보장 | — | — | ✓ | — | — | — | — | ✓ | — |
+| BG-03 | 일시정지(ESC) 시 BGM 볼륨 dimming — set_bgm_volume(0.2) 호출, 재개 시 원래 볼륨 복원 | — | — | ✓ | — | — | — | — | ✓ | — |
+| BG-04 | 음소거 토글(mute/unmute) 시 BGM 정지·재개 — SFX mute와 BGM mute 독립 동작 검증 | ✓ | — | ✓ | — | — | — | — | ✓ | — |
 
-> BG-01~BG-04: 자동화 대기 (Phase 5.1 본 작업 시 ✓ 전환).
-> 자동화 방법 예정: `tests/test_sound_bgm.py` — pytest + pygame.mixer mock 패턴 (AU-07 선례).
-> DECISION-AUDIO-013: pygame.mixer BGM 백엔드 채택 결정.
+> BG-01~BG-04: ✓ 전환 완료 (2026-05-21, Phase 5.1, Issue #30).
+> 자동화: `tests/test_sound_bgm.py` 19건 — pytest + pygame.mixer mock 패턴 (AU-07 선례).
+> DECISION-AUDIO-013: pygame.mixer BGM 백엔드 채택.
+> DECISION-AUDIO-015: pygame 표준 패키지 채택 (pygame-ce 대신).
+> DECISION-AUDIO-016: BGM 자산 탐색 OGG 우선 → WAV fallback 정책.
+> DECISION-AUDIO-017: BGM 통합 지점 — MenuScene(bgm.menu), TutorialScene(bgm.tutorial),
+>   BattleScene(stage_id 매핑), EndingScene(bgm.victory). 각 scene.build() 진입 시 호출.
 
 ---
 ## 자동화 우선순위 (✗ → ✓ 전환 후보)
@@ -299,3 +303,4 @@ BL-07 클리어율 시뮬레이션은 느릴 수 있으므로 `slow` 마커 분�
 | v2.2 (Phase 5 준비) | 2026-05-19 | Dev Lead (DECISION-DL-P5P-001/002) | Phase 5 준비 라운드 신규 9 시나리오 추가: WV-01~05 (보스 path resolution, Issue #43) + CB-01~05 (Projectile swept-circle 충돌, Issue #44). 모두 자동 가드 (test_wave_boss_path.py 13건 + test_combat_sweep.py 11건). |
 | v2.3 (Phase 5.1 BGM) | 2026-05-19 | Audio Engineer (DECISION-AUDIO-013) | Phase 5.1 BGM prep — BG-01~BG-04 추가. |
 | v2.4 (Issue #49 fix) | 2026-05-20 | Dev Lead (DECISION-DL-P4D-001/002) | v0.4.0-rc.1 사용자 검수(CAT-05) 결함 "튜토리얼 동그라미 안 콘텐츠 비어 있음" 회귀 가드. TU-11 추가 — spotlight 위치 mock HUD placeholder(곡식·buildzone·hero·pause) 렌더 + z-order 검증. tests/test_tutorial_scene.py 신규 5건(23 → 28). 전체 pytest 448 → 453 (회귀 0). |
+| v2.5 (Phase 5.1 BGM 구현) | 2026-05-21 | Audio Engineer (DECISION-AUDIO-015/016/017, Issue #30) | BG-01~BG-04 ✗→✓ 전환. pygame.mixer BGM 백엔드 구현 완료. tests/test_sound_bgm.py 19건 신규. FakeApp.sound stub 추가(test_regression_p3_5/battle_scene_flow/tutorial_scene). 전체 pytest 490 → 509. |

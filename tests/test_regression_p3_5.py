@@ -134,12 +134,44 @@ class FakePlayerData:
         self.stage_stars: dict[str, int] = stars if stars is not None else {}
 
 
+class FakeSoundManager:
+    """SoundManager stub — Phase 5.1 BGM 통합 후 FakeApp에서 사용."""
+
+    def play_bgm(self, name: str, *, loop: bool = True, fade_in: float = 1.0) -> None:
+        pass
+
+    def stop_bgm(self, *, fade_out: float = 1.0) -> None:
+        pass
+
+    def set_bgm_volume(self, v: float) -> None:
+        pass
+
+    def play_sfx(self, name: str) -> None:
+        pass
+
+    def play_ui(self, name: str) -> None:
+        pass
+
+    def stop_all(self) -> None:
+        pass
+
+    def set_master_volume(self, v: float) -> None:
+        pass
+
+    def mute(self) -> None:
+        pass
+
+    def unmute(self) -> None:
+        pass
+
+
 class FakeApp:
     def __init__(self, player_data: Any = None) -> None:
         self.canvas = FakeCanvas()
         self.scaler = FakeScaler()
         self.events = FakeEventBus()
         self.root = FakeRoot()
+        self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
         self._goto_calls: list[str] = []
         self._quit_called: bool = False
         if player_data is not None:

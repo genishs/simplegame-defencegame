@@ -451,6 +451,9 @@ class TutorialScene(BaseScene):
     # ------------------------------------------------------------------
 
     def build(self) -> None:
+        # BGM — 튜토리얼 진입 시 재생 (Phase 5.1, Issue #30)
+        self.app.sound.play_bgm("bgm.tutorial", loop=True, fade_in=1.0)
+
         canvas = self.app.canvas
         scaler = self.app.scaler
         w = canvas.winfo_width() if hasattr(canvas, "winfo_width") else getattr(scaler, "canvas_w", 1920)

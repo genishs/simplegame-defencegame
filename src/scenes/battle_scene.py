@@ -152,7 +152,23 @@ class BattleScene(BaseScene):
     # lifecycle
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # 스테이지 → BGM 매핑 (Phase 5.1, Issue #30)
+    # ------------------------------------------------------------------
+    _STAGE_BGM: dict[str, str] = {
+        "stage_01": "bgm.stage_01_02",
+        "stage_02": "bgm.stage_01_02",
+        "stage_03": "bgm.stage_03_04",
+        "stage_04": "bgm.stage_03_04",
+        "stage_05": "bgm.stage_05",
+    }
+
     def build(self) -> None:
+        # BGM — 스테이지별 BGM 재생 (Phase 5.1, Issue #30)
+        # 스테이지 ID에 해당하는 BGM 식별자 탐색. 매핑 없으면 bgm.stage_01_02 기본.
+        bgm_name = self._STAGE_BGM.get(self.stage_id, "bgm.stage_01_02")
+        self.app.sound.play_bgm(bgm_name, loop=True, fade_in=1.0)
+
         canvas = self.app.canvas
         scaler = self.app.scaler
         w = canvas.winfo_width() or scaler.canvas_w

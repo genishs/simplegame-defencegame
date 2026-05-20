@@ -89,11 +89,43 @@ class FakeRoot:
         self._bindings.pop(key, None)
 
 
+class FakeSoundManager:
+    """SoundManager stub — Phase 5.1 BGM 통합 후 FakeApp에서 사용."""
+
+    def play_bgm(self, name: str, *, loop: bool = True, fade_in: float = 1.0) -> None:
+        pass
+
+    def stop_bgm(self, *, fade_out: float = 1.0) -> None:
+        pass
+
+    def set_bgm_volume(self, v: float) -> None:
+        pass
+
+    def play_sfx(self, name: str) -> None:
+        pass
+
+    def play_ui(self, name: str) -> None:
+        pass
+
+    def stop_all(self) -> None:
+        pass
+
+    def set_master_volume(self, v: float) -> None:
+        pass
+
+    def mute(self) -> None:
+        pass
+
+    def unmute(self) -> None:
+        pass
+
+
 class FakeApp:
     def __init__(self) -> None:
         self.canvas = FakeCanvas()
         self.scaler = FakeScaler()
         self.root = FakeRoot()
+        self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
         self.goto_calls: list[str] = []
 
     def goto(self, name: str, **kw: Any) -> None:
