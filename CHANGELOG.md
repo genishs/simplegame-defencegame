@@ -6,6 +6,24 @@
 
 > Phase 5 진입 라운드 누적. Phase 5.1 BGM 통합 본 작업(`src/core/sound.py` 백엔드 + `tests/test_sound_bgm.py`) 시작 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속). Phase 5 종료 시점에 `v1.0.0-rc.1` → `v1.0.0` 로 변환.
 
+### Added (Issue #60 — BL-07 시뮬레이터 정합 보강, DECISION-DL-P5C-001/002)
+
+v0.4.0-rc.1~rc.5 누적 사용자 검수 결함 5건 (#51 spec datas / #53 render pass / #55 tutorial 클릭 / #56 배치 UI / #57+58 영웅 평타) 이 모두 기존 BL-07 시뮬레이터 (`src/systems/auto_mode_simulator.py`) 의 자동 가드를 통과한 뒤 사용자 시각 검수에서야 발견됨. 근본 원인은 BL-07 이 systems 만 직접 호출하고 실 BattleScene 의 build/render/UI 클릭 사슬을 거치지 않는 정합 빈약.
+
+- `tests/battle_scene_simulator.py` (신규, `BattleSceneSimulator`): 실 BattleScene + FakeApp/FakeCanvas 위에서 `build → 유닛 선택 클릭 → build_zone 클릭 → update + render` 사슬을 그대로 굴리는 통합 시뮬레이터. BL-07 (성능 < 5s / 클리어율 회귀) 은 그대로 유지하고 사용자 경험 사슬 가드 책임을 본 시뮬레이터가 별도로 담당.
+- `tests/test_battle_scene_simulator.py` (신규, 11 케이스): spec datas 로드 / render canvas item 생성 / 배치 UI 클릭 사슬 / 영웅 평타 projectile 스폰 / stage_03 통합 클리어. 검수 결함 5종 카테고리 모두 자동 감지 가능함을 회귀 가드.
+- pytest 누적 **490 → 501** (+11, 회귀 0).
+
+### Discovered (본 시뮬레이터가 잡아낸 신규 결함 — 별도 이슈로 후속 처리)
+
+- **Issue #62 (DECISION-DL-P5C-003)**: BattleScene 어디에서도 `enemy.goal_reached`/`reached_castle` → `world['goals_reached']` 증가 로직이 없어, stage_01 에서 적이 castle 도착해도 lives 차감 + defeat 판정이 발생하지 않음. 사용자 시각: "게임이 영원히 안 끝난다". BL-07 은 자체 처리하므로 통과했음.
+- **Issue #64 (DECISION-DL-P5C-004)**: `src/data/enemies.json` 에 `tang_archer`/`tang_scout` 정의가 누락되어, 이를 참조하는 stage_02/03 wave 가 BattleScene._spawn_enemy 에서 skip 되어 진행이 막힘. BL-07 은 `_FALLBACK_ENEMY_STATS` 인라인 사전으로 우회.
+
+### Decisions
+
+- **DECISION-DL-P5C-001**: 신규 통합 시뮬레이터를 BL-07 (`src/systems/auto_mode_simulator.py`) 확장이 아닌 `tests/battle_scene_simulator.py` 신설로 분리. BL-07 의 클리어율 회귀 + 성능 < 5s 책임 보존하면서, 사용자 경험 사슬 검증을 별도 모듈로 위임 (단일 책임 + 영향 격리).
+- **DECISION-DL-P5C-002**: 본 라운드 자동 가드는 stage_03 을 통합 클리어 대상으로 선정. stage_01/02 는 DECISION-DL-P5C-003/004 신규 결함의 영향을 받으므로 해당 이슈 종결 후 가드를 확장.
+
 ## [0.4.0-rc.5] - 2026-05-21 — v0.4.0-rc.4 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
 
 > 사용자 .exe 검수(Issue #55/#56/#57/#58) 게임플레이 인터랙션 결함 4건을 한 PR로 종합 fix. develop@e42eeec(PR #59 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3/rc.4 패턴(DECISION-SCM-P5K-003/004/005) 재사용으로 처리.
