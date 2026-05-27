@@ -6,6 +6,34 @@
 
 > Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속).
 
+### Fixed — v0.4.0-rc.7 사용자 검수 결함/개선 4건 (#73/#74/#75/#76)
+
+- **Issue #76 (DECISION-DL-P5C-007, 전투 핵심)**: 영웅 자동 평타 발사체가 적 이동으로 빈번히 빗나감. 원인은 `Projectile` 이 발사 시점 적 좌표로만 향하는 등속 직선 운동이었던 것. **호밍(추적)** 발사체로 전환 — `src/entities/projectile.py`: 살아있는 타겟 엔티티가 있으면 매 틱 속도 벡터를 타겟 현재 위치로 재조준(`_reaim`). 속력은 보존, 방향만 갱신. 기존 swept-circle 충돌과 결합해 자동 평타 명중을 보장한다. GDD §3.1 평타는 회피 메커니즘 미명시(자동 공격)이므로 명중 보장이 자연스럽다. target 없는 발사체(좌표 고정)는 종전 직선 운동 유지(하위 호환).
+- **Issue #75 (DECISION-DL-P5C-008, 패배 조건 체감)**: 적이 castle 에 도달해 lives 가 차감돼도 사용자가 체감 못 함. 진단 결과 `_apply_castle_breaches` 의 lives 차감(#62)은 정상이나 **HUD에 성문 HP 표시가 없는** 것이 원인(#71과 동일 패턴 — 기능 정상 + 시각 피드백 부재). `src/ui/hud.py`: 상단 바에 성문 HP 게이지(바 + 숫자, lives - goals_reached) 신규 추가, 30% 이하 시 경고색. `flash_castle_damage()` 로 breach 발생 시 게이지 붉은 번쩍임(180ms). `src/scenes/battle_scene.py:_refresh_hud` 가 `castle_hp/castle_max_hp` 주입, `_apply_castle_breaches` 가 breach 시 flash 호출.
+- **Issue #73 (DECISION-DL-P5C-009, 튜토리얼 UX)**: 튜토리얼 spotlight 가 대상만 보이고 배경이 깜깜해 게임 맥락을 알 수 없음. 전체 BattleScene 통합은 과도하므로 **정적 전장 backdrop** 도입 — `src/scenes/tutorial_scene.py:_draw_battle_backdrop`: build() 시 하늘/평지/성벽/성문 + 아군 4 · 적 5 placeholder 를 한 번 그린다. 각 단계의 spotlight dim 마스크가 그 위에 덮여 강조 대상만 밝게 남고, 패시브 단계에선 전장 맥락이 그대로 보인다.
+- **Issue #74 (DECISION-DL-P5C-010, 튜토리얼 UX)**: 단계 5 M키 후 즉시 진행돼 영웅이 "움직이는" 모습을 못 봄. `src/scenes/tutorial_scene.py`: M키 후 영웅 placeholder(원/이름/링)가 sine 왕복으로 좌우 짧게 이동하는 데모(진폭 70px, 2.2s)를 `_tick_step5_hero_demo` 로 보여준 뒤 자동 진행. 인지 지연 1.5s → 시연 2.2s 로 확장.
+
+#### 회귀 가드 신규 18건
+
+- `tests/test_projectile.py` 3건: homing_hits_moving_target / homing_reaims_velocity_toward_target / no_homing_without_target_entity (Issue #76).
+- `tests/test_combat_pathing_integration.py` 1건: homing_projectile_hits_moving_enemy — CombatSystem 사슬에서 이동하는 적도 끝내 사망 (Issue #76).
+- `tests/test_hud_state_model.py` 4건: build_registers_castle_ids / update_castle_hp_text / castle_hp_clamps_negative / flash_castle_damage_no_error (Issue #75).
+- `tests/test_battle_scene_flow.py` 4건: castle_breach_increments_goals_reached / skips_dying_enemy / triggers_hud_flash / refresh_hud_reports_castle_hp (Issue #75).
+- `tests/test_clear_rate_simulation.py` 2건 (BL-07 가드): cleared_run_defeats_enemies (명중→격파, #76) / lives_decrement_on_castle_breach (무방어 시뮬 lives 대폭 차감, #75).
+- `tests/test_tutorial_scene.py` 4건: draws_battle_backdrop (#73) / step5_hero_demo_tracks_placeholder / step5_hero_moves_after_m_key / step5_advances_after_demo (#74). `_advance_step5` 헬퍼 시연 시간 2.2s 대응(160틱).
+
+#### pytest 누적
+
+- v0.4.0-rc.7 기준 536 → **554** (+18 신규 가드, 회귀 0).
+
+### Decisions — rc.7 검수 결함 4건
+
+- **DECISION-DL-P5C-007** (Issue #76): 발사체를 호밍으로 전환해 자동 평타 명중 보장. (a)호밍 채택 — 자동 공격에 가장 자연스럽고 swept-circle 충돌과 결합 시 발사체 속도(400~520) >> 적 속도(50~90)로 항상 수렴. 도망/왕복 적 worst-case 시뮬에서도 명중 확인.
+- **DECISION-DL-P5C-008** (Issue #75): 성문 HP 를 상단 HUD 게이지로 노출 + breach 번쩍임. lives 차감 로직(#62)은 정상이었고 시각 피드백만 부재 — #71 패턴 재확인. 게임플레이 균형 영향 0.
+- **DECISION-DL-P5C-009** (Issue #73): 튜토리얼에 실 BattleScene 대신 정적 전장 backdrop 1회 렌더. 인지부하 최소화 원칙(DECISION-DL-P4-002) 유지하되 게임 맥락 가시화. 전체 씬 통합 회피로 변경 범위·리스크 최소화.
+- **DECISION-DL-P5C-010** (Issue #74): 단계 5 M키 후 영웅 placeholder 좌우 왕복 이동 시연(coords 갱신, 재생성 없음). 인지부하 최소화를 위해 짧은 왕복만.
+- **DECISION-DL-P5K-010**: rc.7 결함 4건을 단일 PR로 묶음 — (combat/hud #76/#75) + (tutorial #73/#74) 가 한 검수 라운드 누적이고 회귀 가드가 상호 연관(BL-07). 분할 비용 대비 이점 적음 (rc.6 P5K-008 선례 재사용).
+
 ## [0.4.0-rc.7] - 2026-05-21 — rc.6 검수 결함 5건 종합 fix RC (.exe 재검수 대기)
 
 > 사용자 .exe 검수(rc.6) 결함 5건(#67~#71) 종합 fix. develop@4856848(PR #72 머지). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2~rc.6 패턴 재사용으로 처리. DECISION-SCM-P5K-009.

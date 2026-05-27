@@ -145,3 +145,69 @@ def test_reset_reinitializes_state() -> None:
     assert proj.hit is False
     assert proj.alive is True
     assert proj.should_release is False
+
+
+# ---------------------------------------------------------------------------
+# 호밍(추적) 발사체 — Issue #76 / DECISION-DL-P5C-007
+# ---------------------------------------------------------------------------
+
+
+def test_homing_hits_moving_target() -> None:
+    """타겟이 발사 후 옆으로 이동해도 호밍 발사체는 결국 명중한다.
+
+    발사 시점 타겟은 (300,0). 매 틱 타겟을 y축으로 60px/s 이동시킨다.
+    과거 등속 직선 발사체였다면 처음 조준한 (300,0) 으로만 향해 빗나갔을 것.
+    호밍 발사체는 매 틱 재조준하므로 hit=True 에 도달해야 한다.
+    """
+    target = _DummyEnemy(x=300.0, y=0.0)
+    proj = Projectile(
+        x=0.0,
+        y=0.0,
+        target_x=300.0,
+        target_y=0.0,
+        damage=10,
+        speed=520.0,
+        target=target,
+        hit_radius=12.0,
+    )
+    dt = 0.016
+    hit = False
+    for _ in range(400):  # 최대 ~6.4초 시뮬
+        # 타겟이 옆으로 계속 이동 (발사체보다 느림)
+        target.y += 60.0 * dt
+        proj.update(dt)
+        if proj.hit:
+            hit = True
+            break
+    assert hit, "호밍 발사체가 이동하는 타겟을 명중시키지 못함"
+
+
+def test_homing_reaims_velocity_toward_target() -> None:
+    """호밍: 타겟이 이동하면 다음 틱 속도 벡터가 새 타겟 방향으로 갱신된다."""
+    target = _DummyEnemy(x=200.0, y=0.0)
+    proj = Projectile(
+        x=0.0,
+        y=0.0,
+        target_x=200.0,
+        target_y=0.0,
+        damage=10,
+        speed=400.0,
+        target=target,
+        hit_radius=12.0,
+    )
+    # 발사 직후엔 +x 방향 (vy≈0)
+    assert abs(proj.vy) < 1e-6
+    # 타겟을 아래로 크게 이동시킨 뒤 한 틱 → 속도에 +y 성분이 생겨야 함
+    target.y = 300.0
+    proj.update(0.016)
+    assert proj.vy > 0.0, "호밍 재조준이 타겟 이동을 반영하지 않음"
+    # 속력은 보존
+    assert abs(math.hypot(proj.vx, proj.vy) - 400.0) < 1e-3
+
+
+def test_no_homing_without_target_entity() -> None:
+    """target 엔티티가 없으면(좌표 고정) 직선 운동을 유지한다 (하위 호환)."""
+    proj = Projectile(x=0.0, y=0.0, target_x=200.0, target_y=0.0, damage=10, speed=400.0)
+    vy0 = proj.vy
+    proj.update(0.016)
+    assert proj.vy == vy0  # 재조준 없음

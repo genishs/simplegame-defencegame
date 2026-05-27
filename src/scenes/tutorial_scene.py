@@ -124,6 +124,15 @@ _CLR_TITLE = "#e8d080"
 _CLR_ARROW = "#f0c040"
 _CLR_SPOT_OUTLINE = "#f0c040"
 
+# Issue #73 (DECISION-DL-P5C-009): 정적 전장 backdrop 팔레트.
+_CLR_BD_SKY = "#2a2030"  # 상단 하늘(야영 분위기)
+_CLR_BD_FIELD = "#1d2418"  # 평지(적 진군 라인)
+_CLR_BD_WALL = "#3a2c1c"  # 성벽
+_CLR_BD_WALL_TOP = "#4a3826"  # 성벽 상단 테두리
+_CLR_BD_GATE = "#5a3a1a"  # 성문(코어)
+_CLR_BD_ALLY = "#3a6a8c"  # 아군 placeholder(청)
+_CLR_BD_ENEMY = "#7a2a22"  # 적 placeholder(적·흑)
+
 # 단계 모드.
 MODE_PASSIVE = "P"
 MODE_INTERACTIVE = "I"
@@ -156,6 +165,11 @@ _HUD_TARGETS: dict[str, tuple[float, float, float]] = {
 # 단계 4 mock wave (DECISION-PL-P4-007).
 _MOCK_WAVE_COUNT = 2
 _MOCK_WAVE_INTERVAL = 1.5
+
+# 단계 5 영웅 이동 시연 (Issue #74 / DECISION-DL-P5C-010).
+_STEP5_DEMO_DURATION_S = 2.2  # M 키 후 시연 + 인지 시간 (이후 자동 진행)
+_STEP5_DEMO_AMPLITUDE = 70.0  # 좌우 왕복 진폭 (베이스 px)
+_STEP5_DEMO_PERIOD_S = 1.1  # 왕복 1주기 시간 (초)
 
 
 # ---------------------------------------------------------------------------
@@ -459,6 +473,11 @@ class TutorialScene(BaseScene):
         # 후 짧은 지연 뒤 자동 진행 (사용자가 토글 결과를 인지하도록).
         self._step5_manual_on: bool = False
         self._step5_manual_on_at: float = -1.0  # M 키 누른 시각 (step_elapsed 기준)
+        # Issue #74 (DECISION-DL-P5C-010): M 키 후 영웅 placeholder 이동 시연.
+        # 좌우로 짧게 왕복하는 데모 애니메이션을 보여준 뒤 다음 단계로 진행.
+        self._step5_hero_ids: list[int] = []  # 이동시킬 placeholder 아이템(원/이름/링)
+        self._step5_hero_base_cx: float = 0.0  # 영웅 기준 x (베이스 좌표)
+        self._step5_hero_cy: float = 0.0  # 영웅 y (베이스 좌표)
 
         # Issue #69 (DECISION-DL-P4D-014): 단계 6 Space 일시정지 — 첫 Space 시
         # paused overlay 표시, 두 번째 Space 에 다음 단계로 진행.
@@ -480,6 +499,13 @@ class TutorialScene(BaseScene):
 
         # 배경 (단계 공유)
         canvas.create_rectangle(0, 0, w, h, fill=_CLR_BG, outline="", tags=(self._tag, "bg"))
+
+        # Issue #73 (DECISION-DL-P5C-009): 실 전장 컨텍스트 배경.
+        # rc.7 검수 결함: "튜토리얼 대상만 보이고 나머지는 깜깜해 게임 맥락을 알 수
+        # 없다". 전체 BattleScene 통합은 과도하므로, 정적 전장 backdrop(지형 밴드 +
+        # 성벽/성문 + 아군·적 placeholder)을 한 번 그려 게임 컨텍스트를 보여준다.
+        # 각 단계의 spotlight dim 마스크가 이 위에 덮여 강조 대상만 밝게 남는다.
+        self._draw_battle_backdrop(scaler)
 
         # 우상단 "튜토리얼 종료" 버튼 (단계 공유)
         self._draw_skip_button(scaler)
@@ -533,17 +559,19 @@ class TutorialScene(BaseScene):
         if self._step == 4 and not self._mock_wave_done:
             self._tick_mock_wave(dt)
 
-        # Issue #68 (DECISION-DL-P4D-013): 단계 5 M 키 후 1.5초 인지 지연 후
-        # 자동 진행 — 사용자가 토글 결과(영웅 placeholder 색상 + 라벨)를 인지
-        # 한 뒤 다음 단계로 넘어가도록.
+        # Issue #68/#74 (DECISION-DL-P4D-013 / DECISION-DL-P5C-010): 단계 5 M 키 후
+        # 영웅 placeholder 가 좌우로 짧게 왕복 이동하는 데모를 보여준 뒤 자동 진행.
+        # 사용자가 "직접 조작 → 움직임" 을 시각적으로 인지하도록 한다.
         if (
             self._step == 5
             and self._step5_manual_on
             and not self._step_completed
             and self._step5_manual_on_at >= 0.0
-            and (self._step_elapsed - self._step5_manual_on_at) >= 1.5
         ):
-            self.trigger_step5_done()
+            since_m = self._step_elapsed - self._step5_manual_on_at
+            self._tick_step5_hero_demo(since_m)
+            if since_m >= _STEP5_DEMO_DURATION_S:
+                self.trigger_step5_done()
 
         # 표시 시간 상한 → 자동 진행 (인터랙티브 단계 fallback)
         time_limit = self._current_time_limit()
@@ -594,6 +622,10 @@ class TutorialScene(BaseScene):
         # Issue #68/#69 리셋
         self._step5_manual_on = False
         self._step5_manual_on_at = -1.0
+        # Issue #74: 영웅 이동 시연 추적 상태 리셋 (이전 단계 잔존 id 방지).
+        self._step5_hero_ids = []
+        self._step5_hero_base_cx = 0.0
+        self._step5_hero_cy = 0.0
         self._step6_paused = False
         # Issue #67: 단계 3 mock 패널 상태 리셋
         self._step3_archer_selected = False
@@ -808,6 +840,50 @@ class TutorialScene(BaseScene):
     # ------------------------------------------------------------------
     # 그리기 헬퍼
     # ------------------------------------------------------------------
+
+    def _draw_battle_backdrop(self, scaler: Any) -> None:
+        """정적 전장 backdrop (Issue #73 / DECISION-DL-P5C-009).
+
+        실 BattleScene 을 통합하지 않고, 게임 맥락을 보여주는 정적 레이어를 한 번
+        그린다 (단계 공유, teardown 시 tag 로 일괄 삭제). 레이어 z-order:
+          하늘 → 평지 → 성벽 → 성문 → 아군 placeholder → 적 placeholder.
+        각 단계의 spotlight dim 마스크가 이 위에 덮여 강조 대상만 밝게 남는다.
+        모든 좌표는 베이스 1920×1080 기준 → scaler.to_screen 변환.
+        """
+        canvas = self.app.canvas
+        tag = (self._tag, "tutorial_backdrop")
+
+        def rect(bx1: float, by1: float, bx2: float, by2: float, **kw: Any) -> None:
+            x1, y1 = _sx(scaler, bx1, by1)
+            x2, y2 = _sx(scaler, bx2, by2)
+            canvas.create_rectangle(x1, y1, x2, y2, tags=tag, **kw)
+
+        def oval(cx: float, cy: float, r: float, **kw: Any) -> None:
+            x1, y1 = _sx(scaler, cx - r, cy - r)
+            x2, y2 = _sx(scaler, cx + r, cy + r)
+            canvas.create_oval(x1, y1, x2, y2, tags=tag, **kw)
+
+        # 하늘(상단) + 평지(중단, 적 진군 라인)
+        rect(0, 80, 1920, 560, fill=_CLR_BD_SKY, outline="")
+        rect(0, 560, 1920, 1080, fill=_CLR_BD_FIELD, outline="")
+
+        # 성벽(하단 가로 밴드) + 상단 테두리
+        rect(0, 700, 1920, 780, fill=_CLR_BD_WALL, outline="")
+        rect(0, 700, 1920, 712, fill=_CLR_BD_WALL_TOP, outline="")
+        # 성벽 흉벽(凸) 패턴 — 일정 간격 사각형
+        for gx in range(60, 1920, 160):
+            rect(gx, 684, gx + 80, 700, fill=_CLR_BD_WALL_TOP, outline="")
+
+        # 성문(코어) — buildzone spotlight(740,640) 아래쪽 중앙
+        rect(820, 700, 1100, 800, fill=_CLR_BD_GATE, outline="#7a5224", width=2)
+
+        # 아군 placeholder (성벽 위 청색 유닛 몇 체)
+        for ax in (360, 560, 1160, 1360):
+            oval(ax, 672, 22, fill=_CLR_BD_ALLY, outline="#a8d0e8", width=2)
+
+        # 적 placeholder (평지에서 진군 중인 적색 유닛 몇 체)
+        for ex, ey in ((300, 360), (640, 300), (980, 340), (1320, 300), (1600, 380)):
+            oval(ex, ey, 20, fill=_CLR_BD_ENEMY, outline="#d88078", width=2)
 
     def _draw_skip_button(self, scaler: Any) -> None:
         """우상단 "튜토리얼 종료" 버튼 (씬 공유)."""
@@ -1123,6 +1199,10 @@ class TutorialScene(BaseScene):
                 tags=(self._tag, "tutorial_mock_content"),
             )
             self._step_ids.append(name_id)
+            # Issue #74 (DECISION-DL-P5C-010): M 키 후 이동 시연 대상으로 추적.
+            self._step5_hero_ids = [circ_id, name_id]
+            self._step5_hero_base_cx = cx
+            self._step5_hero_cy = cy
         elif target_key == "pause":
             # 일시정지 버튼 placeholder — battle_scene.hud 의 pause_btn 모방
             half_w = 30.0
@@ -1421,6 +1501,8 @@ class TutorialScene(BaseScene):
             tags=(self._tag, "tutorial_step5_manual_ring"),
         )
         self._step_ids.append(ring_id)
+        # Issue #74: 이동 시연 시 링도 영웅과 함께 움직이도록 추적 목록에 추가.
+        self._step5_hero_ids.append(ring_id)
         # 모드 라벨 (영웅 옆)
         lx, ly = _sx(scaler, cx, cy - r - 24)
         label_id = canvas.create_text(
@@ -1438,7 +1520,46 @@ class TutorialScene(BaseScene):
         hint_id = getattr(self, "_cta_hint_id", None)
         if hint_id is not None:
             try:
-                canvas.itemconfig(hint_id, text="직접 조작 모드 ON — 잠시 후 다음 단계로", fill="#3fbf6f")
+                canvas.itemconfig(
+                    hint_id, text="직접 조작 모드 ON — 영웅이 움직입니다", fill="#3fbf6f"
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _tick_step5_hero_demo(self, since_m: float) -> None:
+        """단계 5 — M 키 후 영웅 placeholder 좌우 왕복 이동 시연 (Issue #74).
+
+        ``since_m`` (M 키 누른 뒤 경과 시간) 으로 sine 왕복 오프셋을 계산해
+        추적 중인 placeholder 아이템(원/이름/링)을 같은 만큼 평행 이동한다.
+        canvas.coords 로 기존 아이템을 옮기므로 재생성/깜빡임이 없다.
+        DECISION-DL-P5C-010: 인지부하 최소화를 위해 짧은 왕복(진폭 70px)만.
+        """
+        if not self._step5_hero_ids:
+            return
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        import math
+
+        # sine 왕복 — 시작점에서 오른쪽 → 왼쪽 → 복귀.
+        phase = (since_m / _STEP5_DEMO_PERIOD_S) * 2.0 * math.pi
+        offset = _STEP5_DEMO_AMPLITUDE * math.sin(phase)
+        cx = self._step5_hero_base_cx + offset
+        cy = self._step5_hero_cy
+        r = 36.0
+        # 원 + 링: bbox 갱신.
+        x1, y1 = _sx(scaler, cx - r, cy - r)
+        x2, y2 = _sx(scaler, cx + r, cy + r)
+        nx, ny = _sx(scaler, cx, cy)
+        for iid in self._step5_hero_ids:
+            try:
+                kind = canvas.type(iid) if hasattr(canvas, "type") else "oval"
+            except Exception:  # noqa: BLE001
+                kind = "oval"
+            try:
+                if kind == "text":
+                    canvas.coords(iid, nx, ny)
+                else:
+                    canvas.coords(iid, x1, y1, x2, y2)
             except Exception:  # noqa: BLE001
                 pass
 

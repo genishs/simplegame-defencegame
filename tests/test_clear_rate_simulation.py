@@ -165,6 +165,47 @@ class TestBL07SimulatorIntegrity:
         result = StageSimulator("stage_01", rng_seed=0).run()
         assert result.elapsed_sim_seconds > 0
 
+    def test_cleared_run_defeats_enemies(self) -> None:
+        """Issue #76 가드: 클리어 결과이면 적을 1체 이상 격파했다.
+
+        명중 보장(호밍)으로 적이 실제 사망하는지 시뮬레이터 레벨에서 검증.
+        시뮬레이터는 직접 DPS 모델이라 빗나감이 없으므로 클리어 = 적 격파 동반.
+        """
+        for stage_id in STAGES:
+            result = StageSimulator(stage_id, rng_seed=0).run()
+            if result.cleared:
+                assert result.enemies_defeated > 0, (
+                    f"{stage_id}: cleared=True 이지만 enemies_defeated=0 "
+                    "(적이 죽지 않았는데 클리어 — 명중/격파 로직 회귀)"
+                )
+
+    def test_lives_decrement_on_castle_breach(self) -> None:
+        """Issue #75 가드: 적이 castle 에 도달하면 lives 가 차감된다.
+
+        유닛이 전혀 배치되지 않으면(전투력 0) 적이 막힘 없이 castle 에 도달하므로
+        lives 가 크게 줄어든다. 유닛을 정상 배치한 기준 시뮬과 비교해, 무방어
+        시뮬의 lives_remaining 이 더 낮음을 검증 — castle-reach → lives 차감
+        경로(Issue #62/#75)가 살아 있음을 보장한다.
+        """
+        baseline = StageSimulator("stage_01", rng_seed=0).run()
+
+        sim = StageSimulator("stage_01", rng_seed=0)
+        # 유닛 배치를 비활성화 (전투력 0) — 적이 막힘 없이 castle 통과.
+        sim._auto_place_units = lambda stage, allies: allies  # type: ignore[method-assign]
+        undefended = sim.run()
+
+        # 무방어 시뮬은 다수의 적이 castle 에 도달 → lives 가 대폭 차감.
+        assert undefended.lives_remaining < baseline.lives_remaining, (
+            "무방어 시뮬 lives_remaining "
+            f"({undefended.lives_remaining}) 이 방어 시뮬 ({baseline.lives_remaining}) "
+            "보다 낮지 않음 — castle 차감 경로 회귀"
+        )
+        # stage_01 lives=20 기준, 무방어 시 최소 절반 이상 손실 기대.
+        assert undefended.lives_remaining <= 10, (
+            f"무방어인데 lives_remaining={undefended.lives_remaining} (>10) — "
+            "castle 차감이 충분히 일어나지 않음"
+        )
+
     def test_no_tkinter_in_simulator_module(self) -> None:
         """auto_mode_simulator 모듈이 tkinter 를 런타임 import 하지 않는다 (DECISION-4.1)."""
         import ast

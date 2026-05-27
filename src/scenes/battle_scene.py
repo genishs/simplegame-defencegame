@@ -1155,6 +1155,11 @@ class BattleScene(BaseScene):
                 breach_count,
                 self.world.get("goals_reached", 0),
             )
+            # Issue #75 / DECISION-DL-P5C-008: 성문 HP 차감 시각 피드백.
+            try:
+                self.hud.flash_castle_damage()
+            except Exception:  # noqa: BLE001
+                pass
 
     def _cleanup_dead(self) -> None:
         """alive==False인 엔티티를 world 목록에서 제거.
@@ -1255,6 +1260,11 @@ class BattleScene(BaseScene):
         hero_phase = getattr(hero, "phase", 1) if hero else 1
         ult_cd = 0.0  # 추후 Hero.ult_cooldown으로 교체
 
+        # 성문 HP(lives) — Issue #75 / DECISION-DL-P5C-008.
+        # 남은 lives = 초기 lives - 누적 goals_reached (음수 방지는 HUD 가 처리).
+        castle_max_hp = int(w.get("lives", 0))
+        castle_hp = castle_max_hp - int(w.get("goals_reached", 0))
+
         state: dict[str, Any] = {
             "food": w.get("food", w.get("gold", 0)),
             "pop": w.get("pop", w.get("population", 0)),
@@ -1266,6 +1276,8 @@ class BattleScene(BaseScene):
             "wave": self.wave.current_wave,
             "total_waves": len(self.wave.waves),
             "time_to_next": self.wave.time_to_next_wave,
+            "castle_hp": castle_hp,
+            "castle_max_hp": castle_max_hp,
         }
         self.hud.update(state)
 

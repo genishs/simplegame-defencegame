@@ -27,9 +27,9 @@
 
 ## 현재 진행 상태
 
-**Phase 4 자동 가드 완결 — `v0.4.0-rc.7` 사전 릴리즈 (2026-05-21, 사용자 .exe 검수용 RC, develop@4856848). rc.6 검수 결함 5건(#67~#71) 종합 fix — 적 hp 바 + HUD wave 풀어쓰기 + 튜토리얼 단계 3/5/6 인터랙션 시뮬레이션. **핵심 발견**: #71(적 안 죽음)은 데미지 사슬 정상이고 시각 피드백(hp 바) 부재가 원인이었음. pytest **536**. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003~009).**
+**Phase 4 자동 가드 완결 — `v0.4.0-rc.7` 검수 결함 4건(#73~#76) 종합 fix (develop, RC 발급 대기). 영웅 평타 호밍(명중 보장) + 성문 HP HUD 게이지 + 튜토리얼 전장 backdrop + 단계 5 영웅 이동 시연. **핵심 발견**: #75(성 hp 체감 안 됨)는 lives 차감 로직(#62) 정상이고 HUD 표시 부재가 원인 — #71과 동일 패턴 반복. #76은 발사체가 발사 시점 좌표 고정이라 이동하는 적을 빗나감 → 호밍 전환으로 해결. pytest **554**. `v0.4.0` GA는 CAT-01~07 + DPI 매트릭스 최종 통과 후 별도 SCM 라운드에서 결정 (DECISION-SCM-P5K-001/003~009).**
 
-> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json), **#67/#68/#69/#70/#71 (rc.6 검수 결함 — 튜토리얼 단계 3/5/6 인터랙션 + HUD wave 표시 + 적 hp 시각 피드백)**. pytest **530 → 536 passed**.
+> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json), #67/#68/#69/#70/#71 (rc.6 검수 결함 — 튜토리얼 인터랙션 + HUD wave + 적 hp 시각 피드백), **#73/#74/#75/#76 (rc.7 검수 결함 — 영웅 평타 호밍 명중 보장 + 성문 HP HUD + 튜토리얼 전장 backdrop + 영웅 이동 시연)**. pytest **530 → 554 passed**.
 
 > **Phase 5.1 진행**: BGM 백엔드(pygame.mixer) + Menu/Tutorial/Battle/Ending 4씬 통합 + BG-01~04 자동 가드. Issue #30 종결.
 

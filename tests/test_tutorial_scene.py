@@ -51,7 +51,11 @@ class FakeCanvas:
         pass
 
     def coords(self, i: int, *args: Any) -> None:
-        pass
+        # Issue #74 가드: 영웅 이동 시연이 placeholder 좌표를 갱신하는지 검증할 수
+        # 있도록 최신 args 를 저장한다. 없는 id 는 무시 (기존 동작 보존).
+        if i in self.items:
+            kind, _old_args, kw = self.items[i]
+            self.items[i] = (kind, args, kw)
 
     def delete(self, i: Any) -> None:
         if isinstance(i, int):
@@ -205,10 +209,14 @@ def _advance_step3(scene: Any) -> None:
 
 
 def _advance_step5(scene: Any) -> None:
-    """단계 5 진행 헬퍼: M 키 누름 + 1.5s 지연 후 자동 진행."""
+    """단계 5 진행 헬퍼: M 키 누름 + 이동 시연/인지 지연 후 자동 진행.
+
+    Issue #74 (DECISION-DL-P5C-010): M 키 후 영웅 placeholder 가 좌우로 왕복
+    이동하는 시연(_STEP5_DEMO_DURATION_S=2.2s)을 거친 뒤 진행한다.
+    16ms × 160 = 2.56s 로 충분히 시연 시간을 넘긴다.
+    """
     scene._on_m_key(None)
-    # 1.5초 인지 지연 후 update 가 trigger_step5_done 호출 — 16ms × 100 = 1.6s
-    for _ in range(110):
+    for _ in range(160):
         scene.update(0.016)
 
 
@@ -247,7 +255,7 @@ def test_tutorial_step_4_cta_disabled_until_mock_wave_ends(scene: Any) -> None:
 
 
 def test_tutorial_step_5_m_key(scene: Any) -> None:
-    """단계 5: M 키 입력 + 1.5s 인지 지연 → 단계 6 (Issue #68)."""
+    """단계 5: M 키 입력 + 이동 시연/인지 지연 → 단계 6 (Issue #68/#74)."""
     # 1 → 2 → 3 → 4
     scene.trigger_cta_click()
     scene.trigger_step2_done()
@@ -358,6 +366,78 @@ def test_tutorial_skip_yes_with_dont_show_again_saves_flag(scene: Any, isolated_
 
     slot = load_save_slot()
     assert slot.tutorial_dismissed is True
+
+
+# ---------------------------------------------------------------------------
+# 5. Issue #73 — 정적 전장 backdrop (게임 컨텍스트 표시)
+# ---------------------------------------------------------------------------
+
+
+def test_tutorial_draws_battle_backdrop(scene: Any) -> None:
+    """Issue #73: build() 시 전장 backdrop(아군·적 placeholder + 성벽) 이 그려진다.
+
+    backdrop 은 oval(아군/적 placeholder) 다수와 rect(지형/성벽/성문) 를 포함.
+    """
+    items = scene.app.canvas.items.values()
+    ovals = [v for v in items if v[0] == "oval"]
+    rects = [v for v in items if v[0] == "rect"]
+    # 아군 4 + 적 5 = 9 placeholder oval 이상 (단계 1 spotlight 없음).
+    assert len(ovals) >= 9, "전장 backdrop placeholder(oval) 가 부족함"
+    # 지형/성벽/성문/흉벽 등 다수 rect.
+    assert len(rects) >= 5
+
+
+# ---------------------------------------------------------------------------
+# 6. Issue #74 — M 키 후 영웅 이동 시연
+# ---------------------------------------------------------------------------
+
+
+def _goto_step5(scene: Any) -> None:
+    scene.trigger_cta_click()  # 1→2
+    scene.trigger_step2_done()  # 2→3
+    _advance_step3(scene)  # 3→4
+    for _ in range(20):
+        scene.update(0.2)
+    scene.trigger_cta_click()  # 4→5
+    assert scene.step == 5
+
+
+def test_tutorial_step5_hero_demo_tracks_placeholder(scene: Any) -> None:
+    """Issue #74: 단계 5 진입 시 영웅 placeholder 가 이동 시연 대상으로 추적된다."""
+    _goto_step5(scene)
+    # spotlight mock content 가 hero placeholder 를 추적 목록에 등록.
+    assert len(scene._step5_hero_ids) >= 2  # 원 + 이름
+    assert scene._step5_hero_base_cx > 0.0
+
+
+def test_tutorial_step5_hero_moves_after_m_key(scene: Any) -> None:
+    """Issue #74: M 키 후 update 가 진행되면 영웅 placeholder 좌표가 이동한다.
+
+    데모 sine 왕복으로 원의 bbox(coords) 가 기준 위치에서 벗어나야 한다.
+    """
+    _goto_step5(scene)
+    circ_id = scene._step5_hero_ids[0]
+    canvas = scene.app.canvas
+    base_coords = canvas.items[circ_id][1]  # 생성 시 args (좌표)
+
+    scene._on_m_key(None)
+    # 시연 도중(진행 완료 전) 한 시점까지만 진행 — sine 피크 부근(~0.28s).
+    for _ in range(18):  # 18 × 0.016 ≈ 0.29s < 2.2s
+        scene.update(0.016)
+
+    moved_coords = canvas.items[circ_id][1]
+    assert moved_coords != base_coords, "M 키 후 영웅 placeholder 가 이동하지 않음"
+    # 아직 시연 중이므로 단계 5 유지.
+    assert scene.step == 5
+
+
+def test_tutorial_step5_advances_after_demo(scene: Any) -> None:
+    """Issue #74: 이동 시연 시간(2.2s) 경과 후 단계 6 으로 진행한다."""
+    _goto_step5(scene)
+    scene._on_m_key(None)
+    for _ in range(160):  # 2.56s > 2.2s
+        scene.update(0.016)
+    assert scene.step == 6
 
 
 def test_tutorial_skip_yes_without_checkbox_does_not_dismiss(scene: Any, isolated_save_path: Path) -> None:
