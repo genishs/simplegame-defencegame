@@ -28,6 +28,7 @@ _DEFAULT_STRINGS: dict[str, str] = {
     "hud.arrows": "화살",
     "hud.wave_progress": "진군",
     "hud.next_wave_in": "다음",
+    "hud.castle": "성문",
     "hud.speed.pause": "||",
     "hud.speed.1x": "1×",
     "hud.speed.2x": "2×",
@@ -140,6 +141,35 @@ class HUD:
         lx1, ly1 = sx(580, 20)
         lx2, ly2 = sx(580, 60)
         self._ids["sep1"] = c.create_line(lx1, ly1, lx2, ly2, fill="#5a4a30", tags=(tag,))
+
+        # ── 성문 HP(lives) — Issue #75 / DECISION-DL-P5C-008 ────────────
+        # 적이 castle 도달 시 lives 가 차감된다. 패배 조건(코어 HP=0)을 사용자가
+        # 체감하도록 상단 바에 성문 HP 게이지 + 숫자를 표시. 자원 영역(우측) 과
+        # 웨이브 진행(x=1120) 사이의 빈 공간(x=620~860)에 배치.
+        clx, cly = sx(632, 16)
+        self._ids["castle_label"] = c.create_text(
+            clx,
+            cly,
+            text=self._strings.get("hud.castle", "성문"),
+            fill="#e08858",
+            font=font(14),
+            anchor="nw",
+            tags=(tag,),
+        )
+        # 성문 HP 바 배경 + 채움
+        cbg_x1, cbg_y1 = sx(632, 40)
+        cbg_x2, cbg_y2 = sx(840, 60)
+        self._ids["castle_hp_bg"] = c.create_rectangle(
+            cbg_x1, cbg_y1, cbg_x2, cbg_y2, fill="#3a1810", outline="#6a3018", tags=(tag,)
+        )
+        self._ids["castle_hp_bar"] = c.create_rectangle(
+            cbg_x1, cbg_y1, cbg_x2, cbg_y2, fill="#d07038", outline="", tags=(tag,)
+        )
+        # 성문 HP 숫자 (바 위 중앙)
+        cvx, cvy = sx(736, 50)
+        self._ids["castle_hp_val"] = c.create_text(
+            cvx, cvy, text="--/--", fill="#ffe0c0", font=font(12, bold=True), anchor="center", tags=(tag,)
+        )
 
         # ── 웨이브 진행 (HUD-12) — Issue #70 풀어쓰기 라벨 ──────────────
         wx, wy = sx(1120, 40)
@@ -298,6 +328,24 @@ class HUD:
             else:
                 c.itemconfig(ids["next_wave"], text="진군 종료")
 
+        # 성문 HP(lives) — Issue #75 / DECISION-DL-P5C-008
+        # castle_hp = 남은 lives (lives - goals_reached), castle_max_hp = 초기 lives.
+        castle_hp = state.get("castle_hp")
+        castle_max_hp = state.get("castle_max_hp")
+        if castle_hp is not None and castle_max_hp is not None:
+            castle_hp = max(0, int(castle_hp))
+            castle_max_hp = max(1, int(castle_max_hp))
+            if "castle_hp_val" in ids:
+                c.itemconfig(ids["castle_hp_val"], text=f"{castle_hp}/{castle_max_hp}")
+            if "castle_hp_bar" in ids and s is not None:
+                ratio = max(0.0, min(1.0, castle_hp / castle_max_hp))
+                bx1, by1 = s.to_screen(632, 40)
+                bx2, by2 = s.to_screen(840, 60)
+                bar_w = (bx2 - bx1) * ratio
+                c.coords(ids["castle_hp_bar"], bx1, by1, bx1 + bar_w, by2)
+                # 위험(30% 이하)이면 진한 적색으로 경고
+                c.itemconfig(ids["castle_hp_bar"], fill="#d07038" if ratio > 0.3 else "#dd3322")
+
         # 영웅 HP
         hero_hp = state.get("hero_hp", 0)
         hero_max_hp = state.get("hero_max_hp", max(hero_hp, 1))
@@ -350,6 +398,38 @@ class HUD:
         if "flash_overlay" in ids:
             try:
                 self._canvas.itemconfig(ids["flash_overlay"], state="hidden")
+            except Exception:  # noqa: BLE001
+                pass
+
+    # ------------------------------------------------------------------
+    # 성문 피격 플래시 (Issue #75 / DECISION-DL-P5C-008)
+    # ------------------------------------------------------------------
+
+    def flash_castle_damage(self) -> None:
+        """적이 castle 에 도달해 lives 가 차감될 때 성문 HP 게이지를 번쩍인다.
+
+        성문 HP 바 배경을 붉게 번쩍여(180ms) 사용자가 차감을 즉시 체감하게 한다.
+        BattleScene 이 breach 발생 시 호출.
+        """
+        if self._canvas is None:
+            return
+        ids = self._ids
+        if "castle_hp_bg" not in ids:
+            return
+        c = self._canvas
+        try:
+            c.itemconfig(ids["castle_hp_bg"], fill="#ff5530", outline="#ffaa66")
+            c.after(180, self._reset_castle_bg)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _reset_castle_bg(self) -> None:
+        if self._canvas is None:
+            return
+        ids = self._ids
+        if "castle_hp_bg" in ids:
+            try:
+                self._canvas.itemconfig(ids["castle_hp_bg"], fill="#3a1810", outline="#6a3018")
             except Exception:  # noqa: BLE001
                 pass
 

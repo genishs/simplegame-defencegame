@@ -1,6 +1,6 @@
 """발사체(화살/돌).
 
-등속 직선 운동으로 타겟을 향해 이동한다.
+타겟을 향해 이동한다.
 타겟까지 거리 < hit_radius이면 ``hit=True``.
 타겟이 dying이면 fly-through 후 ``should_release=True``로 자동 회수.
 
@@ -10,6 +10,15 @@ DECISION-DL-P5P-002 (Issue #44): swept-circle 충돌 판정.
   현재: 발사체와 타겟 양쪽의 동시 이동을 고려한 swept-circle distance — 타겟에
         ``_prev_x/_prev_y`` (이전 틱 좌표 스냅샷) 이 있으면 양 선분의 최소 거리,
         없으면 기존 단일-선분 검사로 fallback (하위 호환).
+
+DECISION-DL-P5C-007 (Issue #76): 호밍(추적) 발사체.
+  과거: 발사 시점 타겟 위치로 향하는 등속 직선 운동. 자동 평타인데도 적이
+        이동하면 빗나가, 발사체가 적을 영영 못 맞히고 화면 밖으로 사라짐.
+  현재: ``target`` 엔티티가 살아있는 동안 매 틱 속도 벡터를 타겟 현재 위치로
+        재조준한다 (homing). swept-circle 충돌과 결합해 자동 평타 명중을
+        보장한다. target 이 없는 발사체(좌표 고정)는 종전대로 직선 운동.
+        GDD §3.1 영웅 평타는 회피 메커니즘을 명시하지 않으므로(자동 공격)
+        명중 보장이 자연스럽다.
 """
 
 from __future__ import annotations
@@ -99,6 +108,12 @@ class Projectile(Entity):
             self.should_release = True
             return
 
+        # DECISION-DL-P5C-007 (Issue #76): 호밍 재조준.
+        # 살아있는 타겟 엔티티가 있으면 매 틱 속도 벡터를 타겟 현재 위치로 다시
+        # 맞춰, 적이 이동해도 발사체가 빗나가지 않게 한다 (자동 평타 명중 보장).
+        if self.target is not None and getattr(self.target, "alive", False):
+            self._reaim()
+
         # 명중 좌표 결정 (이동 전)
         # 타겟 엔티티의 prev 좌표가 있으면 이를 사용해 swept-circle 평가.
         # CombatSystem 이 매 틱 시작 시 _prev_x/_prev_y 를 갱신한다.
@@ -152,6 +167,19 @@ class Projectile(Entity):
         closest_dist = math.hypot(closest_dx, closest_dy)
         if closest_dist < self.hit_radius:
             self.hit = True
+
+    def _reaim(self) -> None:
+        """타겟 현재 위치로 속도 벡터 재조준 (homing, DECISION-DL-P5C-007).
+
+        속력(``self.speed``)은 유지하고 방향만 타겟 쪽으로 돌린다. 거리가 0이면
+        (이미 겹침) 기존 벡터를 유지 — 다음 거리 판정에서 명중 처리된다.
+        """
+        dx = self.target.x - self.x
+        dy = self.target.y - self.y
+        dist = math.hypot(dx, dy)
+        if dist > 0:
+            self.vx = dx / dist * self.speed
+            self.vy = dy / dist * self.speed
 
     # ------------------------------------------------------------------
     # 초기화 (풀에서 재사용 시)
