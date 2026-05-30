@@ -134,12 +134,44 @@ class FakePlayerData:
         self.stage_stars: dict[str, int] = stars if stars is not None else {}
 
 
+class FakeSoundManager:
+    """SoundManager stub — Phase 5.1 BGM 통합 후 FakeApp에서 사용."""
+
+    def play_bgm(self, name: str, *, loop: bool = True, fade_in: float = 1.0) -> None:
+        pass
+
+    def stop_bgm(self, *, fade_out: float = 1.0) -> None:
+        pass
+
+    def set_bgm_volume(self, v: float) -> None:
+        pass
+
+    def play_sfx(self, name: str) -> None:
+        pass
+
+    def play_ui(self, name: str) -> None:
+        pass
+
+    def stop_all(self) -> None:
+        pass
+
+    def set_master_volume(self, v: float) -> None:
+        pass
+
+    def mute(self) -> None:
+        pass
+
+    def unmute(self) -> None:
+        pass
+
+
 class FakeApp:
     def __init__(self, player_data: Any = None) -> None:
         self.canvas = FakeCanvas()
         self.scaler = FakeScaler()
         self.events = FakeEventBus()
         self.root = FakeRoot()
+        self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
         self._goto_calls: list[str] = []
         self._quit_called: bool = False
         if player_data is not None:
@@ -187,9 +219,19 @@ def test_menu_enter_key_triggers_goto_for_focused_button() -> None:
 
 
 def test_menu_enter_key_stage_select_button() -> None:
-    """MN-03(변형): 포커스가 2번(스테이지) 버튼일 때 Enter -> goto("stage_select")."""
+    """MN-03(변형): 포커스가 "스테이지" 버튼일 때 Enter -> goto("stage_select").
+
+    Phase 4 (Issue #26, DECISION-DL-P4-006): "튜토리얼" 항목이 인덱스 2 로 합류해
+    "스테이지" 는 인덱스 3 으로 밀린다. 본 회귀는 dest='stage_select' 라우팅 자체를
+    검증하는 것이 목적이므로 인덱스만 갱신한다.
+    """
+    from src.scenes.menu_scene import _BUTTONS
+
+    # "menu.stage_select" 라우팅 버튼의 현재 인덱스를 동적으로 조회 — 향후 메뉴
+    # 재배치에도 회귀가 따라오도록 한다.
+    stage_idx = next(i for i, b in enumerate(_BUTTONS) if b[0] == "menu.stage_select")
     scene = _make_menu_scene()
-    scene._focused_idx = 2  # "스테이지" -> dest="stage_select"
+    scene._focused_idx = stage_idx
     scene._on_enter_key(None)
     assert "stage_select" in scene.app._goto_calls
 

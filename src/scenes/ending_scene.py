@@ -89,6 +89,10 @@ class EndingScene(BaseScene):
     # ------------------------------------------------------------------
 
     def build(self) -> None:
+        # BGM — 엔딩(승리) 진입 시 재생 (Phase 5.1, Issue #30)
+        # 현재 EndingScene은 승리 분기만 구현됨. 패배 분기 추가 시 bgm.defeat 사용 예정.
+        self.app.sound.play_bgm("bgm.victory", loop=False, fade_in=1.0)
+
         self._current_panel = 0
         self._draw_panel(self._current_panel)
         # 키 바인딩

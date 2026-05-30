@@ -27,15 +27,24 @@
 
 ## 현재 진행 상태
 
-**Phase 3 완료 — `v0.3.0-rc.1` 사전 릴리즈 (2026-05-19). Phase 4 진입 예정.**
+**Phase 4 정식 GA — `v0.4.0` 릴리즈 (2026-05-30, 사용자 .exe 검수 통과). rc.1~rc.8 누적 UAT 사이클에서 마지막 rc.8 결함 0건 사인오프 → develop → main 머지 + `v0.4.0` 정식 태그 + GitHub Release prerelease=false. 핵심 게임플레이 결함(render() 미구현 #53, src/data 누락 #51, 아군 배치 #56, 자동 평타 #57/#58, 성문 breach 차감 #62, 적/성문 HP HUD #71/#75, 호밍 명중 #76, 튜토리얼 인터랙션 #49/#55/#67~#69/#73/#74) 전부 해소. pytest **554**. DECISION-SCM-P5K-011.**
+
+> **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json), #67/#68/#69/#70/#71 (rc.6 검수 결함 — 튜토리얼 인터랙션 + HUD wave + 적 hp 시각 피드백), **#73/#74/#75/#76 (rc.7 검수 결함 — 영웅 평타 호밍 명중 보장 + 성문 HP HUD + 튜토리얼 전장 backdrop + 영웅 이동 시연)**. pytest **530 → 554 passed**.
+
+> **Phase 5.1 진행**: BGM 백엔드(pygame.mixer) + Menu/Tutorial/Battle/Ending 4씬 통합 + BG-01~04 자동 가드. Issue #30 종결.
+
+> **Phase 5 cleanup**: BL-07 시뮬레이터 정합 보강 — 신규 `tests/battle_scene_simulator.py`(실 BattleScene + FakeApp/FakeCanvas) + 21 자동 가드(stage_01/02/03 통합 클리어 포함). 누적 결함 사전 감지망 확장 (DECISION-DL-P5C-001~006).
+
+> **버전 매핑(메모리 규칙 정합)**: Phase 1 = v0.1.0, Phase 2 = v0.2.0, Phase 3 = v0.3.0, **Phase 4 = v0.4.0 (GA 발급 완료, 2026-05-30)**, Phase 5 = v1.0.0 (RC→GA 직행, 중간 마이너 도입 여부 OPEN-PL-P5-006).
+> `v0.3.0` 은 rc.1 사전 릴리즈 마일스톤으로만 존재 — Phase 3 시점 코드(render() 미구현 등 다수 결함)를 GA 로 배포하는 것은 부적절하여 별도 GA 태그를 발급하지 않으며, Phase 4(v0.4.0) GA 가 Phase 3 콘텐츠를 전부 포함·대체한다 (DECISION-SCM-P5K-011).
 
 | Phase | 내용 | 상태 |
 |---|---|---|
 | 1 | 사전 기획 — 역사 검토, 컨셉, 디자인 문서, 기술 아키텍처, SCM/CI 구축 | ✅ 완료 (v0.1.0, 2026-05-17) |
 | 2 | 기본 로직/엔진 구현 + 스토리 작성 (메인 루프, 타워, 적 이동, 웨이브) | ✅ 완료 (v0.2.0, 2026-05-19) |
 | 3 | 기능 통합 검토 + 디자인/스토리 적용 + 프로토타입 + 수직 슬라이스 + 회귀 매트릭스 | ✅ 완료 (`v0.3.0-rc.1`, 2026-05-19) |
-| 4 | 기능 테스트 + 디버깅 + 버그픽스 (사용자 검수 CAT-01~04 통과 시 `v0.3.0` GA 승격) | ⏳ 예정 |
-| 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | ⏳ 예정 |
+| 4 | 기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 + 잠재 결함 해결 + rc.1~rc.8 사용자 UAT 사이클 | ✅ 완료 — 정식 GA (`v0.4.0`, 2026-05-30, 사용자 .exe 검수 통과) |
+| 5 | 전체 스토리 적용 + 최종 완성 + 패키징/릴리즈 | 🚧 진행 중 (kickoff 2026-05-19, `docs/14_phase5_plan.md`, 4 sub-phase 분할, 대상: v1.0.0-rc.1→v1.0.0 — SCM 정정 2026-05-19) |
 
 ### Phase 3 세부 진행
 - **3.1 통합 하드닝 — 완료**: `reward.grain` 데이터 패치(#2), `src/systems/` tkinter import 금지 CI 가드(#8), stdlib-only stage JSON schema validator(#10), prerelease 감지 워크플로(#9)
@@ -45,8 +54,35 @@
 - **3.5 수직 슬라이스 데모 — 완료**(#12): 메뉴 → 스테이지 선택 → 배틀 → 엔딩 풀 사이클 결선, BattleScene 진입 시 영웅(Hero) 자동 등록, stage_05 클리어 시 엔딩 라우팅, 통합 테스트 18건 + 회귀 매트릭스 자동 가드 21건 추가 (총 **334 passed**), PyInstaller `--onefile` .exe 로컬 빌드 검증 (24.9MB, Noto Sans KR 번들 확인), 사용자 검수 카탈로그 CAT-01~04 정의. SCM finalize: `v0.3.0-rc.1` 태깅 + main 머지.
 
 ### 다음 단계
-- **사용자 시각 검수 (CAT-01~04)**: `docs/qa/scenario_catalog.md` 카탈로그 기반. 통과 시 `v0.3.0` 정식 GA 승격.
-- **Phase 4**: 검수 결함 수렴 + 1920×1080 / 100%·125% DPI 매트릭스 검증 + 추가 회귀 가드.
+- **사용자 시각 검수 (CAT-01~07)**: `docs/qa/scenario_catalog.md` 카탈로그 기반. 통과 시 `v0.3.0` 정식 GA 승격 (DECISION-SCM-P4-004 — 사용자 복귀 후 별도 라운드에서 main 머지·태깅).
+- **Phase 4 R1 — 완료 (2026-05-19)**:
+  - 튜토리얼 8단계 구현 + save_slot (#26 / PR #36, DECISION-DT2-P4-*)
+  - 초반 3스테이지 난이도 하향 (#27 / PR #34, DECISION-DT1-P4-001~004) + 스키마 `night_vision_radius_multiplier` 옵션 필드
+  - ui_strings §20 한국어 35건 확정 (#26 / PR #35, DECISION-DESIGN-P4-001~005)
+  - 회귀 매트릭스 v2 + 시나리오 카탈로그 확장 + 자동 테스트 보강 (PR #37, DECISION-QA-P4-001~006)
+- **Phase 4 R2 — 완료 (2026-05-19)**:
+  - BL-07 클리어율 시뮬레이션 자동화 (#39 / PR #41, DECISION-DT1-P4B-001~005) — tkinter-free 헤드리스 시뮬레이터, 15/15 (100%) 클리어
+  - simpleaudio SFX 백엔드 시범 도입 (#29 / PR #42, DECISION-AUDIO-012) — 8 placeholder WAV + AU-07 자동화, ubuntu CI `libasound2-dev` step 추가
+  - pytest markers 4종(`regression_p4`, `slow`, `audio`, `network`) 정식 등록, 경고 0건
+  - pytest 누적 **424 passed** (Phase 4 R1 종료 시점 396 → +28, 회귀 0)
+- **Phase 4 R3 — 완료 (2026-05-19)**:
+  - WaveSystem 보스 path 다단 fallback (#43 / PR #46, DECISION-DL-P5P-001)
+  - Projectile swept-circle 충돌 (#44 / PR #46, DECISION-DL-P5P-002) — BL-07 시뮬레이터 workaround 정식 코드화
+  - pytest markers 5+2 파일 일관 적용 + `ci.yml` 3-step 분리 (PR #45, DECISION-QA-P4M-001~003)
+  - 회귀 매트릭스 v2.2→v2.3 (55→64 시나리오, WV/CB 신규 10건)
+  - **`docs/qa/v0_3_0_ga_checklist.md`** 발행 — 자동 가드 8/8 ✓ / 사용자 검수 0/7 ☐ / DPI 0/2 ☐
+  - **`docs/qa/phase4_completion_report.md`** Phase 4 종료 보고서
+  - pytest 누적 **448 passed** (Phase 4 종료 시점, slow 별도 시 BL-07 5/5) → `v0.4.0-rc.2` 시점 **453 passed** → Issue #51 fix 누적 **464 passed**
+- **GA 진입 (사용자 의존)**: CAT-01~07 + DPI 매트릭스 통과 후 별도 SCM 라운드에서 develop → main 머지 + `v0.3.0` 태그 + GitHub Release prerelease=false 갱신.
+- **Phase 4 종료 — `v0.4.0-rc.1` 사전 릴리즈 (2026-05-19, SCM 발급)**: Phase 4 R1+R2+R3 자동 가드 완결 시점에 발급. 사용자 검수(CAT-01~07 + DPI 매트릭스) 통과 시 별도 SCM 라운드에서 `v0.4.0` 정식 GA 승격.
+- **Phase 5 진입 (2026-05-19, DECISION-PL-P5-001~006 + SCM 정정 DECISION-SCM-P5K-001)**: `docs/14_phase5_plan.md` 발행 — 전체 스토리 통합 + 최종 완성 + 패키징/릴리즈(1.0.0). 4 sub-phase 분할 (메모리 규칙 정합: 1.0.0 = Phase 5 완료):
+  - **Phase 5.1 BGM 통합**: Issue #30 정식 클로즈, OGG Vorbis 백엔드 도입 (OPEN-AUDIO-001 마감 예정) — develop 누적
+  - **Phase 5.2 전체 스토리 통합**: `docs/story/01~07` 산출물을 인게임 intro/outro/엔딩 컷씬으로 실 통합, 5인 픽션 캐릭터 대사 SSOT 60~80건 추가 — develop 누적
+  - **Phase 5.3 자산 실수급 / 최종 완성**: BGM 8곡 + SFX 20개 실 라이선스 자산 교체, 픽션 캐릭터 일러스트 옵션 B(강화 placeholder) 우선
+  - **Phase 5.4 1.0.0 패키징 / 릴리즈** → v1.0.0-rc.1 → v1.0.0: 자동 릴리즈 노트 + Linux 빌드 CI 추가(DECISION-PL-P5-005), Windows 코드 서명 미적용 유지(DECISION-PL-P5-004), macOS 보류(OPEN-PL-P5-002)
+  - 페르소나 거버넌스: Localization Engineer / Release Engineer 신설은 보류, Steering 후속 라운드 표결 위임 (OPEN-PL-P5-001~002)
+  - 자율 결정 6건 DECISION-PL-P5-001~006 기록, 6건 OPEN-PL-P5-001~006 후속 위임 (SCM 정정 시 OPEN-PL-P5-006 신설)
+  - 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 Steering 표결 위임
 
 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md) 참조.
 

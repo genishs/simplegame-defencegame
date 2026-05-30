@@ -9,6 +9,14 @@
 궁극기(ultimate)는 ``ultimate_cooldown_s`` 쿨다운과 페이즈별 스칼라로 동작한다.
 페이즈 전환 시 ``phase_changed`` 플래그가 True로 1회 세팅된다.
 외부에서 이 플래그를 읽은 뒤 False로 초기화해야 다음 전환을 감지할 수 있다.
+
+DECISION-DL-P4D-007 (Issue #57/#58):
+  Hero는 평타(활) 자동 공격을 가진다. GDD §3.1: atk 35 / range 380px /
+  공속 1.0/s. ``find_target_in_range`` 로 사거리 내 최근접 적을 찾고,
+  ``auto_attack(enemies)`` 가 쿨다운을 갱신해 발사 가능 시 (target, damage,
+  cooldown) 을 반환한다. 발사체 스폰은 BattleScene 이 책임 (도메인 가드
+  tkinter-free 유지). 수동 모드에서도 발사 트리거는 동일하게 작동해
+  영웅이 적과 전투할 수 있게 한다 (Issue #58).
 """
 
 from __future__ import annotations
@@ -68,6 +76,11 @@ class Hero(Entity):
         self._ult_timer: float = 0.0  # 0이면 즉시 발동 가능
         self.phase_changed: bool = False
         self._prev_phase: int = 1
+        # DECISION-DL-P4D-007 (Issue #57/#58): 평타 자동 공격 쿨다운.
+        # 0이면 즉시 발사 가능. ``auto_attack`` 이 1/atk_speed 로 재설정.
+        self._atk_cooldown: float = 0.0
+        # 현재 평타 타겟 (UI 디버그/테스트용. CombatSystem 의존성 없음).
+        self.target: Any = None
 
     # ------------------------------------------------------------------
     # 페이즈 프로퍼티
@@ -100,6 +113,9 @@ class Hero(Entity):
         # 쿨다운 감소
         if self._ult_timer > 0.0:
             self._ult_timer = max(0.0, self._ult_timer - dt)
+        # 평타 쿨다운 감소 (Issue #57/#58, DECISION-DL-P4D-007)
+        if self._atk_cooldown > 0.0:
+            self._atk_cooldown = max(0.0, self._atk_cooldown - dt)
 
         # 페이즈 전환 감지
         new_phase = self.current_phase
@@ -109,6 +125,65 @@ class Hero(Entity):
         else:
             # 외부에서 아직 읽지 않았으면 True 유지, 읽고 나서 False로 초기화
             pass  # phase_changed는 외부에서 직접 False로 리셋
+
+    # ------------------------------------------------------------------
+    # 평타 자동 공격 (DECISION-DL-P4D-007, Issue #57/#58)
+    # ------------------------------------------------------------------
+
+    def find_target_in_range(self, enemies: list[Any]) -> Any | None:
+        """사거리 ``self.range_px`` 내 최근접 살아있는 적을 반환.
+
+        Args:
+            enemies: 적 엔티티 리스트.
+
+        Returns:
+            가장 가까운 Enemy, 없으면 None.
+        """
+
+        best: Any | None = None
+        best_dist_sq = self.range_px * self.range_px
+        for e in enemies:
+            if not getattr(e, "alive", False):
+                continue
+            if getattr(e, "dying", False):
+                continue
+            dx = e.x - self.x
+            dy = e.y - self.y
+            dsq = dx * dx + dy * dy
+            if dsq <= best_dist_sq:
+                best_dist_sq = dsq
+                best = e
+        return best
+
+    def auto_attack(self, enemies: list[Any]) -> dict[str, Any] | None:
+        """평타 자동 공격 트리거.
+
+        쿨다운이 0이고 사거리 내 적이 있으면 발사 정보를 반환한다.
+        반환된 dict 는 BattleScene 이 받아 Projectile 을 스폰한다 (도메인 가드).
+
+        Returns:
+            발사 정보 dict (``{"target", "damage", "x", "y"}``) 또는 None.
+        """
+        if self._atk_cooldown > 0.0:
+            return None
+        target = self.find_target_in_range(enemies)
+        if target is None:
+            self.target = None
+            return None
+        self.target = target
+        # 쿨다운 재설정 (atk_speed = 초당 공격 횟수)
+        self._atk_cooldown = (1.0 / self.atk_speed) if self.atk_speed > 0 else 1.0
+        return {
+            "target": target,
+            "damage": self.atk,
+            "x": self.x,
+            "y": self.y,
+        }
+
+    @property
+    def atk_cooldown(self) -> float:
+        """평타 쿨다운 잔여 시간 (테스트/UI 공개 API)."""
+        return self._atk_cooldown
 
     def draw(self, canvas: tk.Canvas, scaler: Scaler) -> None:
         """canvas_id의 coords 갱신 (렌더러가 호출)."""

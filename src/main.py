@@ -41,11 +41,25 @@ def _register_scenes(app: App) -> None:
     from src.scenes.ending_scene import EndingScene
     from src.scenes.menu_scene import MenuScene
     from src.scenes.stage_select_scene import StageSelectScene
+    from src.scenes.tutorial_scene import TutorialScene
 
     app.register_scene("menu", MenuScene)
     app.register_scene("stage_select", StageSelectScene)
     app.register_scene("battle", BattleScene)
     app.register_scene("ending", EndingScene)
+    # Phase 4 / Issue #26 — 튜토리얼 (DECISION-DL-P4-003).
+    app.register_scene("tutorial", TutorialScene)
+
+
+def _resolve_initial_scene() -> str:
+    """저장 슬롯 검사 후 첫 씬 결정 (DECISION-DL-P4-003).
+
+    - 저장 슬롯이 비어 있고 ``tutorial_dismissed`` 가 아니면 ``tutorial``.
+    - 그 외에는 ``menu``.
+    """
+    from src.scenes.tutorial_scene import decide_initial_scene
+
+    return decide_initial_scene(default_scene="menu")
 
 
 def main() -> int:
@@ -62,8 +76,11 @@ def main() -> int:
     app = App(root)
     _register_scenes(app)
 
+    initial = _resolve_initial_scene()
+    log.info("initial scene resolved: %s", initial)
+
     try:
-        app.run(initial_scene="menu")
+        app.run(initial_scene=initial)
     except KeyboardInterrupt:
         log.info("interrupted by user")
         app.quit()

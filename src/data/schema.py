@@ -276,6 +276,18 @@ def _validate_wave(raw: Any, *, path: str, source: str) -> None:
             path=path,
             source=source,
         )
+    # Issue #43 / DECISION-DL-P5P-001: 옵션 boss_path 필드 (non-empty str).
+    # paths 컨텍스트 검증은 WaveSystem 의 _resolve_boss_path() 가 unknown id 시
+    # 자동 fallback 처리하므로, schema 단계에서는 형식(str, non-empty)만 검증.
+    if "boss_path" in raw and raw["boss_path"] is not None:
+        bp_path = f"{path}.boss_path"
+        _require_type(raw["boss_path"], str, path=bp_path, source=source)
+        if not raw["boss_path"]:
+            raise StageSchemaError(
+                "string must be non-empty",
+                path=bp_path,
+                source=source,
+            )
 
 
 def _validate_build_zone(raw: Any, *, path: str, source: str) -> None:
@@ -346,6 +358,18 @@ def validate_stage(raw: Any, *, source: str = "<stage>") -> None:
     if "reward" in raw:
         reward = _require_dict(raw, "reward", path="", source=source)
         _validate_reward(reward, path="reward", source=source)
+
+    # night_vision_radius_multiplier 는 야간 스테이지 전용 옵션 필드.
+    # DECISION-PL-P4-014: 0.5~2.0 범위의 float. 존재할 때만 검증.
+    if "night_vision_radius_multiplier" in raw:
+        _require_number(
+            raw,
+            "night_vision_radius_multiplier",
+            path="",
+            source=source,
+            minimum=0.5,
+            maximum=2.0,
+        )
 
 
 def validate_units(raw: Any, *, source: str = "<units>") -> None:

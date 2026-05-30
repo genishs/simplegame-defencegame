@@ -25,6 +25,7 @@ _STRINGS: dict[str, str] = {
     "title.copyright": "© 2026 안시성 645 기획팀",
     "menu.new_game": "새 게임",
     "menu.continue": "이어하기",
+    "menu.tutorial": "튜토리얼",
     "menu.stage_select": "스테이지",
     "menu.barracks": "병영",
     "menu.codex": "도감",
@@ -37,16 +38,19 @@ _STRINGS: dict[str, str] = {
 # Phase 3.5 (Issue #12, DECISION-DL-P3-5-002):
 # 수직 슬라이스 흐름 (메뉴 → 스테이지 선택 → 배틀 → 엔딩) 을 위해
 # "새 게임" 과 "이어하기" 도 stage_select 로 라우팅. 기존 battle 직행은 제거.
+# Phase 4 (Issue #26, DECISION-DL-P4-006): "튜토리얼" 항목 추가 — 명세는
+# menu.tutorial.button 키를 사용. 위치는 새 게임/이어하기 직후, 스테이지 위.
 _BUTTONS: list[tuple[str, str, float, float, float, float]] = [
     # (key, scene_or_action, bx, by, bw, bh)
-    ("menu.new_game", "stage_select", 760, 520, 400, 70),
-    ("menu.continue", "stage_select", 760, 600, 400, 70),
-    ("menu.stage_select", "stage_select", 760, 680, 400, 70),
-    ("menu.barracks", "menu", 760, 760, 400, 70),
-    ("menu.codex", "menu", 760, 840, 400, 70),
-    ("menu.settings", "menu", 760, 920, 400, 70),
-    ("menu.credits", "menu", 760, 1000, 400, 50),
-    ("menu.quit", "__quit__", 760, 1060, 400, 40),
+    ("menu.new_game", "stage_select", 760, 480, 400, 64),
+    ("menu.continue", "stage_select", 760, 552, 400, 64),
+    ("menu.tutorial", "tutorial", 760, 624, 400, 64),
+    ("menu.stage_select", "stage_select", 760, 696, 400, 64),
+    ("menu.barracks", "menu", 760, 768, 400, 64),
+    ("menu.codex", "menu", 760, 840, 400, 64),
+    ("menu.settings", "menu", 760, 912, 400, 64),
+    ("menu.credits", "menu", 760, 984, 400, 44),
+    ("menu.quit", "__quit__", 760, 1036, 400, 40),
 ]
 
 
@@ -66,6 +70,9 @@ class MenuScene(BaseScene):
     # ------------------------------------------------------------------
 
     def build(self) -> None:
+        # BGM — 메인 메뉴 진입 시 재생 (Phase 5.1, Issue #30)
+        self.app.sound.play_bgm("bgm.menu", loop=True, fade_in=2.0)
+
         canvas = self.app.canvas
         scaler = self.app.scaler
         w = canvas.winfo_width() or scaler.canvas_w
@@ -211,6 +218,11 @@ class MenuScene(BaseScene):
 
         def _click_handler(d: str = dest, i: int = idx) -> None:
             self._focused_idx = i
+            # Issue #29 / DECISION-AUDIO-012: 버튼 클릭 UI Sound 재생 (placeholder WAV)
+            try:
+                self.app.sound.play_ui("sfx.ui_click")
+            except Exception:  # noqa: BLE001
+                pass
             if d == "__quit__":
                 self.app.quit()
             else:
@@ -243,6 +255,11 @@ class MenuScene(BaseScene):
     def _on_enter_key(self, _event: object) -> None:
         if self._focused_idx < len(_BUTTONS):
             _, dest, *_ = _BUTTONS[self._focused_idx]
+            # Issue #29: Enter 키 선택에도 UI Sound 재생
+            try:
+                self.app.sound.play_ui("sfx.ui_click")
+            except Exception:  # noqa: BLE001
+                pass
             if dest == "__quit__":
                 self.app.quit()
             else:

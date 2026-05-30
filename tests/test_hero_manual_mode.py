@@ -173,8 +173,16 @@ def test_arrow_key_ignored_in_auto_mode() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_manual_mode_skips_hero_auto_update() -> None:
-    """수동 모드일 때 hero.update(dt) 가 호출되지 않아야 한다."""
+def test_manual_mode_still_ticks_hero_cooldowns() -> None:
+    """수동 모드에서도 hero.update 는 호출되어 쿨다운/페이즈가 흐른다.
+
+    Issue #58 / DECISION-DL-P4D-007: 수동 모드에서도 영웅 평타 자동 공격이
+    작동해야 하므로 hero.update(쿨다운 감소) 호출은 유지된다. 자동 AI 분기는
+    auto_attack 의 사거리 검사로 자체 제어된다.
+
+    이전 정책 (DECISION-DL-P3-3-003): 수동 모드에서는 hero.update 미호출 →
+    평타 쿨다운이 멈춰 영웅이 적과 전투 불가 (검수 결함 #58). 본 결정으로 갱신.
+    """
     from src.entities.hero import Hero
 
     scene = _make_scene_with_bus()
@@ -194,10 +202,10 @@ def test_manual_mode_skips_hero_auto_update() -> None:
     scene.update(0.05)
     assert len(call_log) == 1
 
-    # 수동 모드: update 호출 안 됨.
+    # 수동 모드: update 도 호출됨 (Issue #58 fix).
     scene._on_m_key(None)
     scene.update(0.05)
-    assert len(call_log) == 1, "수동 모드에서 hero.update 가 호출되면 안 됨"
+    assert len(call_log) == 2, "수동 모드에서도 평타 쿨다운을 위해 hero.update 호출 필요"
 
 
 def test_manual_mode_ignores_input_when_paused() -> None:

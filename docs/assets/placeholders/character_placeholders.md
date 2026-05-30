@@ -100,6 +100,7 @@
 | 글리프 색 | `#F5F0E6` 흰 1차 (대비 6.2:1, WCAG AA) |
 | 글리프 크기 | 베이스 64×64 중 한자 영역 48×48 (75% 점유), Black weight |
 | 보조 액센트 | 글리프 하단에 황토 `#C8954D` 작은 가슴판 라인 (양만춘 외형 키워드 정합) |
+| 튜토리얼 가이드 역할 | **메인 화자**. `tutorial.intro.body` (모용손 카운터파트와 함께) + `tutorial.step1~8.body` 전 단계 본문, `tutorial.skip.confirm.*` 다이얼로그 화자. `tutorial.hud_arrow.hero` 라벨 ("양만춘") 의 강조 대상. 톤은 `~하시오/~하오` (`docs/story/08_ui_strings.md` §20, DECISION-DESIGN-P4-001/004). |
 
 64×64 ASCII baseplate 시안 (`█` = 글리프 채워짐, `·` = 배경 청, `=` = 외곽선):
 
@@ -140,6 +141,7 @@
 | 글리프 색 | `#F5F0E6` 흰 1차 (대비 5.8:1, WCAG AA) |
 | 글리프 크기 | 베이스 64×64 중 한자 영역 48×48 |
 | 보조 액센트 | 글리프 하단에 갈색 `#6B4A2B` 가죽 가슴판 라인 (스토리 바이블 §2.5 "녹색 두루마기, 가죽 가슴판" 정합) |
+| 튜토리얼 가이드 역할 | **인트로 카운터파트**. `tutorial.intro.body` 의 첫 한 줄 화자 — "성주님, 새로 온 병사가 있습니다. 한 번 일러 주시지요." — 양만춘에게 신규 플레이어(병사)를 소개하는 도입 트리거. 단계 1~8 본문에서는 직접 발화하지 않고, `placeholder_fic_moyong` 비주얼이 인트로 화면 좌측에 양만춘과 좌우 분할로 동시 노출. `docs/story/01_intro.md` 슬라이드 4 (모용손↔양만춘 대화) 구도의 재사용. (`docs/story/08_ui_strings.md` §20, DECISION-DESIGN-P4-001) |
 
 64×64 ASCII baseplate 시안:
 
@@ -370,5 +372,6 @@
 | 버전 | 일자 | 작성자 | 내용 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-05-19 | Design Lead (Phase 3.4) | 최초 작성. 5종 placeholder (양만춘 + 픽션 4) 캘리그래피 글리프, 배경 컬러, 64×64 ASCII baseplate, 라벨 정책, 컷씬/코덱스 매핑. DECISION-D-P3-002 ~ 003b 명문화. |
+| v1.1 | 2026-05-19 | Design Lead (Phase 4) | **튜토리얼 가이드 역할 추가** — 양만춘(§3.1) = 메인 화자, 모용손(§3.2) = 인트로 카운터파트 (`docs/story/08_ui_strings.md` §20, DECISION-DESIGN-P4-001). 향이/리우/장 카드는 튜토리얼 등장 없음으로 미수정. |
 
-— Character Placeholders v1.0 (Phase 3.4) 끝 —
+— Character Placeholders v1.1 (Phase 4) 끝 —

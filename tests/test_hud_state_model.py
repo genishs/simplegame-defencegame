@@ -245,6 +245,90 @@ def test_hud_color_blind_mode_adds_glyph() -> None:
     assert "穀" in text_val
 
 
+def test_hud_build_registers_castle_ids() -> None:
+    """Issue #75: build() 후 성문 HP 관련 id 가 등록된다."""
+    from src.ui.hud import HUD
+
+    canvas = FakeCanvas()
+    scaler = FakeScaler()
+    hud = HUD()
+    hud.build(canvas, scaler)
+
+    assert "castle_hp_bar" in hud._ids
+    assert "castle_hp_val" in hud._ids
+    assert "castle_hp_bg" in hud._ids
+
+
+def test_hud_update_castle_hp_text() -> None:
+    """Issue #75: castle_hp/castle_max_hp 가 성문 HP 숫자로 표시된다."""
+    from src.ui.hud import HUD
+
+    canvas = FakeCanvas()
+    scaler = FakeScaler()
+    hud = HUD()
+    hud.build(canvas, scaler)
+
+    state = {
+        "food": 0,
+        "pop": 0,
+        "arrows": 0,
+        "hero_hp": 100,
+        "hero_max_hp": 100,
+        "hero_phase": 1,
+        "ult_cooldown_s": 0.0,
+        "wave": 1,
+        "total_waves": 3,
+        "time_to_next": -1.0,
+        "castle_hp": 17,
+        "castle_max_hp": 20,
+    }
+    hud.update(state)
+
+    val_id = hud._ids.get("castle_hp_val")
+    assert val_id in canvas._configs
+    assert canvas._configs[val_id].get("text") == "17/20"
+
+
+def test_hud_castle_hp_clamps_negative() -> None:
+    """Issue #75: castle_hp 가 음수여도 0 으로 클램프된다."""
+    from src.ui.hud import HUD
+
+    canvas = FakeCanvas()
+    scaler = FakeScaler()
+    hud = HUD()
+    hud.build(canvas, scaler)
+
+    state = {
+        "hero_hp": 0,
+        "hero_max_hp": 1,
+        "wave": 0,
+        "total_waves": 1,
+        "time_to_next": -1.0,
+        "castle_hp": -3,
+        "castle_max_hp": 20,
+    }
+    hud.update(state)
+
+    val_id = hud._ids.get("castle_hp_val")
+    assert canvas._configs[val_id].get("text") == "0/20"
+
+
+def test_hud_flash_castle_damage_no_error() -> None:
+    """Issue #75: flash_castle_damage 가 예외 없이 동작하고 배경색을 바꾼다."""
+    from src.ui.hud import HUD
+
+    canvas = FakeCanvas()
+    scaler = FakeScaler()
+    hud = HUD()
+    hud.build(canvas, scaler)
+
+    bg_id = hud._ids.get("castle_hp_bg")
+    hud.flash_castle_damage()
+    assert bg_id in canvas._configs
+    # 번쩍임 색(붉은 계열) 으로 변경
+    assert canvas._configs[bg_id].get("fill") == "#ff5530"
+
+
 def test_hud_teardown_clears_ids() -> None:
     """teardown() 후 _ids가 비어 있다."""
     from src.ui.hud import HUD

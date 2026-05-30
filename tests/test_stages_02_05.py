@@ -168,10 +168,16 @@ class TestStage04:
         stage = _load("stage_04")
         assert len(stage.waves) == 7
 
-    def test_reward_grain_progression(self) -> None:
-        s03 = _load("stage_03")
+    def test_reward_grain_positive(self) -> None:
+        """stage_04 grain 보상은 양수다.
+
+        NOTE: Phase 4 난이도 하향 정책(DECISION-PL-P4-015)으로 stage_03 grain 이
+        220으로 상향되어 stage_04(200)보다 커졌다. stage_04~05는 무변경 정책
+        (DECISION-PL-P4-013)이므로 "grain 단조 증가" 불변식은 더 이상 성립하지 않음.
+        grain 양수 검증으로 대체.
+        """
         s04 = _load("stage_04")
-        assert s04.reward.grain > s03.reward.grain
+        assert s04.reward.grain > 0
 
     def test_reward_unlock_stage05(self) -> None:
         stage = _load("stage_04")

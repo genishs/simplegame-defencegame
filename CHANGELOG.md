@@ -4,7 +4,434 @@
 
 ## [Unreleased]
 
-> Phase 4 진입 대기. 현재 변경 없음.
+> Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속).
+
+## [0.4.0] - 2026-05-30 — Phase 4 정식 GA (사용자 .exe 검수 통과)
+
+> **Phase 4 정식 GA 승격.** rc.1~rc.8 누적 사용자 .exe 검수 사이클(UAT)에서 마지막 rc.8 결함 0건 사인오프(2026-05-30) 확보 → develop → main 머지 + `v0.4.0` 정식 태그 + GitHub Release prerelease=false. DECISION-SCM-P5K-011.
+>
+> 본 GA는 rc.1~rc.8 의 모든 Fixed/Changed 항목을 누적 포함한다(아래 rc.* 섹션 참조). 핵심 게임플레이 결함 — BattleScene.render() 미구현(#53), PyInstaller src/data 누락(#51), 아군 배치 UI(#56), 영웅 자동 평타(#57/#58), 성문 breach lives 차감(#62), 적/성문 HP HUD 시각 피드백(#71/#75), 호밍 명중 보장(#76), 튜토리얼 인터랙션 전반(#49/#55/#67~#69/#73/#74) — 모두 해소.
+>
+> v0.3.0 은 rc.1 사전 릴리즈 마일스톤으로만 존재하며 별도 GA 태그를 발급하지 않는다 — Phase 3 시점 코드(render() 미구현 등 다수 결함)를 GA 로 배포하는 것은 부적절하고, Phase 4(v0.4.0) GA 가 Phase 3 콘텐츠를 전부 포함·대체한다. DECISION-SCM-P5K-011.
+
+### Summary — Phase 4 GA 동결 시점
+
+- pytest 누적 **554 passed** (rc.8 동결), tkinter-free 도메인 가드 유지, BL-07 클리어율 시뮬 그린.
+- 사용자 UAT 사인오프(rc.8): 튜토리얼 전장 backdrop·영웅 이동 시연, stage1 성문 HP HUD·breach 차감, 자동 평타 호밍 명중 — 전 항목 이상 없음.
+- GA 산출물: GitHub Release `v0.4.0` (prerelease=false) + PyInstaller `AnsiseongDefense.exe` (Noto Sans KR 번들 검증 게이트 통과).
+
+## [0.4.0-rc.8] - 2026-05-21 — rc.7 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(rc.7) 결함/개선 4건(#73~#76) 종합 fix. develop@72dcca6(PR #77 머지). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2~rc.7 패턴 재사용으로 처리. DECISION-SCM-P5K-010.
+>
+> 핵심: #76 호밍 명중 보장 + #75 성문 HP HUD(또 "기능 정상 + 시각 피드백 부재" 패턴) + #73 전장 backdrop + #74 영웅 이동 시연.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed — v0.4.0-rc.7 사용자 검수 결함/개선 4건 (#73/#74/#75/#76)
+
+- **Issue #76 (DECISION-DL-P5C-007, 전투 핵심)**: 영웅 자동 평타 발사체가 적 이동으로 빈번히 빗나감. 원인은 `Projectile` 이 발사 시점 적 좌표로만 향하는 등속 직선 운동이었던 것. **호밍(추적)** 발사체로 전환 — `src/entities/projectile.py`: 살아있는 타겟 엔티티가 있으면 매 틱 속도 벡터를 타겟 현재 위치로 재조준(`_reaim`). 속력은 보존, 방향만 갱신. 기존 swept-circle 충돌과 결합해 자동 평타 명중을 보장한다. GDD §3.1 평타는 회피 메커니즘 미명시(자동 공격)이므로 명중 보장이 자연스럽다. target 없는 발사체(좌표 고정)는 종전 직선 운동 유지(하위 호환).
+- **Issue #75 (DECISION-DL-P5C-008, 패배 조건 체감)**: 적이 castle 에 도달해 lives 가 차감돼도 사용자가 체감 못 함. 진단 결과 `_apply_castle_breaches` 의 lives 차감(#62)은 정상이나 **HUD에 성문 HP 표시가 없는** 것이 원인(#71과 동일 패턴 — 기능 정상 + 시각 피드백 부재). `src/ui/hud.py`: 상단 바에 성문 HP 게이지(바 + 숫자, lives - goals_reached) 신규 추가, 30% 이하 시 경고색. `flash_castle_damage()` 로 breach 발생 시 게이지 붉은 번쩍임(180ms). `src/scenes/battle_scene.py:_refresh_hud` 가 `castle_hp/castle_max_hp` 주입, `_apply_castle_breaches` 가 breach 시 flash 호출.
+- **Issue #73 (DECISION-DL-P5C-009, 튜토리얼 UX)**: 튜토리얼 spotlight 가 대상만 보이고 배경이 깜깜해 게임 맥락을 알 수 없음. 전체 BattleScene 통합은 과도하므로 **정적 전장 backdrop** 도입 — `src/scenes/tutorial_scene.py:_draw_battle_backdrop`: build() 시 하늘/평지/성벽/성문 + 아군 4 · 적 5 placeholder 를 한 번 그린다. 각 단계의 spotlight dim 마스크가 그 위에 덮여 강조 대상만 밝게 남고, 패시브 단계에선 전장 맥락이 그대로 보인다.
+- **Issue #74 (DECISION-DL-P5C-010, 튜토리얼 UX)**: 단계 5 M키 후 즉시 진행돼 영웅이 "움직이는" 모습을 못 봄. `src/scenes/tutorial_scene.py`: M키 후 영웅 placeholder(원/이름/링)가 sine 왕복으로 좌우 짧게 이동하는 데모(진폭 70px, 2.2s)를 `_tick_step5_hero_demo` 로 보여준 뒤 자동 진행. 인지 지연 1.5s → 시연 2.2s 로 확장.
+
+#### 회귀 가드 신규 18건
+
+- `tests/test_projectile.py` 3건: homing_hits_moving_target / homing_reaims_velocity_toward_target / no_homing_without_target_entity (Issue #76).
+- `tests/test_combat_pathing_integration.py` 1건: homing_projectile_hits_moving_enemy — CombatSystem 사슬에서 이동하는 적도 끝내 사망 (Issue #76).
+- `tests/test_hud_state_model.py` 4건: build_registers_castle_ids / update_castle_hp_text / castle_hp_clamps_negative / flash_castle_damage_no_error (Issue #75).
+- `tests/test_battle_scene_flow.py` 4건: castle_breach_increments_goals_reached / skips_dying_enemy / triggers_hud_flash / refresh_hud_reports_castle_hp (Issue #75).
+- `tests/test_clear_rate_simulation.py` 2건 (BL-07 가드): cleared_run_defeats_enemies (명중→격파, #76) / lives_decrement_on_castle_breach (무방어 시뮬 lives 대폭 차감, #75).
+- `tests/test_tutorial_scene.py` 4건: draws_battle_backdrop (#73) / step5_hero_demo_tracks_placeholder / step5_hero_moves_after_m_key / step5_advances_after_demo (#74). `_advance_step5` 헬퍼 시연 시간 2.2s 대응(160틱).
+
+#### pytest 누적
+
+- v0.4.0-rc.7 기준 536 → **554** (+18 신규 가드, 회귀 0).
+
+### Decisions — rc.7 검수 결함 4건
+
+- **DECISION-DL-P5C-007** (Issue #76): 발사체를 호밍으로 전환해 자동 평타 명중 보장. (a)호밍 채택 — 자동 공격에 가장 자연스럽고 swept-circle 충돌과 결합 시 발사체 속도(400~520) >> 적 속도(50~90)로 항상 수렴. 도망/왕복 적 worst-case 시뮬에서도 명중 확인.
+- **DECISION-DL-P5C-008** (Issue #75): 성문 HP 를 상단 HUD 게이지로 노출 + breach 번쩍임. lives 차감 로직(#62)은 정상이었고 시각 피드백만 부재 — #71 패턴 재확인. 게임플레이 균형 영향 0.
+- **DECISION-DL-P5C-009** (Issue #73): 튜토리얼에 실 BattleScene 대신 정적 전장 backdrop 1회 렌더. 인지부하 최소화 원칙(DECISION-DL-P4-002) 유지하되 게임 맥락 가시화. 전체 씬 통합 회피로 변경 범위·리스크 최소화.
+- **DECISION-DL-P5C-010** (Issue #74): 단계 5 M키 후 영웅 placeholder 좌우 왕복 이동 시연(coords 갱신, 재생성 없음). 인지부하 최소화를 위해 짧은 왕복만.
+- **DECISION-DL-P5K-010**: rc.7 결함 4건을 단일 PR로 묶음 — (combat/hud #76/#75) + (tutorial #73/#74) 가 한 검수 라운드 누적이고 회귀 가드가 상호 연관(BL-07). 분할 비용 대비 이점 적음 (rc.6 P5K-008 선례 재사용).
+
+## [0.4.0-rc.7] - 2026-05-21 — rc.6 검수 결함 5건 종합 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(rc.6) 결함 5건(#67~#71) 종합 fix. develop@4856848(PR #72 머지). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2~rc.6 패턴 재사용으로 처리. DECISION-SCM-P5K-009.
+>
+> 핵심 발견: #71(적 안 죽음)은 데미지 사슬은 정상이고 **시각 피드백 부재**가 원인. hp 바 추가로 해결. #70(wave)도 진행은 정상이고 텍스트만 모호. 풀어쓰기로 해결.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed — v0.4.0-rc.6 사용자 검수 결함 5건 (#67/#68/#69/#70/#71)
+
+- **Issue #71 (DECISION-DL-P4D-010, 게임 클리어 핵심)**: 적이 피해를 입어도 시각 변화 없어 사용자가 "적이 죽지 않고 그냥 전진한다"고 인식. 진단 결과 영웅 평타 + Projectile sweep + take_damage 모두 정상 작동하나 **외형상 피드백 부재**가 원인. `src/scenes/battle_scene.py:_render_enemy()`에 hp 바 (배경/전경, 색약 친화 빨/노/초) 신규 추가. dying 상태에서는 hp 바 hidden 처리 (잔혹 묘사 회피, GDD §5 준수). 데미지 적용 시 매 틱 비율 갱신.
+- **Issue #70 (DECISION-DL-P4D-011)**: HUD wave 카운터 "진군 3"이 "총 3번"인지 "남은 3번"인지 모호. `src/ui/hud.py`에서 표시를 "웨이브 {N} / 총 {M}", "다음 진군 {N}초 후", "진군 진행 중", "진군 종료"로 풀어쓰기. 게임 시작 직후(wave=0)는 "웨이브 시작 대기 / 총 {M}"로 명확화.
+- **Issue #69 (DECISION-DL-P4D-014)**: 튜토리얼 단계 6 Space 일시정지가 작동 안 함 + 미입력 자동 진행. `src/scenes/tutorial_scene.py`: 첫 Space → 반투명 dim overlay + "■ 일시정지 ■" 안내 + step_elapsed 시간 정지, 두 번째 Space → overlay 제거 + 단계 진행. `_STEP_DEFS` 단계 6 time_limit 15s → `inf` (fallback 자동 진행 결함 제거).
+- **Issue #68 (DECISION-DL-P4D-013)**: 튜토리얼 단계 5 M키가 영웅 컨트롤 시뮬레이션 없이 그냥 다음 단계로. `src/scenes/tutorial_scene.py`: M키 누름 → 영웅 placeholder 노란 ring 강조 + "직접 조작 모드 ON" 라벨, 1.5초 후 update가 자동 진행 호출 (사용자 인지 시간 확보). time_limit 20s → `inf`.
+- **Issue #67 (DECISION-DL-P4D-012)**: 튜토리얼 단계 3 좌측 궁수 패널 미표시 + 미입력 자동 진행. `src/scenes/tutorial_scene.py`: 단계 3 진입 시 좌측 하단에 mock 궁수 선택 패널 (rect + 이름 + 곡식 50 비용) 직접 렌더. `trigger_step3_done()` 재정의로 궁수 선택 + buildzone 클릭 양쪽 모두 필요 — 선택 없이 buildzone만 누르면 hint만 갱신. time_limit 30s → `inf`.
+
+#### 회귀 가드 신규 6건 (tests/test_battle_scene_simulator.py)
+
+- `TestEnemyHpVisualFeedback` 3건: render_enemy_creates_hp_bar / hp_bar_reflects_damage / dying_enemy_hides_hp_bar (Issue #71).
+- `TestHudWaveLabel` 2건: initial_wave_label_says_start_waiting / wave_label_updates_after_progress (Issue #70).
+- `TestTutorialNoAutoAdvance` 1건: interactive_steps_have_inf_time_limit — `_STEP_DEFS` 의 인터랙티브 단계 2/3/5/6 time_limit 이 모두 `inf` 임을 보장 (Issue #67/#68/#69 fallback 제거 가드).
+- `tests/test_battle_scene_flow.py:FakeCanvas.itemconfig/coords` 보강 — kw 누적 + coords 갱신을 dict 에 반영. rc.6 가드 테스트들이 hp 바 상태 변화·HUD 텍스트 갱신을 검증할 수 있도록 한다.
+
+#### pytest 누적
+
+- v0.4.0-rc.6 기준 530 → **536** (+6 신규 가드, 회귀 0). 기존 `test_tutorial_scene.py` 6건은 새 정책에 맞춰 `_advance_step3` / `_advance_step5` 헬퍼로 전환 (단순 trigger 호출 → mock 인터랙션 시뮬레이션).
+
+### Decisions
+
+- **DECISION-DL-P4D-010** (Issue #71): 적 hp 바를 BattleScene 렌더 책임으로 추가. src/entities/enemy.py 의 도메인 가드(tkinter-free) 유지. 색약 친화 3색 분기 + dying hidden.
+- **DECISION-DL-P4D-011** (Issue #70): HUD wave/next_wave 표시를 풀어쓰기. 게임플레이 균형 영향 0 — 텍스트만 변경.
+- **DECISION-DL-P4D-012** (Issue #67): 튜토리얼 단계 3 mock 궁수 패널 직접 렌더 + trigger_step3_done 정책 변경 (양쪽 클릭 필요).
+- **DECISION-DL-P4D-013** (Issue #68): 튜토리얼 단계 5 M키에 시각 토글 + 1.5s 인지 지연 후 자동 진행. 실 영웅 컨트롤 모드는 BattleScene 진입 후 학습 (단계 5는 시각 시뮬레이션).
+- **DECISION-DL-P4D-014** (Issue #69): 튜토리얼 단계 6 Space에 paused overlay + step_elapsed 정지. fallback time_limit 모두 제거 (Issue #67/#68/#69 공통).
+- **DECISION-DL-P5K-008**: rc.6 결함 5건을 단일 PR로 묶음 — 모두 사용자 검수 동일 라운드 누적, 도메인이 BattleScene/HUD/TutorialScene 3개로 명확히 분리되어 분할 비용 대비 이점 적음.
+
+## [0.4.0-rc.6] - 2026-05-21 — Phase 5.1 BGM + BL-07 정합 + 결함 #62/#64 fix RC
+
+> 사용자 부재(취침) 중 자율 진행 라운드. 3개 PR(#63 BGM / #65 BL-07 정합 / #66 #62/#64 fix) 통합 묶음으로 v0.4.0-rc.6 발급. develop@46646a5. release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드. 사용자 깨어난 후 결정.
+
+### Added
+
+#### Phase 5.1 BGM 백엔드 (Issue #30, PR #63, DECISION-AUDIO-015~017)
+- `src/core/sound.py`: `play_bgm(name, *, loop, fade_in)` / `stop_bgm(*, fade_out)` / `set_bgm_volume(v)` 정식 구현. pygame.mixer 백엔드, OGG/WAV 모두 지원, graceful fallback (헤드리스 CI).
+- 4씬 build() 진입 시 BGM 통합 (Menu/Tutorial/Battle/Ending). placeholder 무음이라 게임플레이 영향 0.
+- `tests/test_sound_bgm.py` (신규, 19건): BG-01~04 자동화 + pygame.mixer mock 검증.
+- `requirements.txt`: `pygame>=2.5.0` 추가 (DECISION-AUDIO-015 표준 pygame 채택). `AnsiseongDefense.spec` hiddenimports에 pygame/pygame.mixer 추가.
+
+#### BL-07 시뮬레이터 정합 보강 (Issue #60, PR #65, DECISION-DL-P5C-001/002/006)
+- `tests/battle_scene_simulator.py` (신규, `BattleSceneSimulator`): 실 BattleScene + FakeApp/FakeCanvas 위에서 build → UI 클릭 → update + render 사슬 그대로 굴리는 통합 시뮬레이터.
+- `tests/test_battle_scene_simulator.py` (신규, 11→21 케이스): spec datas / render canvas item / 배치 UI / 영웅 평타 projectile / **stage_01/02/03 통합 클리어** (DECISION-DL-P5C-006으로 전체 승격).
+- BL-07(`src/systems/auto_mode_simulator.py`)은 그대로 유지(성능 < 5s + 클리어율 회귀 책임).
+
+#### enemies.json 4종 추가 (Issue #64, PR #66, DECISION-DL-P5C-005)
+- `src/data/enemies.json`: tang_archer / tang_scout / tang_vanguard_captain / tang_night_raider 4종 정의 추가. stage_02/03 wave가 정상 spawn.
+
+### Fixed
+
+#### BattleScene castle_breach lives 차감 (Issue #62, PR #66, DECISION-DL-P5C-005)
+- `src/scenes/battle_scene.py`: `_apply_castle_breaches()` 메서드 신규 + update 사이클에 통합. PathingSystem이 세팅한 `enemy.goal_reached`/`reached_castle` 플래그를 BattleScene이 `world['goals_reached']` 누적으로 변환 → `_check_end_conditions`의 lives ≥ max_goals_reached 판정이 정상 작동.
+- 결함 증상: 사용자 시각 "게임이 영원히 안 끝난다". 자율 진행 사이 BL-07 신규 통합 시뮬레이터가 사전 감지.
+
+### Changed
+
+- 회귀 매트릭스 BG-01~04 ✗ → ✓ 자동 가드 전환.
+- pytest 누적 **490 → 530** (+40, 회귀 0). BGM 19 + BL-07 정합 11 + #62/#64 fix 10.
+- `.github/workflows/ci.yml`: ubuntu CI에 `SDL_AUDIODRIVER=dummy` env (pygame.mixer 헤드리스 호환).
+
+### Decisions
+
+- **DECISION-AUDIO-015**: pygame vs pygame-ce — 표준 pygame 채택 (안정성 우선).
+- **DECISION-AUDIO-016**: BGM placeholder WAV 유지, OGG 우선 탐색 → WAV fallback (실수급 시 자동 전환).
+- **DECISION-AUDIO-017**: Menu/Tutorial/Battle/Ending 4씬 build()에서 BGM 통합.
+- **DECISION-DL-P5C-001**: 신규 통합 시뮬레이터를 BL-07 확장이 아닌 별도 모듈로 분리 (단일 책임).
+- **DECISION-DL-P5C-002**: 본 라운드 자동 가드는 stage_03 통합 클리어부터 시작.
+- **DECISION-DL-P5C-005**: #62 + #64를 데이터+로직 동시 해소 — BL-07 처리 정책과 정합.
+- **DECISION-DL-P5C-006**: 통합 시뮬레이터 가드를 stage_01/02/03 전체로 승격 — 후속 결함 사전 감지망 확장.
+- **DECISION-SCM-P5K-007**: v0.4.0-rc.6 발급 (rc.2~rc.5 패턴 재사용). 메인 세션이 PR #63/#65/#66 머지 + Issue #30/#60/#62/#64 close + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리.
+
+### Follow-up 권장
+
+- 영웅 S1/S2/S3 스킬 시스템 (Issue #61). 현재 평타 + 궁극기만 작동.
+- HUD 상단 곡식 아이콘 + 좌하단 유닛 선택 패널을 SCN-05 디자인 와이어프레임과 통합 (DESIGN 라운드).
+
+## [0.4.0-rc.5] - 2026-05-21 — v0.4.0-rc.4 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #55/#56/#57/#58) 게임플레이 인터랙션 결함 4건을 한 PR로 종합 fix. develop@e42eeec(PR #59 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3/rc.4 패턴(DECISION-SCM-P5K-003/004/005) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드. 사용자 부재(취침) 중이라 GA는 깨어난 후로 보류.
+
+### Fixed (게임플레이 인터랙션 4건 종합 — Issue #55/#56/#57/#58, DECISION-DL-P4D-007/008/009)
+
+v0.4.0-rc.4 사용자 검수에서 발견된 게임플레이 인터랙션 결함 4건을 한 PR 로 종합 fix. 모두 동일한 근본 원인 — BL-07 시뮬레이터(systems 직접 호출)는 통과하지만 실 BattleScene/UI 인터랙션이 결여되어 사용자가 게임을 진행할 수 없는 현상.
+
+- **Issue #58 / DECISION-DL-P4D-007**: 영웅 양만춘 평타 자동 공격 미구현 — GDD §3.1 사양(atk 35 / range 380px / 1.0/s)이 정의만 되어 있고 실행 코드 없음. `Hero.auto_attack(enemies)` / `find_target_in_range` 신규 추가. BattleScene 이 매 틱 호출 → Projectile 스폰 → CombatSystem 명중 처리. 자동·수동 모드 모두에서 발사 트리거 (수동 모드도 적과 전투 가능, Issue #58 사용자 보고). 발사체 스폰은 BattleScene 책임으로 도메인 가드 (src/entities tkinter-free) 유지.
+- **Issue #57 / DECISION-DL-P4D-007**: 영웅이 무반응 상태 — Hero.update 가 페이즈/궁극기 쿨다운만 처리하고 적 타겟팅·발사가 없었음. 위 #58 fix 가 본 결함도 동시 해결.
+- **Issue #56 / DECISION-DL-P4D-008**: 아군 유닛 배치 UI 부재 — BattleScene 에 유닛 선택 패널·build_zone 클릭 핸들러·곡식 차감 로직 신규 추가. 좌하단 패널에 units.json 의 가용 유닛 표시(이름·곡식 비용), 선택 → build_zone 클릭 → Ally 가 world['allies'] 에 추가. 곡식 부족·zone 점유 시 안내 텍스트 갱신.
+- **Issue #55 / DECISION-DL-P4D-009**: 튜토리얼 단계 2·3 spotlight 클릭 미반응 — mock placeholder/spotlight ring 에 클릭 핸들러가 binding 안 됐음. 단계 2(resource)·단계 3(buildzone) 의 mock content/ring 에 `trigger_step2_done`/`trigger_step3_done` binding. 단일 텍스트 클릭 좁은 hit area 우회용으로 spotlight 영역에 투명 hit-area 사각형 추가.
+
+### Added
+
+- `tests/test_gameplay_interaction_overhaul.py` (신규, 18 케이스):
+  - Hero 평타 7케이스 (auto_attack/find_target_in_range/cooldown/empty list/manual mode 발사).
+  - BattleScene 배치 UI 5케이스 (units_db 로드/토글/배치/점유/곡식 부족).
+  - Tutorial spotlight 클릭 4케이스 (step 2/3 binding/handler 존재/step 5 핸들러 없음).
+  - hero update tick 2케이스 (수동 모드 cooldown 유지 회귀).
+
+### Changed
+
+- `src/entities/hero.py`: `_atk_cooldown` / `target` 필드 + `auto_attack` / `find_target_in_range` / `atk_cooldown` 프로퍼티 신규.
+- `src/scenes/battle_scene.py`: `_tick_hero_attack` / `_on_build_zone_click` / `_on_unit_button_click` / `_draw_unit_selection_panel` / `_draw_placement_hint` 헬퍼 + `_units_db`·`_selected_unit_id`·`_build_zone_occupants` state 신규. 수동 모드도 hero.update 호출 (평타 쿨다운 진행).
+- `src/scenes/tutorial_scene.py`: `_bind_spotlight_click` + mock content 각 아이템에 클릭 binding. 단계 진입 시 `_spotlight_click_handler` 사전 설정.
+- `tests/test_hero_manual_mode.py`: `test_manual_mode_skips_hero_auto_update` → `test_manual_mode_still_ticks_hero_cooldowns` (Issue #58 정책 갱신 반영).
+- pytest 누적 **472 → 490** (+18 회귀 가드, 회귀 0).
+
+### Decisions
+
+- **DECISION-DL-P4D-007**: 영웅 평타 자동 공격을 Hero 도메인(tkinter-free) 으로 구현, 발사체 스폰은 BattleScene 가 위임 받음. 자동·수동 모드 모두 평타 트리거 (GDD §3.1 사양 일치).
+- **DECISION-DL-P4D-008**: 유닛 배치 UI를 BattleScene 직접 구현 (별도 widget 클래스 미사용 — Phase 4 인지부하 최소 원칙 유지). units.json 의 cost 가 곡식 비용. 한 zone 당 1 유닛 정책.
+- **DECISION-DL-P4D-009**: Tutorial spotlight 클릭 영역을 mock content + 투명 hit-area 사각형 + ring fill 3중으로 binding. 작은 텍스트 hit area 미스를 회피.
+
+### Follow-up 권장 (별도 issue)
+
+- BL-07 시뮬레이터에 BattleScene 의 영웅 평타 + 배치 UI 호출을 통합 (현재 시뮬레이터는 ally 자동 배치 + 영웅 비활성). Phase 5 cleanup 라운드 후보.
+- 본 PR 의 영웅 평타는 GDD 의 S1/S2/S3 스킬 미구현 — 현재 평타와 궁극기만 작동. 스킬 시스템은 Phase 5 후속 작업.
+- HUD 상단 곡식 아이콘과 좌하단 유닛 선택 패널을 SCN-05 디자인 와이어프레임과 통합 (DESIGN 라운드).
+
+### Decisions (SCM rc.5 발급)
+- **DECISION-SCM-P5K-006**: v0.4.0-rc.5 발급 (rc.2/rc.3/rc.4 패턴 재사용). 메인 세션이 PR #59 머지 + Issue #55/#56/#57/#58 close + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리. 사용자 취침 중 자율 진행 위임 범위 내 (사용자 명시: "scm agent에게 pr과 수락까지 모두 내 결정없이 진행해줘").
+
+## [0.4.0-rc.4] - 2026-05-20 — v0.4.0-rc.3 검수 결함 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #53) 결함 fix RC. develop@d5b5797(PR #54 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2/rc.3 패턴(DECISION-SCM-P5K-003/004) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed
+- **Issue #53 (PR #54, DECISION-DL-P4D-006)**: v0.4.0-rc.3 사용자 검수 결함 3호 fix — "stage1 진입은 하는데 전투시작이 안돼" (영웅·적 모두 안 보임). 충격적 원인: **`BattleScene.render()`가 Phase 3.5부터 `pass` 한 줄**이었음. systems(wave/pathing/combat)가 정상 동작해 메모리에서는 spawn·이동·전투가 진행됐지만 캔버스에 한 번도 그려진 적 없음. BL-07 시뮬레이터는 systems만 직접 호출하므로 자동 가드가 결함을 잡지 못했음 (실 게임 ↔ 자동 가드 정합 빈약):
+  - `src/scenes/battle_scene.py`: `render()` 정식 구현 + 헬퍼 5개(`_render_hero/_ally/_enemy/_projectile/_effect`).
+  - `_known_canvas_items` set으로 stale canvas 정리, churn 회피.
+  - `scaler.to_screen` 좌표 변환으로 base↔screen 정합.
+  - entity.draw()는 no-op 유지 (도메인 가드 src/entities tkinter-free 보존).
+
+### Added
+- `tests/test_battle_scene_entities_render.py` (신규, 8건): 영웅 렌더 / 적 렌더 / wave 진행+render 통합 / render 멱등성 / 사망 후 canvas 정리 / 좌표 정합 / 멀티 엔티티 / App._tick(update+render) 사슬 모사.
+
+### Changed
+- pytest 누적 **464 → 472** (+8 회귀 가드, 회귀 0).
+
+### Decisions
+- **DECISION-SCM-P5K-005**: v0.4.0-rc.4 발급 (rc.2/rc.3 패턴 재사용). 메인 세션이 PR #54 머지 + CHANGELOG/README 변환 + 태그 push + 로컬 .exe 재빌드까지 직접 처리.
+
+### Follow-up 권장 (별도 issue)
+- BL-07 시뮬레이터에 render 호출을 통합하면 동종 결함(render 누락)을 차후 자동 차단 가능. Phase 5 cleanup 라운드 후보.
+
+## [0.4.0-rc.3] - 2026-05-20 — v0.4.0-rc.2 검수 결함 fix RC (.exe 재검수 대기)
+
+> 사용자 .exe 검수(Issue #51) 결함 fix RC. 핵심 원인은 PyInstaller spec `datas` 에 `src/data/` 디렉터리 누락이라 **rc.1·rc.2 .exe 모두 동일 결함을 가졌음**(개발 모드는 정상). develop@9827245(PR #52 머지 시점). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2 패턴(DECISION-SCM-P5K-003) 재사용으로 처리.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed
+- **Issue #51 (PR #52, DECISION-DL-P4D-003~005)**: v0.4.0-rc.2 사용자 검수 결함 2호 fix — "튜토리얼 끝나고 stage01에서 더이상 동작하지 않아" (frozen). 원인은 **PyInstaller spec 의 `datas` 에 `src/data/` JSON 자원이 누락**되어 .exe 실행 시 `load_stage("stage_01")` 가 FileNotFoundError → `BattleScene.stage = None` → `update()` 매 tick early return → 사용자에게 frozen 으로 보이는 현상. 3중 보강:
+  - `AnsiseongDefense.spec`: `src/data` 디렉토리를 `datas` 에 추가 (stage_*.json, enemies.json, units.json 번들).
+  - `src/core/settings.py`: `resolve_data_root()` 헬퍼 신규 — PyInstaller `sys._MEIPASS` 환경 우선 해석, 개발 모드 폴백.
+  - `src/scenes/battle_scene.py`: stage 로드 실패 시 frozen 대신 사용자에게 시각적 에러 placeholder 표시.
+  - `src/core/app.py`: `_tick()` silent catch 보강 — 동일 예외 연속 3회 이상 시 캔버스에 에러 배너 1회 표시, 정상 tick 복귀 시 자동 클리어 (DECISION-DL-P4D-005).
+
+### Added
+- `tests/test_tutorial_to_battle_routing.py` (신규, 11 케이스): 튜토리얼 종료 → stage_select → BattleScene 진입 사슬 회귀 가드.
+- `tests/test_battle_scene_flow.py`: FakeCanvas 확장.
+
+### Changed
+- pytest 누적 **453 → 464** (+11 회귀 가드, 회귀 0).
+
+### Decisions
+- **DECISION-SCM-P5K-004**: v0.4.0-rc.3 발급 (rc.2 패턴 재사용). 메인 세션이 PR #52 squash 머지 + 태그 push + 로컬 .exe 재빌드까지 직접 처리. CHANGELOG/README 정합 commit은 태그 push 후 보강.
+
+## [0.4.0-rc.2] - 2026-05-20 — v0.4.0-rc.1 검수 결함 fix RC (.exe 재검수 대기)
+
+> 사용자 직접 요청("실행프로그램을 만들어줘")으로 v0.4.0-rc.2 발급. v0.4.0-rc.1 사용자 검수(CAT-05) 진행 중 발견된 튜토리얼 spotlight 결함 fix를 별도 RC로 출시하여 .exe 재검수 가능하도록 함. develop@18bb4a5(태그 시점 기준). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드.
+>
+> v0.4.0 정식 GA 진입 조건: CAT-01~07 + DPI 매트릭스 모두 통과 후 별도 SCM 라운드.
+
+### Fixed
+- **Issue #49 (PR #50, DECISION-DL-P4D-001~002)**: TutorialScene spotlight 동그라미가 가리키는 위치에 실제 HUD 콘텐츠 부재 → mock HUD placeholder 직접 렌더 (곡식 100 / buildzone "?" / hero "楊" / pause 아이콘). Canvas z-order 명시: mask → mock content → ring → arrow → label.
+
+### Changed
+- 회귀 매트릭스 v2.3 → v2.4 — TU-11 시나리오 신규 (총 69)
+- pytest 누적 448 → 453 (+5 회귀 가드, 회귀 0)
+
+### Decisions
+- **DECISION-SCM-P5K-003**: v0.4.0-rc.2 발급 (옵션 A 정석 채택 — RC2 → .exe 재검수 → v0.4.0 GA). 메인 세션이 사용자 직접 요청 + 단일 태그 작업으로 처리, SCM 라운드 spawn 비용 절약. 비가역 작업 위임 사례 — 향후 동일 패턴(사용자 직접 명시 + 단순 태그) 시 메인 세션 처리 허용 (DECISION-SCM-P4F-002 정신과 정합).
+
+## [0.4.0-rc.1] - 2026-05-19 — Phase 4 자동 가드 완결 (RC, 사용자 검수 대기)
+
+> Phase 4 (기능 테스트 + 디버깅 + 버그픽스 + 튜토리얼/난이도/QA v2 + SFX 백엔드 + 클리어율 자동화 + 잠재 결함 해결) 자동 가드 완결 시점. 메모리 규칙(0.x.0 = Phase x 완료) 정합. 사용자 시각 검수(CAT-01~07) + DPI 매트릭스(1920×1080·100%/125%) 통과 시 별도 SCM 라운드에서 `v0.4.0` 정식 GA 승격 (DECISION-SCM-P5K-001).
+>
+> 본 RC는 Phase 4 R1+R2+R3 + Phase 5 kickoff(PR #47) + Phase 5.1 BGM prep(PR #48) 누적. develop@8e9c3de. pytest **448 passed**, ruff/black 0 에러.
+>
+> Phase 5 kickoff 산출물(PR #47/#48)은 Phase 5 본 작업 진입 직전 문서·placeholder만 포함 — 코드(.py) 도메인 영역 무변경. 따라서 RC에 안전하게 합산.
+
+### Phase 5 Kickoff — Planning Lead 명세 + Audio Engineer BGM prep (PR #47/#48, 2026-05-19)
+
+#### Added (Planning, PR #47)
+- `docs/14_phase5_plan.md` (신규, 326줄): Phase 5 (전체 스토리 통합 + 최종 완성 + 패키징/릴리즈 1.0.0) 운영 계획서 — 4 sub-phase 분할 (5.1 BGM / 5.2 스토리 / 5.3 자산 / 5.4 패키징), acceptance criteria + DECISION-PL-P5-001~006 + OPEN-PL-P5-001~006
+- `docs/phase5/checklist.md` (신규): 각 라운드별 1줄 체크박스 추적
+- README "현재 진행 상태" + "다음 단계" 갱신: Phase 5 진행 중 (🚧) 표시
+
+#### Added (Audio prep, PR #48)
+- `docs/audio/02_bgm_candidates.md` (신규, 247줄): BGM 후보 8건 (CC0 ×4 + CC BY 4.0 ×4, 동양풍 우선, 번들 ~18.2MB)
+- `docs/audio/03_bgm_backend_proposal.md` (신규, 188줄): pygame.mixer vs simpleaudio vs PyOgg 비교, **pygame.mixer 채택** (DECISION-AUDIO-013)
+- `assets/audio/bgm/` 신규 — 무음 30초 WAV placeholder 8건 (bgm.intro/menu/tutorial/stage_01_02/stage_03_04/stage_05/victory/defeat) + 라이선스 정책 README
+- `src/core/sound.py`: `play_bgm()` docstring 보강 — Phase 5.1 예정 시그니처 (`play_bgm(name, *, loop, fade_in)`, `stop_bgm(*, fade_out)`, `set_bgm_volume(v)`)
+- `docs/audio/01_asset_inventory.md`: BGM 섹션 후보 8건 매핑 갱신 (dot-notation 통일, 저작자/우선순위 열 추가)
+- `docs/qa/regression_matrix.md`: v2.3 갱신, BG-01~BG-04 시나리오 등록 (총 68건, 자동화 대기)
+
+#### Changed (SCM 정정 라운드, DECISION-SCM-P5K-001)
+- `docs/14_phase5_plan.md`: 버전 매핑을 메모리 규칙(0.x.0=Phase x 완료, 1.0.0=Phase 5 완료)에 정합하도록 정정. 초기 plan은 v0.4.0/v0.5.0을 Phase 5 sub-phase에 할당하여 규칙 위반 → Phase 4 = v0.4.0-rc.1, Phase 5 = v1.0.0-rc.1 → v1.0.0 직행으로 정정
+- `docs/phase5/checklist.md`: sub-phase 헤더에서 마이너 태그 매핑 제거, develop 누적 명시. 중간 마이너 도입 여부는 OPEN-PL-P5-006 (신규)
+- README "다음 단계": Phase 4 종료 v0.4.0-rc.1 발급 명시, Phase 5 매핑 정정
+
+#### Decisions (PR #47 + SCM 정정)
+- DECISION-PL-P5-001 (정정): Phase 4 종료 = v0.4.0-rc.1 → v0.4.0, Phase 5 종료 = v1.0.0-rc.1 → v1.0.0
+- DECISION-PL-P5-002~006: 픽션 일러스트 옵션 B / Localization Engineer 보류 / Windows 코드 서명 미적용 / Linux CI 추가, macOS 보류 / Release Engineer 보류
+- DECISION-AUDIO-013 (PR #48): BGM 백엔드 pygame.mixer 채택
+- DECISION-AUDIO-014 (PR #48): 우선순위 '상' 5건 Phase 5.1 수급, '중' 3건 Phase 5.2 이후
+- **DECISION-SCM-P5K-001 (본 RC 라운드)**: PR #47 버전 매핑 정정 commit을 PR #47 브랜치에 직접 push 후 squash 머지(별도 정정 PR 신설 회피). 메모리 규칙 정합 우선
+
+#### Merged PRs (Phase 5 kickoff)
+- #47 — docs(phase 5 kickoff): Phase 5 명세 + checklist + README 갱신 (squash → develop@8e9c3de)
+- #48 — feat(audio): Phase 5.1 BGM prep — 후보 조사 + placeholder + 백엔드 제안 (Issue #30) (squash → develop@621ba21)
+
+#### Open Issues (Phase 5 위임)
+- #30 — Audio asset inventory (BGM 자산 발주 — Phase 5.1 본 작업)
+
+### Phase 4 R3 — 정리 라운드 (2026-05-19, DECISION-SCM-P4F-001~002)
+
+> Phase 4 종료 라운드. PR #45(QA cleanup) + PR #46(잠재 결함 #43/#44 정식 해결) 통합 머지 완료. develop@6e108a4.
+> `v0.3.0` GA 승격은 여전히 보류 — 사용자 시각 검수(CAT-01~07) + DPI 매트릭스(1920×1080·100%/125%) 통과 후 별도 SCM 라운드(DECISION-SCM-P4-004 유지).
+
+#### Added
+- **WaveSystem boss path 다단 fallback (Issue #43, PR #46, DECISION-DL-P5P-001)**:
+  - `WaveDef.boss_path` 옵션 필드 추가 + schema validator 갱신
+  - `WaveSystem._resolve_boss_path()` 우선순위: `wave.boss_path` → `spawns[0].path` → `load(paths=)` 첫 path → `world['waypoints']` 첫 키 → `"p_main"` 호환 fallback
+  - stage JSON 무변경 — stage_03/04/05 보스 wave 자동 해결
+  - `tests/test_wave_boss_path.py` (13건): WV-01~05 회귀 매트릭스 자동 가드
+- **Projectile swept-circle 충돌 (Issue #44, PR #46, DECISION-DL-P5P-002)**:
+  - `Projectile.update`: 발사체 segment + 타겟 segment 동기 swept-circle 최단거리 판정
+  - `PathingSystem.update`: enemy `_prev_x/_prev_y` 매 틱 갱신
+  - hit_radius=12 유지 — 게임플레이 균형 영향 0
+  - `tests/test_combat_sweep.py` (11건): CB-01~05 회귀 매트릭스 자동 가드
+- **pytest markers 일관 적용 (PR #45, DECISION-QA-P4M-001~003)**:
+  - `tests/test_regression_p4.py`, `tests/test_clear_rate_simulation.py`, `tests/test_sound_simpleaudio.py`, `tests/test_tutorial_scene.py`, `tests/test_stage_balance.py` 5건에 `regression_p4`/`slow`/`audio` 일관 적용
+  - 신규 테스트 `tests/test_wave_boss_path.py`, `tests/test_combat_sweep.py`도 `regression_p4` 적용 (SCM 후속 보완)
+  - `.github/workflows/ci.yml` 3-step 분리: fast(`-m "not slow"`) → audio(`-m audio`) → full
+- **v0.3.0 GA 체크리스트 발행 (PR #45)**: `docs/qa/v0_3_0_ga_checklist.md` — 자동 가드 8/8 ✓ + 사용자 검수 0/7 ☐ + DPI 0/2 ☐. 사용자 복귀 시 검수 후 ☐→✓ 전환 절차 명시
+- **Phase 4 종료 보고서**: `docs/qa/phase4_completion_report.md` — R1/R2/R3 산출물 종합
+
+#### Changed
+- 회귀 매트릭스 v2.2 → v2.3: WV-01~05 + CB-01~05 신규 등록 (55→64 시나리오), markers 표 갱신
+- pytest 누적 **448 passed** (Phase 4 R2 종료 시점 424 → +24, 회귀 0). `-m slow` 별도 시 BL-07 5/5 통과
+
+#### Fixed
+- Issue #43: WaveSystem 보스 path_id `"p_main"` 하드코딩 → 다단 fallback (BL-07 시뮬레이터 workaround 정식 코드화)
+- Issue #44: Projectile hit_radius 오버슈트 → swept-circle 판정 (시뮬레이터 DPS 모델과 게임플레이 정합)
+
+#### Closed Issues
+- #43 WaveSystem 보스 path 하드코딩 (PR #46)
+- #44 Projectile hit_radius 오버슈트 (PR #46)
+
+#### Merged PRs
+- #45 — qa(phase4-cleanup): markers + 매트릭스 v2.2 + GA 체크리스트 (squash → develop@4c86ea6)
+- #46 — fix(phase 5 준비): Issue #43 보스 path + Issue #44 swept-circle (squash → develop@6e108a4)
+
+#### Decisions (DECISION-SCM-P4F-*)
+- **001**: PR #45 → PR #46 머지 순서 — markers/체크리스트 baseline 안착 후 잠재 결함 해결 PR 적용
+- **002**: SCM 페르소나 사용량 한도 도달로 R3 마무리(README/CHANGELOG/신규 테스트 markers 보완)를 메인 세션이 직접 develop에 commit. DECISION-SCM-P4B-003(사용자 부재 자율 권한 위임 범위)과 정합
+
+### Phase 4 R2 — 후반 라운드 통합 머지 (2026-05-19, DECISION-SCM-P4B-001~003)
+
+> Phase 4 후반 라운드. PR #41(BL-07 클리어율 자동화) + PR #42(simpleaudio SFX 백엔드) 통합 머지 완료. develop@b5b9f2c.
+> `v0.3.0` GA 승격은 여전히 보류 — 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드(DECISION-SCM-P4-004 유지).
+
+#### Added
+- **BL-07 클리어율 시뮬레이션 자동화 (Issue #39, PR #41, DECISION-DT1-P4B-001~005)**:
+  - `src/systems/auto_mode_simulator.py` (신규, 337줄): tkinter-free 헤드리스 BattleScene 시뮬레이터. WaveSystem + PathingSystem + 직접 DPS 모델 채택.
+  - `tests/test_clear_rate_simulation.py` (신규, 9건/15 회 반복): 5 시드 × 3 스테이지 = 15/15 (100%) 클리어 확인, 실행시간 ≈1.4s (임계 5s 대비).
+  - `pyproject.toml` pytest markers 4종 정식 등록: `regression_p4` / `slow` / `audio` / `network` — PytestUnknownMarkWarning 0건.
+- **simpleaudio SFX 백엔드 시범 도입 (Issue #29, PR #42, DECISION-AUDIO-012)**:
+  - `src/core/sound.py`: winsound no-op stub → simpleaudio 비동기 WAV 재생 + PCM 볼륨 스케일링 (`set_master_volume` 실제 구현, 미설치/헤드리스 graceful fallback 내장).
+  - `assets/audio/sfx/` 8 placeholder WAV(무음, Python `wave` stdlib 생성, 게임플레이 영향 0) + `assets/audio/sfx/README.md`.
+  - `tests/test_sound_simpleaudio.py` (신규, 18건): AU-01~08 자동화 — AU-07 다채널 동시 재생(`play_buffer` 2회 호출 mock 검증) + AU-08 PCM 볼륨/뮤트 풀 사이클.
+  - `src/scenes/menu_scene.py` / `src/scenes/battle_scene.py`: SFX 통합 — 버튼 클릭(ui_click), 적 사망(enemy_die), 웨이브 시작(wave_start), 영웅 페이즈(hero_skill).
+
+#### Changed
+- `SoundManager` API 확장 — `play_ui`, `play_sfx` 신규 메서드 + 마스터 볼륨 PCM 스케일링.
+- `.github/workflows/ci.yml`: ubuntu-latest 잡에 `libasound2-dev` apt 설치 step 추가 (simpleaudio 의존). windows 잡은 그대로(winsound + simpleaudio 휠 양립).
+- `docs/qa/regression_matrix.md`: AU-01~07 + BL-07 ✗ → ✓ 자동 가드 전환.
+- `requirements.txt`: `simpleaudio>=1.0.4` 추가.
+
+#### Decisions (DECISION-SCM-P4B-*)
+- **001**: 머지 순서 — PR #41(BL-07, systems/ 단독) → PR #42(simpleaudio, 자산·CI·SoundManager 확산) 선후 적용. 작은 변경 선행, 외부 패키지 의존 + CI 변경은 후행 검증 부담 분리.
+- **002**: `pyproject.toml` markers 충돌 해결 — BL-07(develop)의 4종 마커 스켈레톤 + audio(PR #42) 메타데이터(`Issue #29, DECISION-AUDIO-012`) 통합본 채택. `regression_p4` 설명도 PR #42의 매트릭스 자동 테스트 표현 + develop의 DECISION 트레이스를 합성.
+- **003**: README/CHANGELOG 갱신을 SCM 본인 명의로 develop에 직접 commit (별도 `docs(release): ...` PR 생략) — Phase 4 후반 라운드 종료 마무리, 사용자 부재 자율 권한 위임 범위 내. `v0.3.0` GA 승격(main 머지·태깅) 보류는 그대로 유지.
+
+#### Merged PRs
+- #41 — feat(phase4-bl07): BL-07 클리어율 자동화 + pytest mark 등록 (squash → develop@b5112ca)
+- #42 — feat(audio): simpleaudio SFX 백엔드 시범 도입 (squash → develop@b5b9f2c)
+
+#### Closed Issues
+- #29 simpleaudio SFX 백엔드 (PR #42, 수동 close — squash 메시지 키워드 누락 보정)
+- #38 AU-07 다채널 자동 테스트 (PR #42, 수동 close)
+- #39 BL-07 클리어율 시뮬레이션 (PR #41, 수동 close)
+
+#### Open Issues (Phase 5 위임)
+- #30 — Audio asset inventory (BGM 자산 발주 — Phase 5)
+
+#### pytest 누적
+- 베이스라인: 396 passed (Phase 4 R1 종료) → **424 passed** (+15 BL-07 + 18 simpleaudio − 일부 중복 회귀 가드 흡수). 경고 0건. ruff/black 양쪽 ✓.
+
+---
+
+### Phase 4 R1 — 첫 구현 라운드 머지 (2026-05-19, DECISION-SCM-P4-001~004)
+
+> Phase 4 첫 구현 라운드. PR #34/#35/#36/#37 4건 통합 머지 완료. develop@5c26653.
+> `v0.3.0` GA 승격은 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드로 보류 (DECISION-SCM-P4-004).
+
+#### Added
+- **튜토리얼 8단계 인터랙티브 흐름 (Issue #26)**:
+  - `src/scenes/tutorial_scene.py` (신규, 1011줄): 메뉴 진입 → 단계 1~8 → stage_select 라우팅. 스킵/ESC 확인 다이얼로그 + "다시 보지 않기" 영구 무시 지원.
+  - `src/core/save_slot.py` (신규): `SaveSlot` 데이터 클래스 + `tutorial_dismissed` / `tutorial_completed` 영속 필드 + 슬롯 직렬화.
+  - `tests/test_tutorial_scene.py` (신규, 23건): 튜토리얼 단계 진행/스킵 다이얼로그/save_slot 영속/자동 진입 정책 자동 가드.
+- **ui_strings §20 한국어 35건 확정 (Issue #26 후속, DECISION-DESIGN-P4-001~005)**: `docs/story/08_ui_strings.md` §20 (`menu.tutorial.button` ~ `tutorial.step8.*`) — 가이드 화자 = 양만춘(`~하시오/~하오` 톤) + 도입부 모용손 [픽션] 카운터파트. 한자 글리프 = 명적(鳴鏑) + 요동성(遼東城) 최소 2건. `docs/characters/` 캐릭터 가이드 역할 추가.
+- **회귀 매트릭스 v2 + 시나리오 카탈로그 확장 (DECISION-QA-P4-001~006)**:
+  - `docs/qa/regression_matrix.md` v2: AU-01~08 / TU-01~10 / BL-01~07 신규 25건 + Tutorial 모듈 열(총 9 모듈) + 거부권 가이드.
+  - `docs/qa/scenario_catalog.md` 확장: CAT-05~07 (튜토리얼 8단계 / 난이도 체감 / 한자 글리프) 추가.
+  - `tests/test_regression_p4.py` (신규, 17건): AU-01~06 SoundManager + BL-04/05 무변경 가드 + import guard.
+- **스키마 옵션 필드 `night_vision_radius_multiplier`**: `src/data/schema.py` validator 가 0.5~2.0 범위 옵션 필드 허용. stage_03 야간 시야 보정.
+- **자동 테스트**:
+  - `tests/test_stage_balance.py` (신규, 22건): BL-01~03 / BL-06 자동 가드 — wave 수, count, interval, reward.grain, schema 옵션 필드.
+  - 총 `pytest` = **396 passed** (Phase 3.5 종료 시점 334 → +62, 회귀 0).
+
+#### Changed
+- **초반 3스테이지 난이도 하향 (Issue #27, DECISION-DT1-P4-001~004)**:
+  - `src/data/stages/stage_01.json`: reward.grain 50 → 100 (체감 진입 보상 강화).
+  - `src/data/stages/stage_02.json`: wave 6 → 4, W1 count -40%, interval +30%, reward.grain → 150.
+  - `src/data/stages/stage_03.json`: wave 6 → 4, W1 단일 path=p_gorge, reward.grain → 220, `night_vision_radius_multiplier` 필드 추가.
+  - stage_04~05 무변경 (영향 0 가드 — BL-04/05 ✓).
+- `tests/test_stages_02_05.py` / `test_stage_reward_grain.py`: stage_02/03 wave 축소 + reward 조정 반영.
+- `docs/story/08_ui_strings.md`: §20 "키 예약" 상태 → "한국어 확정"으로 격상.
+- `docs/qa/regression_matrix.md` v2.1 (DECISION-SCM-P4-002): Phase 4 R1 머지 후 TU-01/02/03/05/09/10 + BL-01/02/03/06 시나리오를 ✗ → ✓ 자동 가드로 전환. headless 자동화 불가 항목(TU-04/06/07/08, BL-07) 은 ✗ 유지 + 수동 검수 의존.
+
+#### Decisions (DECISION-SCM-P4-*)
+- **001**: PR 머지 순서를 #34(독립) → #37(독립) → #36(튜토리얼 구현, placeholder §20) → #35(한국어 §20) 로 적용. PR #35 한국어 §20이 §20 placeholder 보다 후행 머지되어 한국어 본문 보존 보장.
+- **002**: PR #34/#36 머지 후 자동 가드 가능한 시나리오(TU-01/02/03/05/09/10, BL-01~03/06) 를 본 라운드에서 ✓ 전환. 별도 후속 라운드로 분리하지 않음 — Phase 4 R1 종료 시점 매트릭스가 develop 코드 실태와 일치하도록 정합 보정.
+- **003**: TU-04/06/07/08 은 tkinter 창·이벤트 루프 의존(headless 자동화 불가) 으로 ✗ 유지. 수동 검수 카탈로그(CAT-05~07) 의존.
+- **004**: `v0.3.0` GA 승격(main 머지·태깅) 은 본 SCM 라운드에서 보류. 사용자 시각 검수(CAT-01~07) 완료 후 별도 SCM 라운드에서 수행 — 제약(main 직접 푸시 금지, 새 태그 생성 금지) 준수.
+
+#### Merged PRs
+- #34 — feat(balance): stage 01~03 난이도 하향 (squash → develop@0a5351e)
+- #37 — qa(phase4): 회귀 매트릭스 v2 + 자동 테스트 보강 (squash → develop@58f482d)
+- #36 — feat(phase 4): 인터랙티브 튜토리얼 8단계 구현 (squash → develop@3c5f594)
+- #35 — docs(tutorial): §20 ui_strings 35건 한국어 확정 (squash → develop@5c26653)
+
+#### Closed Issues
+- #26 인터랙티브 튜토리얼 8단계 (PR #36 자동 close)
+- #27 초반 3스테이지 난이도 하향 (PR #34 자동 close)
+
+#### Open Issues (Phase 4 후반 / Phase 5)
+- #29 — 오디오 다채널 동시 재생 백엔드 (AU-07 자동화 게이트)
+- #30 — Audio asset inventory (오디오 자산 발주)
+- #38 — (Phase 4 후반)
+- #39 — (Phase 5)
 
 ## [0.3.0] - 2026-05-19 — Phase 3 완료
 
@@ -214,7 +641,8 @@
 - 본 버전은 사전 기획·인프라 단계로, 실행 가능한 게임 코드는 아직 포함하지 않습니다.
 - 라이선스는 미정이며 추후 결정합니다.
 
-[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/genishs/simplegame-defencegame/compare/v0.4.0-rc.1...HEAD
+[0.4.0-rc.1]: https://github.com/genishs/simplegame-defencegame/compare/v0.3.0-rc.1...v0.4.0-rc.1
 [0.3.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/genishs/simplegame-defencegame/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/genishs/simplegame-defencegame/releases/tag/v0.1.0

@@ -36,11 +36,40 @@ class FakeCanvas:
         self.items[i] = ("line", args, kw)
         return i
 
+    def create_oval(self, *args: Any, **kw: Any) -> int:
+        # Issue #51: TutorialScene 의 spotlight ring/circle 렌더 지원.
+        i = self._next
+        self._next += 1
+        self.items[i] = ("oval", args, kw)
+        return i
+
+    def create_polygon(self, *args: Any, **kw: Any) -> int:
+        # Issue #51: TutorialScene 의 spotlight 화살표 polygon 렌더 지원.
+        i = self._next
+        self._next += 1
+        self.items[i] = ("polygon", args, kw)
+        return i
+
     def itemconfig(self, i: int, **kw: Any) -> None:
-        pass
+        """기존 item 의 kw 에 새 kw 를 병합 (Issue #70/#71 가드 지원).
+
+        rc.6 fix: hp 바 state 전환, HUD wave_progress 텍스트 갱신 등
+        itemconfig 호출 결과를 테스트가 검증할 수 있도록 kw 를 누적한다.
+        없는 item id 는 silently 무시 — 기존 동작 보존.
+        """
+        if i not in self.items:
+            return
+        kind, args, existing_kw = self.items[i]
+        merged = dict(existing_kw)
+        merged.update(kw)
+        self.items[i] = (kind, args, merged)
 
     def coords(self, i: int, *args: Any) -> None:
-        pass
+        """기존 item 의 좌표 (args) 를 갱신 (Issue #71 hp 바 너비 가드 지원)."""
+        if i not in self.items:
+            return
+        kind, _old_args, kw = self.items[i]
+        self.items[i] = (kind, args, kw)
 
     def delete(self, i: Any) -> None:
         if isinstance(i, int):
@@ -98,12 +127,44 @@ class FakeRoot:
         pass
 
 
+class FakeSoundManager:
+    """SoundManager stub — Phase 5.1 BGM 통합 후 FakeApp에서 사용."""
+
+    def play_bgm(self, name: str, *, loop: bool = True, fade_in: float = 1.0) -> None:
+        pass
+
+    def stop_bgm(self, *, fade_out: float = 1.0) -> None:
+        pass
+
+    def set_bgm_volume(self, v: float) -> None:
+        pass
+
+    def play_sfx(self, name: str) -> None:
+        pass
+
+    def play_ui(self, name: str) -> None:
+        pass
+
+    def stop_all(self) -> None:
+        pass
+
+    def set_master_volume(self, v: float) -> None:
+        pass
+
+    def mute(self) -> None:
+        pass
+
+    def unmute(self) -> None:
+        pass
+
+
 class FakeApp:
     def __init__(self) -> None:
         self.canvas = FakeCanvas()
         self.scaler = FakeScaler()
         self.events = FakeEventBus()
         self.root = FakeRoot()
+        self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
         self._goto_calls: list[str] = []
 
     def goto(self, name: str, **kwargs: Any) -> None:
@@ -265,3 +326,81 @@ def test_battle_scene_system_update_order() -> None:
 
     assert call_order.index("wave") < call_order.index("pathing")
     assert call_order.index("pathing") < call_order.index("combat")
+
+
+# ---------------------------------------------------------------------------
+# Issue #75 — 성문 HP(lives) 차감 + HUD 표시 가드
+# ---------------------------------------------------------------------------
+
+
+class _BreachEnemy:
+    """castle 도달 적 stub."""
+
+    def __init__(self, damage_to_castle: int = 1) -> None:
+        self.x = 0.0
+        self.y = 0.0
+        self.alive = True
+        self.dying = False
+        self.goal_reached = True
+        self.reached_castle = True
+
+        class _Def:
+            pass
+
+        self.enemy_def = _Def()
+        self.enemy_def.damage_to_castle = damage_to_castle
+
+
+def test_castle_breach_increments_goals_reached() -> None:
+    """Issue #75: goal_reached 적이 있으면 _apply_castle_breaches 가
+    damage_to_castle 만큼 goals_reached 를 증가시키고 적을 제거한다."""
+    scene = _make_battle_scene()
+    scene.world["goals_reached"] = 0
+    e1 = _BreachEnemy(damage_to_castle=1)
+    e2 = _BreachEnemy(damage_to_castle=5)
+    scene.world["enemies"] = [e1, e2]
+
+    scene._apply_castle_breaches()
+
+    assert scene.world["goals_reached"] == 6
+    assert e1.alive is False
+    assert e2.alive is False
+
+
+def test_castle_breach_skips_dying_enemy() -> None:
+    """Issue #75: 이미 dying(사망 페이드 중) 인 적은 이중 카운트하지 않는다."""
+    scene = _make_battle_scene()
+    scene.world["goals_reached"] = 0
+    e = _BreachEnemy(damage_to_castle=3)
+    e.dying = True
+    scene.world["enemies"] = [e]
+
+    scene._apply_castle_breaches()
+
+    assert scene.world["goals_reached"] == 0
+
+
+def test_castle_breach_triggers_hud_flash() -> None:
+    """Issue #75: breach 발생 시 HUD.flash_castle_damage 가 호출된다."""
+    scene = _make_battle_scene()
+    flashed: list[bool] = []
+    scene.hud.flash_castle_damage = lambda: flashed.append(True)
+    scene.world["enemies"] = [_BreachEnemy(damage_to_castle=1)]
+
+    scene._apply_castle_breaches()
+
+    assert flashed == [True]
+
+
+def test_refresh_hud_reports_castle_hp() -> None:
+    """Issue #75: _refresh_hud 가 castle_hp = lives - goals_reached 로 HUD 갱신."""
+    scene = _make_battle_scene()
+    scene.world["lives"] = 20
+    scene.world["goals_reached"] = 7
+
+    captured: dict[str, Any] = {}
+    scene.hud.update = lambda state: captured.update(state)
+    scene._refresh_hud()
+
+    assert captured["castle_max_hp"] == 20
+    assert captured["castle_hp"] == 13

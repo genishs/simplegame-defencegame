@@ -13,6 +13,7 @@ DECISION-DESIGN-P3-4-001: spec 파일로 ``datas`` 를 SSOT 관리 (워크플로
   런타임에 ``sys._MEIPASS/assets/fonts/`` 로 폰트가 추출된다.
   ``src/core/fonts.py:resolve_fonts_dir()`` 이 이 경로를 처리.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,12 +33,30 @@ if fonts_dir.is_dir():
     # (source_abs, dest_in_bundle). dest 는 sys._MEIPASS 기준 상대경로.
     datas.append((str(fonts_dir), "assets/fonts"))
 
+# DECISION-AUDIO-009/012: assets/audio/ 번들링 (Phase 4 후반, simpleaudio SFX 시범 도입).
+audio_dir = PROJECT_ROOT / "assets" / "audio"
+if audio_dir.is_dir():
+    datas.append((str(audio_dir), "assets/audio"))
+
+# DECISION-DL-P4D-003 (Issue #51): src/data/ JSON 자원 번들링.
+# stage_*.json / enemies.json / units.json 이 .exe 환경에서 누락되면
+# BattleScene.load_stage() 가 FileNotFoundError → stage=None → update early
+# return → frozen 현상이 발생한다(사용자 검수 결함 2호). src/core/settings.
+# resolve_data_root() 가 sys._MEIPASS/src/data 를 우선 해석한다.
+data_dir = PROJECT_ROOT / "src" / "data"
+if data_dir.is_dir():
+    datas.append((str(data_dir), "src/data"))
+
 a = Analysis(
     [str(PROJECT_ROOT / "src" / "main.py")],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    hiddenimports=[
+        "_simpleaudio",  # DECISION-AUDIO-012: simpleaudio C 확장 모듈 안전망
+        "pygame",        # DECISION-AUDIO-013/015: pygame.mixer BGM 백엔드 (Phase 5.1)
+        "pygame.mixer",  # pygame.mixer 단독 초기화 패턴 — tkinter 충돌 회피 (§4)
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

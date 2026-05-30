@@ -214,3 +214,34 @@ def test_effect_spawned_on_hit() -> None:
     # 이펙트가 스폰됐거나 enemy가 죽었음을 확인
     enemy = world["enemies"][0]
     assert effects or enemy.dying or not enemy.alive
+
+
+# ---------------------------------------------------------------------------
+# 5. Issue #76 — 호밍 발사체 명중 보장 (이동하는 적도 적중)
+# ---------------------------------------------------------------------------
+
+
+def test_homing_projectile_hits_moving_enemy() -> None:
+    """Issue #76: 매 틱 적이 이동해도 호밍 발사체가 적중해 적이 사망한다.
+
+    적을 사거리 안에 두고 매 틱 y축으로 이동시킨다. 발사체 속도(400px/s)는
+    적 이동속도(60px/s)보다 빠르므로 호밍 재조준으로 결국 명중해야 한다.
+    과거 등속 직선 발사체였다면 발사 시점 좌표만 향해 빗나갔을 케이스.
+    """
+    world = build_world()
+    enemy = world["enemies"][0]
+    enemy.x = 420.0
+    enemy.y = 300.0
+
+    cs = CombatSystem(world)
+    for _ in range(300):
+        # 적이 매 틱 옆으로 이동 (사거리 500 안에 머물도록 소폭)
+        if enemy.alive and not enemy.dying:
+            enemy.y += 60.0 * 0.05
+            if enemy.y > 360.0:
+                enemy.y = 240.0  # 위아래로 왕복 — 발사 시점 좌표를 계속 벗어남
+        cs.update(dt=0.05, world=world)
+        if not enemy.alive or enemy.dying:
+            break
+
+    assert enemy.dying or not enemy.alive, "호밍 발사체가 이동하는 적을 끝내 명중시키지 못함"
