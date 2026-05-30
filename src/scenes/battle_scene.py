@@ -306,6 +306,13 @@ class BattleScene(BaseScene):
             self.app.root.bind(key, self._on_hero_dir_key)
         for ch in ("w", "a", "s", "d", "W", "A", "S", "D"):
             self.app.root.bind(ch, self._on_hero_dir_key)
+        # 영웅 스킬 키 Q/W/E (GDD §6 단축키, Issue #61, DECISION-DL-P5S-001).
+        for ch in ("q", "Q", "e", "E"):
+            self.app.root.bind(ch, self._on_skill_key)
+        # 'w'/'W' 는 위 수동 이동(전진)과 S2 가 겹친다 — 충돌을 피하기 위해
+        # S2 는 대문자가 아닌 별도 키가 없으므로, w 핸들러에서 이동과 스킬을
+        # 모두 처리하도록 _on_hero_dir_key 가 분기한다(아래 참조). 여기서는
+        # q/e 만 직접 바인딩하고 w 는 _on_hero_dir_key 가 위임한다.
 
     def update(self, dt: float) -> None:
         if self._paused or self._game_over or self.stage is None:
@@ -347,6 +354,8 @@ class BattleScene(BaseScene):
                     hero.update(dt)
             # Hero 평타 자동 공격 (Issue #57/#58, DECISION-DL-P4D-007)
             self._tick_hero_attack(hero)
+            # Hero S1/S2/S3 스킬 — 활성 DoT + 자동 AI (Issue #61, DECISION-DL-P5S-001)
+            self._tick_hero_skills(hero, dt)
             # Issue #29 / DECISION-AUDIO-012: 영웅 페이즈 변화(스킬 발동) SFX
             new_phase = getattr(hero, "current_phase", None)
             if prev_phase is not None and new_phase is not None and new_phase != prev_phase:
@@ -449,6 +458,11 @@ class BattleScene(BaseScene):
             if fx.canvas_id is not None:
                 active_ids.add(int(fx.canvas_id))
 
+        # ----- 화살비(S3) 지대 — Issue #61, DECISION-DL-P5S-001 -----
+        # 활성 지대는 매 render 마다 전용 태그로 재그린다(소수라 churn 무시 가능).
+        if hero is not None:
+            self._render_arrow_rains(canvas, scaler, hero)
+
         # 죽어서 world 에서 빠진 엔티티의 canvas_id 정리.
         stale = self._known_canvas_items - active_ids
         for item_id in stale:
@@ -457,6 +471,58 @@ class BattleScene(BaseScene):
             except Exception:  # noqa: BLE001
                 pass
         self._known_canvas_items = active_ids
+
+    _ARROW_RAIN_TAG: str = "arrowrain"
+
+    def _render_arrow_rains(self, canvas: Any, scaler: Any, hero: Any) -> None:
+        """활성 화살비 지대 시각화 (Issue #61).
+
+        GDD §3.2 S3: "검은 점선 화살이 위에서 떨어짐 (단순 라인)". 지대 경계 원 +
+        시간 위상에 따라 내려오는 짧은 세로 화살선 몇 개로 표현한다. 전용 태그를
+        매 틱 삭제 후 재생성해 상태(지대 수/위치/잔여시간)와 동기화한다.
+        """
+        try:
+            canvas.delete(self._ARROW_RAIN_TAG)
+        except Exception:  # noqa: BLE001
+            return
+        zones = getattr(hero, "active_arrow_rains", None)
+        if not zones:
+            return
+        scale = float(getattr(scaler, "scale", 1.0))
+        for zone in zones:
+            cx, cy = scaler.to_screen(float(zone["x"]), float(zone["y"]))
+            r = float(zone["radius"]) * scale
+            try:
+                canvas.create_oval(
+                    cx - r,
+                    cy - r,
+                    cx + r,
+                    cy + r,
+                    outline="#2a2a2a",
+                    dash=(4, 4),
+                    width=2,
+                    tags=(self._tag, self._ARROW_RAIN_TAG),
+                )
+            except Exception:  # noqa: BLE001
+                continue
+            # 낙하 화살선 — 잔여시간 위상으로 y 오프셋을 줘 떨어지는 느낌.
+            phase = (float(zone.get("remaining", 0.0)) * 3.0) % 1.0
+            for k in range(-2, 3):
+                ax = cx + k * (r * 0.4)
+                base_y = cy - r * 0.6 + (phase + (k + 2) * 0.2) % 1.0 * (r * 1.2)
+                try:
+                    canvas.create_line(
+                        ax,
+                        base_y,
+                        ax,
+                        base_y + 14 * scale,
+                        fill="#101010",
+                        width=2,
+                        arrow="last",
+                        tags=(self._tag, self._ARROW_RAIN_TAG),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
 
     # ------------------------------------------------------------------
     # entity 렌더 헬퍼 (DECISION-DL-P4D-006, Issue #53)
@@ -603,7 +669,10 @@ class BattleScene(BaseScene):
         # 배경
         if bg_id is None:
             enemy._hp_bg_id = canvas.create_rectangle(
-                bx1, by1, bx2, by2,
+                bx1,
+                by1,
+                bx2,
+                by2,
                 fill="#1c1c1c",
                 outline="#3a3a3a",
                 width=1,
@@ -619,7 +688,10 @@ class BattleScene(BaseScene):
         fg_x2 = bx1 + (bx2 - bx1) * ratio
         if fg_id is None:
             enemy._hp_fg_id = canvas.create_rectangle(
-                bx1, by1, fg_x2, by2,
+                bx1,
+                by1,
+                fg_x2,
+                by2,
                 fill=bar_fill,
                 outline="",
                 tags=(self._tag, "enemy_hp_fg"),
@@ -685,6 +757,9 @@ class BattleScene(BaseScene):
             for key in ("<Up>", "<Down>", "<Left>", "<Right>"):
                 self.app.root.unbind(key)
             for ch in ("w", "a", "s", "d", "W", "A", "S", "D"):
+                self.app.root.unbind(ch)
+            # Issue #61: 스킬 키 Q/E 해제 (W 는 위에서 해제됨).
+            for ch in ("q", "Q", "e", "E"):
                 self.app.root.unbind(ch)
         except Exception:  # noqa: BLE001
             pass
@@ -1137,10 +1212,7 @@ class BattleScene(BaseScene):
                 continue
             if getattr(enemy, "dying", False):
                 continue
-            if not (
-                getattr(enemy, "goal_reached", False)
-                or getattr(enemy, "reached_castle", False)
-            ):
+            if not (getattr(enemy, "goal_reached", False) or getattr(enemy, "reached_castle", False)):
                 continue
             # damage_to_castle 만큼 손실. EnemyDef 가 누락된 경우 1 로 fallback.
             edef = getattr(enemy, "enemy_def", None)
@@ -1258,7 +1330,11 @@ class BattleScene(BaseScene):
         hero_hp = getattr(hero, "hp", 0) if hero else 0
         hero_max_hp = getattr(hero, "max_hp", max(hero_hp, 1)) if hero else 1
         hero_phase = getattr(hero, "phase", 1) if hero else 1
-        ult_cd = 0.0  # 추후 Hero.ult_cooldown으로 교체
+        ult_cd = float(getattr(hero, "_ult_timer", 0.0)) if hero else 0.0  # noqa: SLF001
+        # Issue #61: S1/S2/S3 스킬 쿨다운 (HUD Q/W/E 슬롯).
+        s1_cd = float(getattr(hero, "s1_cooldown", 0.0)) if hero else 0.0
+        s2_cd = float(getattr(hero, "s2_cooldown", 0.0)) if hero else 0.0
+        s3_cd = float(getattr(hero, "s3_cooldown", 0.0)) if hero else 0.0
 
         # 성문 HP(lives) — Issue #75 / DECISION-DL-P5C-008.
         # 남은 lives = 초기 lives - 누적 goals_reached (음수 방지는 HUD 가 처리).
@@ -1273,6 +1349,9 @@ class BattleScene(BaseScene):
             "hero_max_hp": hero_max_hp,
             "hero_phase": hero_phase,
             "ult_cooldown_s": ult_cd,
+            "s1_cooldown_s": s1_cd,
+            "s2_cooldown_s": s2_cd,
+            "s3_cooldown_s": s3_cd,
             "wave": self.wave.current_wave,
             "total_waves": len(self.wave.waves),
             "time_to_next": self.wave.time_to_next_wave,
@@ -1336,17 +1415,145 @@ class BattleScene(BaseScene):
 
         수동 모드 OFF 또는 일시정지/게임오버 상태이면 무시.
         같은 틱에 여러 키가 들어오면 방향이 누적된다 (예: Up+Right → 우상).
+
+        Issue #61: 'w'/'W' 키는 수동 모드에서는 전진 이동, 그 외(자동 모드)
+        에서는 S2 독려의 함성으로 분기한다(GDD §6 Q/W/E 스킬과 WASD 이동 충돌
+        해소). Q/E 는 _on_skill_key 가 별도 처리.
         """
-        if not self._hero_direct_mode or self._paused or self._game_over:
-            return
         keysym = getattr(event, "keysym", None)
         if keysym is None:
+            return
+        # 'w'/'W' 자동 모드 → S2 스킬 (수동 모드는 아래 이동 처리로 진행).
+        if keysym in ("w", "W") and not self._hero_direct_mode:
+            if not self._paused and not self._game_over:
+                self._activate_skill("s2")
+            return
+        if not self._hero_direct_mode or self._paused or self._game_over:
             return
         vec = _HERO_DIR_KEYS.get(keysym)
         if vec is None:
             return
         cur_x, cur_y = self._hero_move_dir
         self._hero_move_dir = (cur_x + vec[0], cur_y + vec[1])
+
+    def _on_skill_key(self, event: Any) -> None:
+        """영웅 스킬 키 입력 Q(S1)/E(S3) (Issue #61, DECISION-DL-P5S-001).
+
+        S2(W)는 이동 키와 겹쳐 ``_on_hero_dir_key`` 가 분기 처리한다.
+        일시정지/게임오버 상태이면 무시.
+        """
+        if self._paused or self._game_over:
+            return
+        keysym = (getattr(event, "keysym", "") or "").lower()
+        if keysym == "q":
+            self._activate_skill("s1")
+        elif keysym == "e":
+            self._activate_skill("s3")
+
+    def _activate_skill(self, name: str) -> None:
+        """스킬 발동 — Hero.cast_* 호출 + 발동 시 시각/사운드 스폰.
+
+        도메인 가드: 효과 적용은 Hero 가, Effect/Projectile 스폰은 본 씬이.
+        """
+        hero = self.world.get("hero")
+        if hero is None or not getattr(hero, "alive", True):
+            return
+        enemies = self.world.get("enemies", [])
+        allies = self.world.get("allies", [])
+        try:
+            if name == "s1":
+                res = hero.cast_s1(enemies)
+            elif name == "s2":
+                res = hero.cast_s2(allies)
+            elif name == "s3":
+                tx, ty = self._pick_arrow_rain_target(enemies, hero)
+                res = hero.cast_s3(tx, ty)
+            else:
+                return
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("hero skill %s failed: %s", name, exc)
+            return
+        if res and res.get("fired"):
+            self._spawn_skill_visual(name, res, hero)
+
+    def _pick_arrow_rain_target(self, enemies: list[Any], hero: Any) -> tuple[float, float]:
+        """S3 화살비 낙하 지점 선정 — 적 군집 중심 우선, 없으면 최근접 적, 폴백 영웅 전방."""
+        from src.entities.hero import _S3_RADIUS  # 군집 반경 재사용
+
+        cluster = None
+        try:
+            cluster = hero._densest_enemy_cluster(enemies, _S3_RADIUS, 1)  # noqa: SLF001
+        except Exception:  # noqa: BLE001
+            cluster = None
+        if cluster is not None:
+            return cluster
+        # 폴백: 최근접 적, 그조차 없으면 영웅 전방(위쪽).
+        target = None
+        try:
+            target = hero.find_target_in_range(enemies)
+        except Exception:  # noqa: BLE001
+            target = None
+        if target is not None:
+            return (float(target.x), float(target.y))
+        return (float(getattr(hero, "x", 960.0)), float(getattr(hero, "y", 540.0)) - 120.0)
+
+    def _spawn_skill_visual(self, name: str, res: dict[str, Any], hero: Any) -> None:
+        """스킬 발동 시 Effect 스폰 + 사운드 (Issue #61).
+
+        - S1: 타겟 위치에 황금 강타 Effect + 영웅→타겟 발사체 잔상.
+        - S2: 영웅 머리 위 함성 Effect (버프 대상 표시는 render 가 처리).
+        - S3: 지대 중심 Effect (지대 원은 render 가 매 틱 표시).
+        """
+        try:
+            from src.entities.effect import Effect
+
+            effects = self.world.setdefault("effects", [])
+            if name == "s1":
+                target = res.get("target")
+                if target is not None:
+                    # 타겟 위치에 황금 강타 Effect (발사체 잔상은 평타 카운트와
+                    # 혼동을 막기 위해 생략 — 시각은 Effect 로 충분).
+                    effects.append(Effect(x=float(target.x), y=float(target.y), kind="hit"))
+            elif name == "s2":
+                effects.append(Effect(x=float(hero.x), y=float(hero.y) - 30.0, kind="hit"))
+            elif name == "s3":
+                effects.append(
+                    Effect(
+                        x=float(res.get("x", hero.x)),
+                        y=float(res.get("y", hero.y)),
+                        kind="hit",
+                    )
+                )
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("skill visual spawn failed: %s", exc)
+        # 발동 사운드.
+        try:
+            self.app.sound.play_sfx("sfx.hero_skill")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _tick_hero_skills(self, hero: Any, dt: float) -> None:
+        """매 틱 영웅 스킬 처리 — 활성 화살비 DoT + 자동 모드 AI 스킬 사용 (Issue #61)."""
+        if hero is None or not getattr(hero, "alive", True):
+            return
+        enemies = self.world.get("enemies", [])
+        allies = self.world.get("allies", [])
+        # 활성 화살비(S3) DoT 적용.
+        if hasattr(hero, "tick_active_skills"):
+            try:
+                hero.tick_active_skills(dt, enemies)
+            except Exception as exc:  # noqa: BLE001
+                self._log.warning("hero tick_active_skills failed: %s", exc)
+        # 자동 모드에서만 AI 자동 스킬. 수동 모드는 플레이어 키 입력으로 발동.
+        if not self._hero_direct_mode and hasattr(hero, "auto_cast"):
+            try:
+                results = hero.auto_cast(allies, enemies)
+            except Exception as exc:  # noqa: BLE001
+                self._log.warning("hero auto_cast failed: %s", exc)
+                results = []
+            for res in results:
+                if res.get("fired"):
+                    self._spawn_skill_visual(res.get("skill", ""), res, hero)
 
     def _toggle_pause(self) -> None:
         """일시정지 토글."""
