@@ -37,6 +37,13 @@ class Ally(Entity):
         self.ready_to_fire: bool = False
         self.target: Entity | None = None
 
+        # Issue #61 (DECISION-DL-P5S-001): 양만춘 S2 독려의 함성 버프.
+        # 공속 배수(>=1.0). reset_fire 가 쿨다운 산정에 곱한다. 버프 지속시간이
+        # 끝나면 1.0 으로 복원. unit_def(공유 정의) 를 변형하지 않고 인스턴스에만
+        # 적용해 같은 유닛 종류라도 버프 대상만 빨라지게 한다.
+        self.atk_speed_mult: float = 1.0
+        self._buff_timer: float = 0.0
+
     # ------------------------------------------------------------------
     # 타겟팅
     # ------------------------------------------------------------------
@@ -70,12 +77,30 @@ class Ally(Entity):
     # 공격 틱
     # ------------------------------------------------------------------
 
+    def apply_atk_speed_buff(self, mult: float, duration_s: float) -> None:
+        """S2 독려의 함성 — 공속 버프 적용/갱신 (Issue #61).
+
+        재시전 시 더 강한 배수와 더 긴 잔여 시간으로 갱신한다(약화 없음).
+
+        Args:
+            mult: 공속 배수 (예: 1.3 = +30%).
+            duration_s: 지속 시간(초).
+        """
+        self.atk_speed_mult = max(self.atk_speed_mult, float(mult))
+        self._buff_timer = max(self._buff_timer, float(duration_s))
+
     def attack_tick(self, dt: float) -> None:
         """쿨다운을 dt만큼 감소. 0 도달 시 ``ready_to_fire=True``.
 
         Args:
             dt: 경과 시간(초).
         """
+        # Issue #61: S2 공속 버프 만료 처리 (CombatSystem 이 매 틱 호출).
+        if self._buff_timer > 0.0:
+            self._buff_timer -= dt
+            if self._buff_timer <= 0.0:
+                self._buff_timer = 0.0
+                self.atk_speed_mult = 1.0
         if self.cooldown > 0.0:
             self.cooldown -= dt
             if self.cooldown <= 0.0:
@@ -88,9 +113,15 @@ class Ally(Entity):
     def reset_fire(self) -> None:
         """발사 완료 후 쿨다운 재설정."""
         self.ready_to_fire = False
-        # atk_speed: 초당 공격 횟수 → 쿨다운 = 1/atk_speed
-        spd = self.unit_def.atk_speed
+        # atk_speed: 초당 공격 횟수 → 쿨다운 = 1/atk_speed.
+        # Issue #61: S2 버프 시 atk_speed_mult 만큼 공속 증가(쿨다운 단축).
+        spd = self.unit_def.atk_speed * self.atk_speed_mult
         self.cooldown = (1.0 / spd) if spd > 0 else 1.0
+
+    @property
+    def effective_atk_speed(self) -> float:
+        """현재 버프 반영 공속(초당 공격 횟수). 테스트/UI 공개 API (Issue #61)."""
+        return float(self.unit_def.atk_speed) * self.atk_speed_mult
 
     # ------------------------------------------------------------------
     # Entity 오버라이드

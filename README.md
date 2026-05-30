@@ -31,6 +31,8 @@
 
 > **누적 결함 (모두 fix 완료)**: #49 (rc.1→rc.2 spotlight), #51 (rc.2→rc.3 stage_01 frozen), #53 (rc.3→rc.4 render pass 한 줄), #55/#56/#57/#58 (rc.4→rc.5 게임플레이 4종), #62/#64 (rc.5→rc.6 lives 차감 + enemies.json), #67/#68/#69/#70/#71 (rc.6 검수 결함 — 튜토리얼 인터랙션 + HUD wave + 적 hp 시각 피드백), **#73/#74/#75/#76 (rc.7 검수 결함 — 영웅 평타 호밍 명중 보장 + 성문 HP HUD + 튜토리얼 전장 backdrop + 영웅 이동 시연)**. pytest **530 → 554 passed**.
 
+> **Phase 5 진행 — 양만춘 S1/S2/S3 스킬 시스템 (Issue #61)**: GDD §3.2 스킬 3종 구현 — S1 일점사(Q, 단일 강타 200 + 0.5s 기절), S2 독려의 함성(W, 반경 250px 아군 공속 +30%/10s), S3 화살비(E, 반경 180px 5초간 30 dps). 도메인 가드 유지 + 자동 모드 AI(`Hero.auto_cast`) + HUD Q/W/E 쿨다운 슬롯. 회귀 가드 +29건 → pytest **583**. DECISION-DL-P5S-001.
+
 > **Phase 5.1 진행**: BGM 백엔드(pygame.mixer) + Menu/Tutorial/Battle/Ending 4씬 통합 + BG-01~04 자동 가드. Issue #30 종결.
 
 > **Phase 5 cleanup**: BL-07 시뮬레이터 정합 보강 — 신규 `tests/battle_scene_simulator.py`(실 BattleScene + FakeApp/FakeCanvas) + 21 자동 가드(stage_01/02/03 통합 클리어 포함). 누적 결함 사전 감지망 확장 (DECISION-DL-P5C-001~006).

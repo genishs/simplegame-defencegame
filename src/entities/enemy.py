@@ -57,6 +57,10 @@ class Enemy(Entity):
         self.fade_alpha: float = 1.0
         self._was_dying: bool = False  # CombatSystem이 보상 콜백 1회 트리거에 사용
 
+        # Issue #61 (DECISION-DL-P5S-001): 양만춘 S1 일점사 기절.
+        # stun_timer > 0 이면 PathingSystem 이 이동을 정지시키고 매 틱 감소시킨다.
+        self.stun_timer: float = 0.0
+
         # DECISION-DL-P5P-002 (Issue #44): 이전 틱 좌표 스냅샷.
         # Projectile.update 의 swept-circle 충돌 판정이 (_prev_x, _prev_y) →
         # (x, y) 의 한-틱 segment 를 사용해 fast-moving enemy 통과 케이스 감지.

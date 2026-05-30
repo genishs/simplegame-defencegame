@@ -6,6 +6,29 @@
 
 > Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속).
 
+### Added — 양만춘 S1/S2/S3 스킬 시스템 (Issue #61, DECISION-DL-P5S-001)
+
+GDD §3.2 스킬 3종을 도메인 + BattleScene 통합으로 구현(평타 #57/#58, 궁극기에 이은 후속). 도메인 가드 유지 — 효과(데미지/기절/버프/DoT)는 `src/entities`/`src/systems`(tkinter-free)에서, Effect/Projectile 스폰·키 바인딩·HUD는 BattleScene/HUD가 담당.
+
+- **S1 일점사 (Q, 쿨다운 12s)**: 사거리 380px 내 최근접 적에게 단일 강타 200 + 0.5s 기절. `Hero.cast_s1` 가 데미지·기절 적용(명중 보장), `Enemy.stun_timer` 추가, `PathingSystem` 이 기절 중 이동을 정지시킨다.
+- **S2 독려의 함성 (W, 쿨다운 25s)**: 반경 250px 아군 공속 +30% / 10s. `Hero.cast_s2` 가 범위 내 아군에 `Ally.apply_atk_speed_buff` 적용. `Ally.atk_speed_mult`(인스턴스 버프, 공유 `unit_def` 불변) + `reset_fire` 반영 + `attack_tick` 만료. W 키는 자동 모드에서 S2, 수동 모드(M)에서는 전진 이동으로 분기(WASD 충돌 해소).
+- **S3 화살비 (E, 쿨다운 40s)**: 지정 지점 반경 180px 에 5초간 초당 30 데미지 지대. `Hero.cast_s3` 가 지대를 생성, `Hero.tick_active_skills` 가 매 틱 DoT(정수 누적기로 30/s 수렴) 적용·만료. BattleScene 이 지대 경계 원 + 낙하 화살선을 render.
+- **자동 모드 AI (`Hero.auto_cast`)**: 쿨다운 준비 시 — S1(사거리 내 적 존재), S3(영웅 교전 사거리 내 적 3명 이상 군집 — 스폰 캠핑 방지 위해 원거리 군집 제외), S2(250px 내 아군 2명 이상)를 자동 발동. 수동 모드는 Q/W/E 키로 발동.
+- **HUD**: 영웅 패널에 Q/W/E 스킬 쿨다운 슬롯 추가(준비/잔여초 표시). 궁극기 R 슬롯 쿨다운도 실제 `_ult_timer` 연동(기존 placeholder 0 → 실값).
+
+#### 회귀 가드 신규 29건 (`tests/test_hero_skills.py`)
+
+- S1: 데미지+기절/쿨다운 차단/회복/무타겟 미발동/치사 dying (5), 기절 PathingSystem 이동 정지·해제 (2).
+- S2: 범위 버프/쿨다운 단축/만료/재시전 차단 (4).
+- S3: 지대 생성/DoT 범위/만료/30-per-second 수렴 (4).
+- auto_cast: S1/S2/S3 발동 조건 + 미충족 무발동 + 원거리 군집 제외 + 군집 탐색 (7).
+- 쿨다운 통합 update (1).
+- BattleScene 통합: Q/E/W 키 발동 + 일시정지 무시 (4), HUD 스킬 슬롯 등록·쿨다운 렌더 (2).
+
+#### pytest 누적
+
+- v0.4.0 GA 기준 554 → **583** (+29 신규 가드, 회귀 0).
+
 ## [0.4.0] - 2026-05-30 — Phase 4 정식 GA (사용자 .exe 검수 통과)
 
 > **Phase 4 정식 GA 승격.** rc.1~rc.8 누적 사용자 .exe 검수 사이클(UAT)에서 마지막 rc.8 결함 0건 사인오프(2026-05-30) 확보 → develop → main 머지 + `v0.4.0` 정식 태그 + GitHub Release prerelease=false. DECISION-SCM-P5K-011.

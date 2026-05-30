@@ -264,6 +264,27 @@ class HUD:
             rcx, sx(1670, 480)[1], text="", fill="#aaaaaa", font=font(11), anchor="center", tags=(tag,)
         )
 
+        # ── S1/S2/S3 스킬 슬롯 Q/W/E (Issue #61, DECISION-DL-P5S-001) ──
+        # GDD §3.2 스킬 3종. R(궁극기) 오른쪽으로 일렬 배치(영웅 패널 내부).
+        skill_slots = [
+            ("s1", "Q", 1712),
+            ("s2", "W", 1772),
+            ("s3", "E", 1832),
+        ]
+        for key, label, bx in skill_slots:
+            ssx, ssy = sx(bx, 430)
+            sex, sey = sx(bx + 52, 490)
+            self._ids[f"{key}_slot_bg"] = c.create_rectangle(
+                ssx, ssy, sex, sey, fill="#2a1a0c", outline="#6a5a30", tags=(tag,)
+            )
+            scx, scy = sx(bx + 26, 458)
+            self._ids[f"{key}_label"] = c.create_text(
+                scx, scy, text=label, fill="#c0b060", font=font(16, bold=True), anchor="center", tags=(tag,)
+            )
+            self._ids[f"{key}_cooldown"] = c.create_text(
+                scx, sx(bx + 26, 480)[1], text="", fill="#aaaaaa", font=font(10), anchor="center", tags=(tag,)
+            )
+
         # 보스 페이즈 플래시 오버레이 (기본 hidden)
         ox1, oy1 = sx(0, 0)
         ox2, oy2 = sx(1920, 1080)
@@ -376,6 +397,21 @@ class HUD:
             else:
                 c.itemconfig(ids["ult_cooldown"], text="준비")
                 c.itemconfig(ids["ult_slot_bg"], fill="#3a2a0c")
+
+        # S1/S2/S3 스킬 쿨다운 (Issue #61) — 준비 시 슬롯 강조.
+        for skey in ("s1", "s2", "s3"):
+            cd = state.get(f"{skey}_cooldown_s", 0.0)
+            cd_id = f"{skey}_cooldown"
+            bg_id = f"{skey}_slot_bg"
+            if cd_id in ids:
+                if cd > 0:
+                    c.itemconfig(ids[cd_id], text=f"{cd:.0f}s")
+                    if bg_id in ids:
+                        c.itemconfig(ids[bg_id], fill="#2a1a0c")
+                else:
+                    c.itemconfig(ids[cd_id], text="준비")
+                    if bg_id in ids:
+                        c.itemconfig(ids[bg_id], fill="#3a2a0c")
 
     # ------------------------------------------------------------------
     # 보스 페이즈 플래시 (DECISION-D-205)

@@ -94,6 +94,16 @@ class PathingSystem:
             if getattr(enemy, "dying", False):
                 continue
 
+            # Issue #61 (DECISION-DL-P5S-001): S1 일점사 기절. 기절 중이면 이동을
+            # 정지하고 타이머만 감소시킨다. prev 좌표는 현재 좌표로 동기화해
+            # Projectile swept-circle 충돌 판정(정지 타겟)이 정상 동작하게 한다.
+            stun = getattr(enemy, "stun_timer", 0.0)
+            if stun > 0.0:
+                enemy.stun_timer = max(0.0, stun - dt)
+                enemy._prev_x = float(enemy.x)
+                enemy._prev_y = float(enemy.y)
+                continue
+
             # DECISION-DL-P5P-002 (Issue #44): 이동 직전 좌표 스냅샷.
             # Projectile.update 의 swept-circle 충돌 판정이 이 값을 사용해
             # (prev → cur) dt-segment 를 정확히 평가한다. CombatSystem 이
