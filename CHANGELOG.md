@@ -6,6 +6,20 @@
 
 > Phase 5 진입 라운드 누적. 다음 RC 발급 시 본 섹션에 항목 누적. 중간 마이너 태그(v0.5.0/v0.6.0) 도입 여부는 OPEN-PL-P5-006 (Steering 후속).
 
+## [0.4.0] - 2026-05-30 — Phase 4 정식 GA (사용자 .exe 검수 통과)
+
+> **Phase 4 정식 GA 승격.** rc.1~rc.8 누적 사용자 .exe 검수 사이클(UAT)에서 마지막 rc.8 결함 0건 사인오프(2026-05-30) 확보 → develop → main 머지 + `v0.4.0` 정식 태그 + GitHub Release prerelease=false. DECISION-SCM-P5K-011.
+>
+> 본 GA는 rc.1~rc.8 의 모든 Fixed/Changed 항목을 누적 포함한다(아래 rc.* 섹션 참조). 핵심 게임플레이 결함 — BattleScene.render() 미구현(#53), PyInstaller src/data 누락(#51), 아군 배치 UI(#56), 영웅 자동 평타(#57/#58), 성문 breach lives 차감(#62), 적/성문 HP HUD 시각 피드백(#71/#75), 호밍 명중 보장(#76), 튜토리얼 인터랙션 전반(#49/#55/#67~#69/#73/#74) — 모두 해소.
+>
+> v0.3.0 은 rc.1 사전 릴리즈 마일스톤으로만 존재하며 별도 GA 태그를 발급하지 않는다 — Phase 3 시점 코드(render() 미구현 등 다수 결함)를 GA 로 배포하는 것은 부적절하고, Phase 4(v0.4.0) GA 가 Phase 3 콘텐츠를 전부 포함·대체한다. DECISION-SCM-P5K-011.
+
+### Summary — Phase 4 GA 동결 시점
+
+- pytest 누적 **554 passed** (rc.8 동결), tkinter-free 도메인 가드 유지, BL-07 클리어율 시뮬 그린.
+- 사용자 UAT 사인오프(rc.8): 튜토리얼 전장 backdrop·영웅 이동 시연, stage1 성문 HP HUD·breach 차감, 자동 평타 호밍 명중 — 전 항목 이상 없음.
+- GA 산출물: GitHub Release `v0.4.0` (prerelease=false) + PyInstaller `AnsiseongDefense.exe` (Noto Sans KR 번들 검증 게이트 통과).
+
 ## [0.4.0-rc.8] - 2026-05-21 — rc.7 검수 결함 4건 종합 fix RC (.exe 재검수 대기)
 
 > 사용자 .exe 검수(rc.7) 결함/개선 4건(#73~#76) 종합 fix. develop@72dcca6(PR #77 머지). release-windows.yml prerelease=true 자동 트리거 + PyInstaller .exe 재빌드. 메인 세션이 rc.2~rc.7 패턴 재사용으로 처리. DECISION-SCM-P5K-010.
