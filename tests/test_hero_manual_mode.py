@@ -111,7 +111,11 @@ def test_arrow_right_moves_hero_in_manual_mode() -> None:
     assert hero.x > 100.0
 
 
-def test_wasd_moves_hero_in_manual_mode() -> None:
+def test_wasd_no_longer_moves_hero_skill_keys_take_over() -> None:
+    """Issue #61 후속: 이동은 방향키 전용. W/A/S/D 는 더 이상 이동하지 않는다.
+
+    W/A/S/D 가 스킬(Q/W/E) 전용으로 분리돼 수동 모드 이동과 키 충돌이 없다.
+    """
     from src.entities.hero import Hero
 
     scene = _make_scene_with_bus()
@@ -119,17 +123,22 @@ def test_wasd_moves_hero_in_manual_mode() -> None:
     scene.world["hero"] = hero
     scene._on_m_key(None)  # 모드 ON.
 
-    # d → 우측 이동.
+    # d/w 는 이제 이동 키가 아님 → 좌표 불변.
     scene._on_hero_dir_key(_key_event("d"))
-    scene.update(0.1)
-    assert hero.x > 500.0
-    x_after_d = hero.x
-
-    # w → 위로 이동 (y 감소).
     scene._on_hero_dir_key(_key_event("w"))
     scene.update(0.1)
+    assert hero.x == 500.0
+    assert hero.y == 500.0
+
+    # 방향키는 정상 이동.
+    scene._on_hero_dir_key(_key_event("Right"))
+    scene.update(0.1)
+    assert hero.x > 500.0
+    x_after_right = hero.x
+    scene._on_hero_dir_key(_key_event("Up"))
+    scene.update(0.1)
     assert hero.y < 500.0
-    assert hero.x == x_after_d  # x 는 이번 틱에 변하지 않음.
+    assert hero.x == x_after_right
 
 
 def test_diagonal_input_normalizes_speed() -> None:
