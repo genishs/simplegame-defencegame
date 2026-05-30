@@ -345,11 +345,13 @@ def test_battlescene_q_key_casts_s1() -> None:
 
     scene = BattleSceneSimulator("stage_01").build_scene()
     enemy = _placed_enemy_in_hero_range(scene)
-    n_eff = len(scene.world.get("effects", []))
+    n_fx = len(scene._skill_fx)
     scene._on_skill_key(_key_event("q"))
     assert enemy.hp == 300  # 500 - 200 (S1)
     assert enemy.stun_timer == pytest.approx(0.5)
-    assert len(scene.world.get("effects", [])) > n_eff  # 강타 Effect 스폰
+    # 강타 transient FX 등록 (빔+임팩트)
+    assert len(scene._skill_fx) > n_fx
+    assert any(fx["kind"] == "s1" for fx in scene._skill_fx)
     assert scene.world["hero"].s1_cooldown == pytest.approx(12.0)
 
 
@@ -364,17 +366,59 @@ def test_battlescene_e_key_casts_s3() -> None:
     assert hero.s3_cooldown == pytest.approx(40.0)
 
 
-def test_battlescene_w_key_casts_s2_in_auto_mode() -> None:
+def test_battlescene_w_key_casts_s2() -> None:
     from tests.battle_scene_simulator import BattleSceneSimulator
 
     scene = BattleSceneSimulator("stage_01").build_scene()
-    scene._hero_direct_mode = False
     hero = scene.world["hero"]
     ally = _ally(hero.x + 30.0, hero.y)
     scene.world["allies"].append(ally)
-    scene._on_hero_dir_key(_key_event("w"))
+    scene._on_skill_key(_key_event("w"))  # 이제 W 는 스킬 전용
     assert ally.atk_speed_mult == pytest.approx(1.3)
     assert hero.s2_cooldown == pytest.approx(25.0)
+
+
+def test_battlescene_wasd_does_not_move_hero_in_manual_mode() -> None:
+    """W/A/S/D 는 이동이 아니라 스킬 전용 — 수동 모드에서도 이동시키지 않는다."""
+    from tests.battle_scene_simulator import BattleSceneSimulator
+
+    scene = BattleSceneSimulator("stage_01").build_scene()
+    scene._hero_direct_mode = True
+    hero = scene.world["hero"]
+    x0, y0 = hero.x, hero.y
+    scene._on_hero_dir_key(_key_event("d"))
+    scene._on_hero_dir_key(_key_event("w"))
+    scene._apply_hero_manual_move(hero, 0.1)
+    assert hero.x == pytest.approx(x0)
+    assert hero.y == pytest.approx(y0)
+
+
+def test_battlescene_render_draws_skill_overlay() -> None:
+    """스킬 발동 후 render 가 오버레이(빔/임팩트/텍스트) 캔버스 아이템을 그린다."""
+    from tests.battle_scene_simulator import BattleSceneSimulator
+
+    sim = BattleSceneSimulator("stage_01")
+    scene = sim.build_scene()
+    _placed_enemy_in_hero_range(scene)
+    scene._on_skill_key(_key_event("q"))  # S1 → transient FX 등록
+    scene.render()
+    canvas = scene.app.canvas
+    texts = [kw.get("text") for (kind, _args, kw) in canvas.items.values() if kind == "text"]
+    assert "일점사!" in texts  # S1 발동 라벨이 실제로 그려짐
+
+
+def test_battlescene_render_draws_arrow_rain_zone() -> None:
+    """S3 화살비 지대가 render 에서 채움 원 + 라벨로 표시된다."""
+    from tests.battle_scene_simulator import BattleSceneSimulator
+
+    sim = BattleSceneSimulator("stage_01")
+    scene = sim.build_scene()
+    _placed_enemy_in_hero_range(scene)
+    scene._on_skill_key(_key_event("e"))  # S3 지대 생성
+    scene.render()
+    canvas = scene.app.canvas
+    texts = [kw.get("text") for (kind, _args, kw) in canvas.items.values() if kind == "text"]
+    assert "화살비" in texts
 
 
 def test_battlescene_skill_keys_ignored_when_paused() -> None:
