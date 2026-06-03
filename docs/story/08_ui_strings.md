@@ -715,10 +715,119 @@ Phase 3.5 회귀 방지로 `tests/test_no_korean_literal_in_ui.py` 를 추가해
 
 ---
 
+## 22. 교육 통합 (Track A · Phase 5 · docs/15·docs/16)
+
+> Phase 5 개발 PL 라운드. `docs/15_education_integration_spec.md` (교육 통합 스펙) §6 이 예약한 신규 키군을 본 SSOT 에 **등재**한다.
+> 컨벤션은 §0.1 (`<scene>.<component>.<role>`) 을 따른다. 한국어 표시 텍스트는 본 라운드에서 1차 확정하되, 정밀 문안은 Design Lead 후속 라운드에서 조정 가능.
+> 라벨 텍스트(`codex.label.*`)·라벨 토스트(`toast.first_legend_label`·`toast.first_fiction_label`)·`hero.name_label`·`result.win.history_note`·`toast.codex_unlocked` 는 **기존 키 재사용**이며 본 절에서 재정의하지 않는다 (R2 SSOT).
+
+### 22.1 적 첫 등장 배너 — `enemy.intro_banner.*` (H2)
+
+> 데이터 정본은 `src/data/enemies.json` 의 적별 `intro_banner` 필드 (개발 PL 데이터 기반 라운드에서 확정). 본 키군은 향후 ui_strings 추출 시 동일 텍스트를 lookup 한다.
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `enemy.intro_banner.tang_soldier` | 당군 보병이 밀려옵니다. 수는 많으나 갑옷이 가볍습니다 — 궁수의 화살에 약합니다. |
+| `enemy.intro_banner.tang_archer` | 당군 궁수가 원거리에서 견제합니다. 거리를 좁히거나 더 긴 사거리로 맞서십시오. |
+| `enemy.intro_banner.tang_scout` | 당군 척후병은 빠르고 은신합니다. 횃불 빛이 닿는 곳에서만 보입니다 — 빛으로 길을 밝히십시오. |
+| `enemy.intro_banner.tang_scout_captain` | 당군 척후대장이 선두에 섭니다. 갑옷이 두꺼우니 집중 사격으로 무너뜨리십시오. |
+| `enemy.intro_banner.tang_vanguard_captain` | 당군 선봉대장이 돌격을 이끕니다. 방어력이 높으니 장창과 광역 공격이 효과적입니다. |
+| `enemy.intro_banner.tang_night_raider` | 당군 야간 기습대가 어둠을 타고 옵니다. 횃불로 시야를 확보하고 성문 앞을 두텁게 지키십시오. |
+
+### 22.2 유닛 사료 한 줄 — `unit.history.*` (H3)
+
+> 데이터 정본은 `src/data/units.json` 의 유닛별 `history_blurb` 필드.
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `unit.history.archer` | 고구려는 활의 강국이었습니다. 세 갈래 날 삼익촉(三翼鏃)과 소리 내며 나는 명적(鳴鏑)이 유명했습니다. |
+| `unit.history.spear` | 고구려 보병은 미늘을 엮은 찰갑(札甲)을 두르고 산성을 지켰습니다. 창은 가장 기본이 되는 전열 무기였습니다. |
+| `unit.history.hero_yang` | 안시성주는 장궁(長弓)을 들고 성벽에 섰습니다. '양만춘'은 후대 전승의 이름입니다. |
+
+> `unit.history.hero_yang` 은 영웅 툴팁용 예약 키. 영웅 이름 자체는 기존 `hero.name_label` (= "안시성주 양만춘 [전승]") 재사용.
+
+### 22.3 스테이지 도입 캡션 — `stage.NN.history_caption` (H1)
+
+> 데이터 정본은 `src/data/stages/stage_0[1-5].json` 의 `history_caption` 필드. 본 키군은 매핑용 예약.
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `stage.01.history_caption` | 645년 5월, 당군이 요동으로 밀려옵니다. 큰 성 요동성이 화공과 운제에 무너진 그 길목입니다. |
+| `stage.02.history_caption` | 645년 6월, 백암성주 손대음이 백성을 살리기 위해 성문을 엽니다. 항복도 하나의 선택이었습니다. |
+| `stage.03.history_caption` | 645년 봄, 개모성은 당군의 첫 공격 대상이었습니다. 본 게임은 이를 횃불로 어둠을 견디는 야간 방어전으로 각색했습니다. |
+| `stage.04.history_caption` | 주필산에서 구원군 15만이 무너진 뒤, 안시성은 홀로 남았습니다. 당군의 공성 무기가 외곽으로 다가옵니다. |
+| `stage.05.history_caption` | 당군은 60일에 걸쳐 흙으로 토산을 쌓았습니다. 88일의 공방, 추위가 다가오는 마지막 길목입니다 — 버티면, 이깁니다. |
+
+### 22.4 결과 카드 — `result.card.*` (H4, L2)
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `result.card.title` | 새 역사 노트 |
+| `result.card.label_badge` | {label} |
+| `result.card.new_badge` | NEW |
+| `result.card.read_in_codex` | 도감에서 읽기 |
+
+> `result.card.label_badge` 의 `{label}` 슬롯은 런타임에 `codex.label.fact`/`legend`/`fiction` 을 주입 (R2). 기존 `result.win.history_note`·`toast.codex_unlocked` 재사용.
+
+### 22.5 도감 완성도 메타 — `codex.progress.*` (H5)
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `codex.progress.label` | 역사 노트 {current}/15 |
+| `codex.progress.label_breakdown` | (사실) {fact} · [전승] {legend} · [픽션] {fiction} |
+| `codex.progress.milestone_5` | 다섯 장을 모았습니다 — 안시성의 이야기를 듣는 이. |
+| `codex.progress.milestone_10` | 열 장을 모았습니다 — 안시성의 기록자. |
+| `codex.progress.milestone_15` | 열다섯 장을 모두 모았습니다 — 안시성의 사관(史官). |
+| `codex.source.original_toggle` | 한문 원문 보기 |
+
+> 완성도 메타는 능력치 보상과 무관 (docs/15 §3.4, EP1). 칭호·시각적 완성만.
+
+### 22.6 코덱스 카드 텍스트 — `codex.card.NN.*` (이관 예약)
+
+> `09_codex.md` 본문을 SSOT 키로 이관하기 위한 **예약 키군**. 본 라운드의 데이터 정본은 `src/data/codex.json` 의 카드별 `title`/`summary`/`body`/`source` (정본 콘텐츠는 `09_codex.md`). ui_strings 추출 자동화(§0.2.3) 도입 시 아래 패턴으로 등재한다. 텍스트는 `09_codex.md` 원천을 인용하므로 본 표에 중복 정의하지 않는다 (SSOT, §0.1.4).
+
+| KEY 패턴 | 의미 | 원천 |
+| --- | --- | --- |
+| `codex.card.NN.title` | 카드 NN(01~15) 제목 | `09_codex.md` §2 / `src/data/codex.json` |
+| `codex.card.NN.summary` | 카드 NN 요약 한 줄 | `src/data/codex.json` |
+| `codex.card.NN.body` | 카드 NN 본문 | `09_codex.md` §2 |
+| `codex.card.NN.source` | 카드 NN 출처 줄 | `09_codex.md` §2 |
+
+### 22.7 충돌 노트 + 영웅 이름 — `hero.name_note` / `codex.conflict.*` (H8, §4.3) [SHOULD 예약]
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `hero.name_note` | 정사(삼국사기·자치통감)에는 안시성주의 이름이 전하지 않습니다. '양만춘'은 후대 전승입니다. |
+| `codex.conflict.taizong` | 당 태종 부상설은 후대 야사입니다. 정사에는 직접 기록이 없습니다. 자세한 내용은 도감 카드를 보시오. |
+| `codex.conflict.mound_days` | 안시성 공방은 약 88일, 토산 구축은 그 중 60일입니다. 두 숫자는 다른 것을 가리킵니다. |
+
+### 22.8 진엔딩 퀴즈 — `quiz.*` (H10, COULD 예약)
+
+> COULD 우선순위 (DECISION-EDU-002: 스킵 가능·보상형). 데이터는 향후 `src/data/quiz.json`. 본 라운드는 키군만 예약.
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `quiz.intro.title` | 잠깐, 함께 돌아볼까요? |
+| `quiz.intro.body` | 짧은 네 문제입니다. 언제든 건너뛸 수 있고, 틀려도 괜찮습니다. |
+| `quiz.skip` | 건너뛰기 |
+| `quiz.result.reward` | 양만춘 명대사 카드가 강조되었습니다. |
+| `quiz.result.encourage` | 잘 했습니다. 다시 도감을 펼쳐 보아도 좋습니다. |
+
+> `quiz.qN.text` / `.c1`~`.c3` / `.explain` (4문항 × 5키 = 20키) 는 콘텐츠 확정 시 추가. 본 표는 진입/스킵/결과 공통 키만 등재.
+
+### 22.9 설정 — 로컬 저장 고지 (`settings.privacy.local_only`) (DECISION-EDU-004)
+
+| KEY | 표시 텍스트 |
+| --- | --- |
+| `settings.privacy.local_only` | 이 게임은 모든 기록을 이 컴퓨터에만 저장하며, 외부로 전송하지 않습니다. |
+
+---
+
 ## 21. 변경 이력
 
 | 버전 | 일자 | 작성자 | 내용 |
 | --- | --- | --- | --- |
+| v1.4 | 2026-06-03 | 개발 PL (Phase 5) | **§22 교육 통합 키군 등재** (docs/15 §6 예약 반영, docs/16 구현 계획). `enemy.intro_banner.*` (6) · `unit.history.*` (3) · `stage.NN.history_caption` (5) · `result.card.*` (4) · `codex.progress.*` + `codex.source.original_toggle` (6) · `codex.card.NN.*` 패턴 예약 · `hero.name_note`/`codex.conflict.*` (3, SHOULD) · `quiz.*` (5+, COULD) · `settings.privacy.local_only` (1). 데이터 정본은 `src/data/{codex,units,enemies,stages}` 신규 필드. MUST 7종(H1~H7) 데이터 기반 토대 동반 구현. |
 | v1.0 | 2026-05-17 | 기획 리더 + 팀원 | 최초 작성. §1~§15. |
 | v1.1 | 2026-05-19 | 디자인 리더 (Phase 3.4) | **SSOT 격상** (DECISION-D-P3-001). 키 네이밍 컨벤션 명문화 (§0.1). SSOT 운영 규칙 (§0.2). 신규 키 9건 추가: `dialog.next`, `dialog.skip`, `intro.skip_confirm`, `cavalry.sortie`, `help.tut1.welcome` ~ `help.tut6.pause`. `docs/qa/phase2_review.md` 후속 권고 4번 (DECISION-Q-003) 종결. |
 | v1.2 | 2026-05-20 | 기획 리더 (Phase 4) | **§20 튜토리얼 키 예약 추가** (Issue #26, `docs/12_tutorial_design.md` DECISION-PL-P4-006). 신규 키 35건 예약 (한국어 표시 텍스트는 Design Lead 다음 라운드에서 확정). |
