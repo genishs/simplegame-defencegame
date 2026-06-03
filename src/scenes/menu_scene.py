@@ -47,7 +47,7 @@ _BUTTONS: list[tuple[str, str, float, float, float, float]] = [
     ("menu.tutorial", "tutorial", 760, 624, 400, 64),
     ("menu.stage_select", "stage_select", 760, 696, 400, 64),
     ("menu.barracks", "menu", 760, 768, 400, 64),
-    ("menu.codex", "menu", 760, 840, 400, 64),
+    ("menu.codex", "codex", 760, 840, 400, 64),
     ("menu.settings", "menu", 760, 912, 400, 64),
     ("menu.credits", "menu", 760, 984, 400, 44),
     ("menu.quit", "__quit__", 760, 1036, 400, 40),

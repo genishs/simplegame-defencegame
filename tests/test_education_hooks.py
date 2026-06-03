@@ -377,3 +377,89 @@ def test_battle_defeat_shows_no_card(tmp_path: Any, monkeypatch: Any) -> None:
     scene = _battle("stage_01")
     scene._end_battle(victory=False)
     assert scene._result_card is None
+
+
+# ---------------------------------------------------------------------------
+# H5 — CodexScene
+# ---------------------------------------------------------------------------
+def _codex_scene(tmp_path: Any, monkeypatch: Any) -> Any:
+    from src.scenes.codex_scene import CodexScene
+
+    monkeypatch.setenv("ANSISEONG_HOME", str(tmp_path))
+    app = FakeApp()
+    scene = CodexScene(app)
+    scene.build()
+    return scene
+
+
+def _all_texts(scene: Any) -> list[str]:
+    return [kw.get("text", "") for (_k, _a, kw) in scene.app.canvas.items.values() if _k == "text"]
+
+
+def test_codex_scene_builds_with_grid(tmp_path: Any, monkeypatch: Any) -> None:
+    scene = _codex_scene(tmp_path, monkeypatch)
+    assert len(scene._cards) == 15
+    texts = _all_texts(scene)
+    assert any("도감" in t for t in texts)
+    # 진행도 게이지 노출.
+    assert any("역사 노트" in t and "/15" in t for t in texts)
+
+
+def test_codex_scene_locked_cards_show_lock(tmp_path: Any, monkeypatch: Any) -> None:
+    """세이브 없으면 auto 해금분만 → 잠금 카드(codex.locked)가 다수 노출."""
+    scene = _codex_scene(tmp_path, monkeypatch)
+    texts = _all_texts(scene)
+    assert any("해금되지 않은" in t for t in texts)
+
+
+def test_codex_scene_unlocked_reflects_save(tmp_path: Any, monkeypatch: Any) -> None:
+    from src.core.save_slot import SaveSlot, save_save_slot
+    from src.systems.codex_progress import store_unlocked_ids
+
+    monkeypatch.setenv("ANSISEONG_HOME", str(tmp_path))
+    slot = SaveSlot()
+    store_unlocked_ids(slot, {"codex_02", "codex_07"})
+    save_save_slot(slot)
+
+    from src.scenes.codex_scene import CodexScene
+
+    app = FakeApp()
+    scene = CodexScene(app)
+    scene.build()
+    assert "codex_02" in scene._owned
+    assert "codex_07" in scene._owned
+
+
+def test_codex_detail_opens_and_shows_body_and_source(tmp_path: Any, monkeypatch: Any) -> None:
+    scene = _codex_scene(tmp_path, monkeypatch)
+    card = next(c for c in scene._cards if c.id == "codex_01")  # auto unlocked
+    scene._open_detail(card)
+    texts = _all_texts(scene)
+    assert any(card.title in t for t in texts)
+    assert any(card.body[:20] in t for t in texts)
+    assert any("출처:" in t for t in texts)
+
+
+def test_codex_detail_hanmun_toggle(tmp_path: Any, monkeypatch: Any) -> None:
+    scene = _codex_scene(tmp_path, monkeypatch)
+    card = next(c for c in scene._cards if c.id == "codex_01")  # has source_original
+    scene._open_detail(card)
+    # 토글 닫힘 상태에선 원문 본문 미노출.
+    assert all(card.source_original not in t for t in _all_texts(scene) if card.source_original)
+    scene._hanmun_open = True
+    scene._refresh_hanmun_body(card)
+    assert any(card.source_original in t for t in _all_texts(scene))
+
+
+def test_codex_legend_card_has_no_hanmun(tmp_path: Any, monkeypatch: Any) -> None:
+    """EP2/DECISION-EDU-003: [전승] 카드는 한문 원문이 없어 토글이 뜨지 않는다."""
+    scene = _codex_scene(tmp_path, monkeypatch)
+    card = next(c for c in scene._cards if c.id == "codex_07")  # legend
+    assert card.source_original is None
+    scene._owned.add(card.id)
+    scene._open_detail(card)
+    # 토글 라벨이 노출되지 않음.
+    assert all(STRINGS_KEY_TOGGLE not in t for t in _all_texts(scene))
+
+
+STRINGS_KEY_TOGGLE = "한문 원문 보기"

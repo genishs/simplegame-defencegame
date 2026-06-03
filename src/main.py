@@ -38,6 +38,7 @@ def _enable_dpi_awareness() -> None:
 def _register_scenes(app: App) -> None:
     """모든 씬을 App에 등록. 임포트 위치를 좁혀 순환을 방지."""
     from src.scenes.battle_scene import BattleScene
+    from src.scenes.codex_scene import CodexScene
     from src.scenes.ending_scene import EndingScene
     from src.scenes.menu_scene import MenuScene
     from src.scenes.stage_select_scene import StageSelectScene
@@ -49,6 +50,8 @@ def _register_scenes(app: App) -> None:
     app.register_scene("ending", EndingScene)
     # Phase 4 / Issue #26 — 튜토리얼 (DECISION-DL-P4-003).
     app.register_scene("tutorial", TutorialScene)
+    # Phase 5 / 교육 통합 H5 — 도감 (codex_scene). menu.codex 라우팅 결선.
+    app.register_scene("codex", CodexScene)
 
 
 def _resolve_initial_scene() -> str:
