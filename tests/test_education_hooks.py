@@ -154,3 +154,116 @@ def test_every_loaded_unit_has_history_blurb() -> None:
     scene = _battle("stage_01")
     for uid, udef in scene._units_db.items():
         assert getattr(udef, "history_blurb", None), uid
+
+
+# ---------------------------------------------------------------------------
+# H2/H6 — EducationSessionState (systems, tk-free)
+# ---------------------------------------------------------------------------
+def _state() -> Any:
+    from src.systems.education_state import EducationSessionState
+
+    return EducationSessionState()
+
+
+def test_enemy_seen_first_time_only() -> None:
+    st = _state()
+    assert st.should_show_enemy_banner("tang_soldier") is True
+    assert st.mark_enemy_seen("tang_soldier") is True  # 최초
+    assert st.mark_enemy_seen("tang_soldier") is False  # 2회째
+    assert st.should_show_enemy_banner("tang_soldier") is False
+
+
+def test_enemy_seen_empty_type_graceful() -> None:
+    st = _state()
+    assert st.mark_enemy_seen("") is False
+    assert st.should_show_enemy_banner("") is False
+
+
+def test_label_toast_only_for_legend_and_fiction() -> None:
+    st = _state()
+    assert st.should_show_label_toast("legend") is True
+    assert st.should_show_label_toast("fiction") is True
+    # fact / fact_adapted 는 토스트 없음.
+    assert st.should_show_label_toast("fact") is False
+    assert st.should_show_label_toast("fact_adapted") is False
+    assert st.mark_label_seen("fact") is False
+
+
+def test_label_toast_first_time_only() -> None:
+    st = _state()
+    assert st.mark_label_seen("legend") is True
+    assert st.mark_label_seen("legend") is False
+    assert st.should_show_label_toast("legend") is False
+
+
+def test_state_reset() -> None:
+    st = _state()
+    st.mark_enemy_seen("tang_soldier")
+    st.mark_label_seen("legend")
+    st.reset()
+    assert st.should_show_enemy_banner("tang_soldier") is True
+    assert st.should_show_label_toast("legend") is True
+
+
+# ---------------------------------------------------------------------------
+# H2/H6 — BattleScene 통합
+# ---------------------------------------------------------------------------
+def _banner_texts(scene: Any) -> list[str]:
+    texts: list[str] = []
+    for _i, (kind, _args, kw) in scene.app.canvas.items.items():
+        if kind == "text" and "notice_banner" in (kw.get("tags") or ()):
+            texts.append(kw.get("text", ""))
+    return texts
+
+
+def _toast_texts(scene: Any) -> list[str]:
+    texts: list[str] = []
+    for _i, (kind, _args, kw) in scene.app.canvas.items.items():
+        if kind == "text" and "notice_toast" in (kw.get("tags") or ()):
+            texts.append(kw.get("text", ""))
+    return texts
+
+
+def test_legend_toast_shown_on_battle_enter_once() -> None:
+    """H6: 전투 진입 시 [전승] 토스트 1회. 같은 세션 두 번째 전투에선 안 뜸."""
+    from src.scenes.battle_scene import BattleScene
+
+    app = FakeApp()
+    scene1 = BattleScene(app, stage_id="stage_01")
+    scene1.build()
+    assert any("전승" in t for t in _toast_texts(scene1))
+    # 같은 app(세션) 의 두 번째 전투 — 토스트 재노출 금지.
+    # (씬 전환을 모사: 이전 씬 teardown 으로 캔버스 정리 후 새 씬 build.)
+    scene1.teardown()
+    scene2 = BattleScene(app, stage_id="stage_02")
+    scene2.build()
+    assert _toast_texts(scene2) == []
+
+
+def test_enemy_intro_banner_first_spawn_once() -> None:
+    """H2: 적 타입 최초 스폰 1회 배너. 2회째 스폰엔 안 뜸."""
+    scene = _battle("stage_01")
+    scene._spawn_enemy("tang_soldier", scene.stage.paths[0].id)
+    first = [t for t in _banner_texts(scene) if "당군 보병" in t]
+    assert len(first) == 1
+    scene._spawn_enemy("tang_soldier", scene.stage.paths[0].id)
+    again = [t for t in _banner_texts(scene) if "당군 보병" in t]
+    assert len(again) == 1  # 여전히 1회분만(2회째 추가 없음)
+
+
+def test_enemy_banner_graceful_for_undefined_type() -> None:
+    """R-3: enemies.json 에 없는 적 타입은 배너 생략(크래시 금지)."""
+    scene = _battle("stage_05")
+    # stage_05 spawn 타입 중 enemies.json 키에 없는 것(예: tang_heavy_infantry).
+    scene._spawn_enemy("tang_heavy_infantry", scene.stage.paths[0].id)
+    # 크래시 없이 통과 + 배너 텍스트에 미정의 타입 관련 항목 없음.
+    assert all("당군 보병" not in t for t in _banner_texts(scene))
+
+
+def test_notices_auto_dismiss() -> None:
+    scene = _battle("stage_01")
+    scene._spawn_enemy("tang_soldier", scene.stage.paths[0].id)
+    assert scene._notices.active_count >= 1
+    # 충분히 긴 시간 경과 → 전부 소멸.
+    scene._notices.update(10.0)
+    assert scene._notices.active_count == 0

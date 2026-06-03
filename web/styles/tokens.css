@@ -1,0 +1,103 @@
+/* =========================================================================
+   안시성 디펜스 — 디자인 토큰 (Design Tokens)
+   출처: docs/03_game_design_document.md §9.1 컬러 팔레트 (HEX 그대로 토큰화)
+   이 파일은 색/타이포/간격/모션의 단일 출처(SSOT)다.
+   ========================================================================= */
+
+:root {
+  /* ---- 고구려 (아군) — GDD §9.1 ---- */
+  --goguryeo-blue: #2D5A8C;   /* 메인 청색: 갑옷, 깃발 */
+  --ochre:         #C8954D;   /* 황토: 가슴판, 액센트 */
+  --forest:        #4A6B3A;   /* 짙은 녹: 자연·식물 */
+  --beige:         #E8DCC4;   /* 따뜻한 베이지: 살색·천 */
+  --deep-brown:    #6B4A2B;   /* 깊은 갈색: 머리·가죽·외곽선 */
+
+  /* ---- 당군 (적) — GDD §9.1 ---- */
+  --tang-red:      #A02E2E;   /* 짙은 적색: 갑옷·깃발 */
+  --tang-black:    #2A2A2A;   /* 검정: 투구·가죽 */
+  --tang-gold:     #D4A84A;   /* 금색: 장식·엘리트 */
+  --tang-gray:     #6E6E6E;   /* 회색: 공성병기 */
+
+  /* ---- 환경 / UI — GDD §9.1 ---- */
+  --sky:           #B8D4E8;   /* 낮 배경 */
+  --night:         #1A2438;   /* 야간 짙은 청 */
+  --soil:          #8B7355;   /* 평지 토양 */
+  --wall-gray:     #9A8E7F;   /* 석조 성벽 */
+  --ui-gold:       #D4A84A;   /* UI 강조 */
+  --ui-dark:       #2A2018;   /* UI 패널 배경 */
+
+  /* ---- 라벨 칩 의미색 (사실/전승/픽션) ---- */
+  --chip-fact-bg:     var(--goguryeo-blue);
+  --chip-fact-fg:     #FFFFFF;
+  --chip-adapted-bg:  var(--forest);
+  --chip-adapted-fg:  #FFFFFF;
+  --chip-legend-bg:   var(--ochre);
+  --chip-legend-fg:   #2A2018;
+  --chip-fiction-bg:  var(--tang-red);
+  --chip-fiction-fg:  #FFFFFF;
+
+  /* ---- 시맨틱 표면색 (따뜻한 한지 톤) ---- */
+  --bg:            #F4ECDD;   /* 한지 배경 (베이지보다 밝게) */
+  --bg-grad-top:   #FBF6EC;
+  --bg-grad-bot:   #EADFC8;
+  --surface:       #FFFDF8;   /* 카드 표면 */
+  --surface-alt:   #F0E6D2;
+  --ink:           #2A2018;   /* 본문 글자 (UI 다크 재사용) */
+  --ink-soft:      #6B5A42;   /* 보조 글자 */
+  --ink-faint:     #9A8A70;   /* 흐린 글자 */
+  --line:          #D9CBAE;   /* 구분선 */
+  --line-strong:   #C8954D;   /* 강조 구분선 (황토) */
+
+  /* ---- 타이포 ---- */
+  --font-body: "Noto Sans KR", "Malgun Gothic", "맑은 고딕", "AppleGothic",
+               system-ui, -apple-system, sans-serif;
+  --font-serif: "Nanum Myeongjo", "Noto Serif KR", "바탕", Batang, serif;
+
+  /* 글씨 크기 스케일 (data-fontsize 로 배율 조정) */
+  --fs-scale: 1;
+  --fs-xs:   calc(0.75rem  * var(--fs-scale));
+  --fs-sm:   calc(0.875rem * var(--fs-scale));
+  --fs-base: calc(1rem     * var(--fs-scale));
+  --fs-md:   calc(1.125rem * var(--fs-scale));
+  --fs-lg:   calc(1.375rem * var(--fs-scale));
+  --fs-xl:   calc(1.75rem  * var(--fs-scale));
+  --fs-2xl:  calc(2.25rem  * var(--fs-scale));
+
+  /* ---- 간격 ---- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-8: 3rem;
+
+  /* ---- 라운드 / 그림자 (tkinter가 못하던 "따뜻함" 표현) ---- */
+  --radius-sm: 8px;
+  --radius:    14px;
+  --radius-lg: 22px;
+  --shadow-soft: 0 2px 8px rgba(107, 74, 43, 0.10),
+                 0 8px 24px rgba(107, 74, 43, 0.10);
+  --shadow-lift: 0 6px 16px rgba(107, 74, 43, 0.16),
+                 0 16px 40px rgba(107, 74, 43, 0.16);
+  --shadow-modal: 0 24px 60px rgba(42, 32, 24, 0.45);
+
+  /* ---- 포커스 링 ---- */
+  --focus-ring: 0 0 0 3px rgba(45, 90, 140, 0.35),
+                0 0 0 5px rgba(212, 168, 74, 0.55);
+
+  /* ---- 모션 ---- */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 220ms;
+}
+
+/* 글씨 크기 3단계 — 루트 속성 토글 (GDD §12.1: 100/125/150%) */
+:root[data-fontsize="100"] { --fs-scale: 1;    }
+:root[data-fontsize="125"] { --fs-scale: 1.25; }
+:root[data-fontsize="150"] { --fs-scale: 1.5;  }
+
+/* 모션 민감 사용자 배려 */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; }
+  * { animation: none !important; scroll-behavior: auto !important; }
+}

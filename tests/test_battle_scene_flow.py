@@ -74,6 +74,15 @@ class FakeCanvas:
     def delete(self, i: Any) -> None:
         if isinstance(i, int):
             self.items.pop(i, None)
+        elif isinstance(i, str):
+            # tk Canvas 는 태그 문자열로도 삭제 가능. "all" 은 전체 삭제.
+            # 교육 통합 H2/H6 씬 전환 모사(teardown by tag) 지원.
+            if i == "all":
+                self.items.clear()
+                return
+            to_del = [k for k, (_kind, _args, kw) in self.items.items() if i in (kw.get("tags") or ())]
+            for k in to_del:
+                self.items.pop(k, None)
 
     def tag_bind(self, *args: Any, **kw: Any) -> None:
         pass
@@ -165,6 +174,10 @@ class FakeApp:
         self.events = FakeEventBus()
         self.root = FakeRoot()
         self.sound = FakeSoundManager()  # Phase 5.1 BGM 통합 대응
+        # 교육 통합(H2/H6): 세션 최초 노출 상태(tk-free).
+        from src.systems.education_state import EducationSessionState
+
+        self.education = EducationSessionState()
         self._goto_calls: list[str] = []
 
     def goto(self, name: str, **kwargs: Any) -> None:

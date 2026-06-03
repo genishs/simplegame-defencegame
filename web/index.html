@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko" data-fontsize="100" data-colorblind="off">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>안시성 디펜스 — 역사 노트 코덱스</title>
+  <meta name="description" content="645년 안시성 전투를 다룬 한국사 타워디펜스 '안시성 디펜스'의 역사 노트 도감. 사실·전승·픽션을 명확히 구분한 15장의 역사 카드." />
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+
+  <!-- ============ 헤더 + 접근성 컨트롤 ============ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="mark">안시성 디펜스</span>
+        <span class="sub">역사 노트 코덱스</span>
+      </div>
+
+      <div class="a11y-controls">
+        <div class="control-group" role="group" aria-label="글씨 크기">
+          <span class="label">글씨 크기</span>
+          <div class="seg">
+            <button type="button" data-fontsize-btn="100" aria-pressed="true">100%</button>
+            <button type="button" data-fontsize-btn="125" aria-pressed="false">125%</button>
+            <button type="button" data-fontsize-btn="150" aria-pressed="false">150%</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <button class="toggle" type="button" data-colorblind-btn aria-pressed="false">
+            <span class="dot" aria-hidden="true"></span> 색약 모드
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="intro">
+      <h1>역사 노트 — 안시성 645</h1>
+      <p>
+        교과서 속 안시성 전투를 카드 15장으로 정리했습니다. 각 카드는
+        <strong>사실 · 전승 · 픽션</strong>을 라벨로 구분합니다. 사료에 근거한 것은 사료대로,
+        후대의 야사는 야사대로 — 단정하지 않고, 출처를 함께 밝힙니다.
+      </p>
+    </section>
+
+    <!-- ============ 탭 ============ -->
+    <nav class="tabs" role="tablist" aria-label="도감 분류">
+      <button role="tab" id="tab-codex" aria-controls="panel-codex" aria-selected="true" tabindex="0">역사 노트</button>
+      <button role="tab" id="tab-units" aria-controls="panel-units" aria-selected="false" tabindex="-1">아군 유닛</button>
+      <button role="tab" id="tab-enemies" aria-controls="panel-enemies" aria-selected="false" tabindex="-1">당군 적</button>
+    </nav>
+
+    <!-- ---- 역사 노트 패널 ---- -->
+    <section class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex">
+      <div class="legend" role="group" aria-label="라벨로 필터링">
+        <span class="legend-title">라벨</span>
+        <button class="filter-btn" type="button" data-filter="all" aria-pressed="true">전체</button>
+        <button class="filter-btn" type="button" data-filter="fact" aria-pressed="false">
+          <span class="chip chip--fact"><span class="chip-mark" aria-hidden="true">●</span>사실</span>
+        </button>
+        <button class="filter-btn" type="button" data-filter="fact-adapted" aria-pressed="false">
+          <span class="chip chip--fact-adapted"><span class="chip-mark" aria-hidden="true">◑</span>사실+각색</span>
+        </button>
+        <button class="filter-btn" type="button" data-filter="legend" aria-pressed="false">
+          <span class="chip chip--legend"><span class="chip-mark" aria-hidden="true">▲</span>전승</span>
+        </button>
+        <button class="filter-btn" type="button" data-filter="fiction" aria-pressed="false">
+          <span class="chip chip--fiction"><span class="chip-mark" aria-hidden="true">✦</span>픽션</span>
+        </button>
+      </div>
+
+      <ul class="card-grid" id="codex-list" aria-label="역사 노트 카드 목록">
+        <!-- JS 렌더 -->
+      </ul>
+    </section>
+
+    <!-- ---- 아군 유닛 패널 ---- -->
+    <section class="tabpanel" id="panel-units" role="tabpanel" aria-labelledby="tab-units" hidden>
+      <ul class="entity-grid" id="unit-list" aria-label="아군 유닛 목록"></ul>
+    </section>
+
+    <!-- ---- 당군 적 패널 ---- -->
+    <section class="tabpanel" id="panel-enemies" role="tabpanel" aria-labelledby="tab-enemies" hidden>
+      <ul class="entity-grid" id="enemy-list" aria-label="당군 적 목록"></ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>콘텐츠 출처: <code>docs/story/09_codex.md</code> (코덱스 v1.0 — 라벨 SSOT) · 디자인 토큰: GDD §9.1 컬러 팔레트</p>
+    <p>사료 1차 출처: 삼국사기 · 자치통감 · 한국민족문화대백과사전 · 우리역사넷. 야사는 [전승] 라벨로 명시.</p>
+    <p>전체이용가 · 가족 친화 · 한국사 교육용. 정적 웹 도감 MVP (Track B).</p>
+  </footer>
+
+  <!-- ============ 카드 상세 모달 (<dialog>) ============ -->
+  <dialog class="detail" id="detail-dialog" aria-labelledby="detail-title">
+    <div class="detail-inner">
+      <div class="detail-head">
+        <span class="detail-num"></span>
+        <h2 id="detail-title"></h2>
+        <span class="detail-chip"></span>
+        <button class="detail-close" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="detail-body"></div>
+    </div>
+  </dialog>
+
+  <script type="module" src="scripts/app.js"></script>
+</body>
+</html>

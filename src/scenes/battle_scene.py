@@ -30,6 +30,7 @@ from src.systems.wave import WaveSystem
 from src.ui.caption_overlay import CaptionOverlay
 from src.ui.dialog import PauseDialog, ResultDialog
 from src.ui.hud import HUD
+from src.ui.notice_overlay import NoticeManager
 
 if TYPE_CHECKING:
     from src.core.app import App
@@ -112,6 +113,8 @@ class BattleScene(BaseScene):
         self._result_dialog: ResultDialog | None = None
         # 교육 통합 H1: 도입 역사 캡션 오버레이 (비모달, 자동 소멸).
         self._caption_overlay: CaptionOverlay | None = None
+        # 교육 통합 H2/H6: 적 첫 등장 배너 + 라벨 첫 노출 토스트 매니저.
+        self._notices: NoticeManager | None = None
 
         # 상태 플래그
         self._paused: bool = False
@@ -326,10 +329,19 @@ class BattleScene(BaseScene):
             )
             self._caption_overlay.build()
 
+        # 교육 통합 H2/H6: 공지 매니저 생성.
+        self._notices = NoticeManager(canvas, scaler, tag=self._tag)
+        # H6: 영웅 이름 라벨 '[전승]'이 전투 진입 시 노출되므로(HUD hero.name_label),
+        # legend 라벨 첫 노출 토스트를 게임 내 최초 1회 띄운다(세션 상태가 1회 보장).
+        self._maybe_show_label_toast("legend")
+
     def update(self, dt: float) -> None:
         # 교육 통합 H1: 캡션은 비모달 — 일시정지/게임오버와 무관하게 페이드 진행.
         if self._caption_overlay is not None and not self._caption_overlay.done:
             self._caption_overlay.update(dt)
+        # 교육 통합 H2/H6: 공지(배너/토스트)도 비모달 — 시간 경과로 자동 소멸.
+        if self._notices is not None:
+            self._notices.update(dt)
 
         if self._paused or self._game_over or self.stage is None:
             return
@@ -957,6 +969,8 @@ class BattleScene(BaseScene):
             start_x, start_y = waypoints[0]
             enemy = Enemy(x=start_x, y=start_y, enemy_def=enemy_def, path_id=path_id)
             self.world["enemies"].append(enemy)
+            # 교육 통합 H2: 적 타입 최초 스폰 1회 인트로 배너.
+            self._maybe_show_enemy_banner(enemy_type, enemy_def)
             self._log.debug(
                 "spawned %s on %s at (%.1f, %.1f)",
                 enemy_type,
@@ -966,6 +980,37 @@ class BattleScene(BaseScene):
             )
         except Exception as exc:  # noqa: BLE001
             self._log.warning("spawn_enemy failed: %s", exc)
+
+    # ------------------------------------------------------------------
+    # 교육 통합 H2/H6 — 적 첫 등장 배너 / 라벨 첫 노출 토스트
+    # ------------------------------------------------------------------
+    def _maybe_show_enemy_banner(self, enemy_type: str, enemy_def: EnemyDef) -> None:
+        """적 타입 최초 스폰 시 인트로 배너 1회 (H2, docs/15 §3.1).
+
+        R-3: intro_banner 키가 있는 적만 표시. 미정의 적 타입(또는 빈 문자열)은
+        graceful 생략(크래시 금지). "최초 1회" 판정은 세션 상태(tk-free)가 담당.
+        """
+        edu = getattr(self.app, "education", None)
+        if edu is None or self._notices is None:
+            return
+        banner_text = getattr(enemy_def, "intro_banner", None)
+        if not banner_text:
+            # intro_banner 미정의 적은 노출 생략(R-3). 단, "보았음" 마킹도 하지
+            # 않아 추후 같은 타입에 배너가 생기면 표시될 수 있게 둔다.
+            return
+        # 멱등 마킹 — 이번이 최초였을 때만 배너 표시.
+        if edu.mark_enemy_seen(enemy_type):
+            self._notices.show_banner(banner_text)
+
+    def _maybe_show_label_toast(self, label: str) -> None:
+        """[전승]/[픽션] 라벨 게임 내 최초 노출 토스트 1회 (H6, docs/15 §4.1 R3)."""
+        from src.ui.edu_strings import LABEL_TOAST_TEXT
+
+        edu = getattr(self.app, "education", None)
+        if edu is None or self._notices is None:
+            return
+        if edu.mark_label_seen(label):
+            self._notices.show_toast(LABEL_TOAST_TEXT.get(label, ""))
 
     # ------------------------------------------------------------------
     # 유닛 배치 UI (Issue #56, DECISION-DL-P4D-008)

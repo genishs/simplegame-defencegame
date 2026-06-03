@@ -1520,9 +1520,7 @@ class TutorialScene(BaseScene):
         hint_id = getattr(self, "_cta_hint_id", None)
         if hint_id is not None:
             try:
-                canvas.itemconfig(
-                    hint_id, text="직접 조작 모드 ON — 영웅이 움직입니다", fill="#3fbf6f"
-                )
+                canvas.itemconfig(hint_id, text="직접 조작 모드 ON — 영웅이 움직입니다", fill="#3fbf6f")
             except Exception:  # noqa: BLE001
                 pass
 
@@ -1603,9 +1601,7 @@ class TutorialScene(BaseScene):
         hint_id = getattr(self, "_cta_hint_id", None)
         if hint_id is not None:
             try:
-                canvas.itemconfig(
-                    hint_id, text="일시정지됨 — Space 다시 누르면 재개", fill="#f0c040"
-                )
+                canvas.itemconfig(hint_id, text="일시정지됨 — Space 다시 누르면 재개", fill="#f0c040")
             except Exception:  # noqa: BLE001
                 pass
 

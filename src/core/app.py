@@ -70,6 +70,11 @@ class App:
         self.assets = AssetManager()
         self.scaler = Scaler()
         self.sound = SoundManager()
+        # 교육 통합(H2/H6): 세션 단위 최초 노출 상태(tk-free). 씬 전환에도 유지되어
+        # 배너/토스트가 게임 내 최초 1회만 뜨도록 보장한다(docs/15 §3.1·§4, R-5).
+        from src.systems.education_state import EducationSessionState
+
+        self.education = EducationSessionState()
 
         # 씬.
         self.current_scene: BaseScene | None = None
