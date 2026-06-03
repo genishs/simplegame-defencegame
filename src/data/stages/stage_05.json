@@ -116,5 +116,12 @@
       ]
     }
   ],
-  "reward": { "gold": 600, "grain": 300 }
+  "reward": { "gold": 600, "grain": 300 },
+  "endurance": {
+    "duration_s": 180.0,
+    "time_weight": 0.6,
+    "wave_weight": 0.3,
+    "kill_weight": 0.1,
+    "kills_for_full": 80
+  }
 }

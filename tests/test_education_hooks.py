@@ -463,3 +463,94 @@ def test_codex_legend_card_has_no_hanmun(tmp_path: Any, monkeypatch: Any) -> Non
 
 
 STRINGS_KEY_TOGGLE = "한문 원문 보기"
+
+
+# ---------------------------------------------------------------------------
+# H7 — EnduranceSystem (systems, tk-free)
+# ---------------------------------------------------------------------------
+def test_endurance_fills_over_time() -> None:
+    from src.systems.endurance import EnduranceConfig, EnduranceSystem
+
+    sys = EnduranceSystem(EnduranceConfig(duration_s=10.0))
+    sys.update(0.0)
+    assert sys.fill == 0.0
+    sys.update(5.0, wave_progress=0.0, kills=0)
+    mid = sys.fill
+    assert 0.0 < mid < 1.0
+    # 충분한 시간 + 웨이브 + 처치로 가득.
+    for _ in range(20):
+        sys.update(1.0, wave_progress=1.0, kills=100)
+    assert sys.fill >= 1.0
+    assert sys.victory is True
+
+
+def test_endurance_victory_edge_returns_true_once() -> None:
+    from src.systems.endurance import EnduranceConfig, EnduranceSystem
+
+    sys = EnduranceSystem(EnduranceConfig(duration_s=1.0, kills_for_full=1))
+    edges = [sys.update(1.0, wave_progress=1.0, kills=10) for _ in range(3)]
+    # 최초 1회만 True(엣지), 이후 False(래치 유지).
+    assert edges[0] is True
+    assert edges[1] is False
+    assert sys.victory is True
+
+
+def test_endurance_config_from_meta_defaults() -> None:
+    from src.systems.endurance import EnduranceConfig
+
+    cfg = EnduranceConfig.from_meta(None)
+    assert cfg.duration_s == 180.0
+    cfg2 = EnduranceConfig.from_meta({"duration_s": 60.0, "kills_for_full": 40})
+    assert cfg2.duration_s == 60.0
+    assert cfg2.kills_for_full == 40
+
+
+def test_stage_05_loads_endurance_meta() -> None:
+    from src.data.loader import load_stage
+
+    stage = load_stage("stage_05")
+    assert stage.endurance is not None
+    assert stage.endurance["duration_s"] == 180.0
+
+
+def test_other_stages_have_no_endurance() -> None:
+    from src.data.loader import load_stage
+
+    assert load_stage("stage_01").endurance is None
+
+
+# ---------------------------------------------------------------------------
+# H7 — BattleScene 통합
+# ---------------------------------------------------------------------------
+def test_battle_stage_05_has_endurance_gauge() -> None:
+    scene = _battle("stage_05")
+    assert scene._endurance is not None
+    assert scene._endurance_gauge is not None
+
+
+def test_battle_non_final_stage_has_no_endurance() -> None:
+    scene = _battle("stage_01")
+    assert scene._endurance is None
+    assert scene._endurance_gauge is None
+
+
+def test_battle_endurance_victory_ends_battle(tmp_path: Any, monkeypatch: Any) -> None:
+    monkeypatch.setenv("ANSISEONG_HOME", str(tmp_path))
+    scene = _battle("stage_05")
+    # 게이지를 강제로 가득 채워 다음 틱에 버티기 승리 성립.
+    scene._enemies_defeated = 1000
+    # duration 을 짧게 덮어써 빠르게 도달.
+    from src.systems.endurance import EnduranceConfig, EnduranceSystem
+
+    # 시간 축 단독으로 가득 차도록 가중치 구성(웨이브 미진행 환경에서도 결정론적).
+    scene._endurance = EnduranceSystem(
+        EnduranceConfig(
+            duration_s=0.1,
+            time_weight=1.0,
+            wave_weight=0.0,
+            kill_weight=0.0,
+            kills_for_full=1,
+        )
+    )
+    scene.update(0.2)
+    assert scene._game_over is True

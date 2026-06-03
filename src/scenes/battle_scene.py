@@ -25,10 +25,12 @@ from src.data.loader import EnemyDef, StageDef, UnitDef, load_enemies, load_stag
 from src.scenes.base_scene import BaseScene
 from src.systems.combat import CombatSystem
 from src.systems.economy import EconomySystem
+from src.systems.endurance import EnduranceConfig, EnduranceSystem
 from src.systems.pathing import PathingSystem
 from src.systems.wave import WaveSystem
 from src.ui.caption_overlay import CaptionOverlay
 from src.ui.dialog import PauseDialog, ResultDialog
+from src.ui.endurance_gauge import EnduranceGauge
 from src.ui.hud import HUD
 from src.ui.notice_overlay import NoticeManager
 
@@ -117,6 +119,11 @@ class BattleScene(BaseScene):
         self._caption_overlay: CaptionOverlay | None = None
         # 교육 통합 H2/H6: 적 첫 등장 배너 + 라벨 첫 노출 토스트 매니저.
         self._notices: NoticeManager | None = None
+        # 교육 통합 H7: 토산 버티기 게이지(스테이지5 전용). 시스템(상태)+게이지(표시).
+        self._endurance: EnduranceSystem | None = None
+        self._endurance_gauge: EnduranceGauge | None = None
+        # H7 충전 보조 축: 누적 적 처치 수.
+        self._enemies_defeated: int = 0
 
         # 상태 플래그
         self._paused: bool = False
@@ -331,6 +338,17 @@ class BattleScene(BaseScene):
             )
             self._caption_overlay.build()
 
+        # 교육 통합 H7: 토산 버티기 게이지 — 스테이지5 한정.
+        # endurance 메타가 있거나 stage_05 이면 활성. 시스템(tk-free)+게이지(표시).
+        if self.stage is not None and (
+            getattr(self.stage, "endurance", None) is not None or self.stage_id == "stage_05"
+        ):
+            self._endurance = EnduranceSystem(
+                EnduranceConfig.from_meta(getattr(self.stage, "endurance", None))
+            )
+            self._endurance_gauge = EnduranceGauge(canvas, scaler, tag=self._tag)
+            self._endurance_gauge.build()
+
         # 교육 통합 H2/H6: 공지 매니저 생성.
         self._notices = NoticeManager(canvas, scaler, tag=self._tag)
         # H6: 영웅 이름 라벨 '[전승]'이 전투 진입 시 노출되므로(HUD hero.name_label),
@@ -407,6 +425,9 @@ class BattleScene(BaseScene):
 
         # 죽은 적 정리
         self._cleanup_dead()
+
+        # 교육 통합 H7: 버티기 게이지 갱신 (스테이지5). 가득 차면 "버티기 승리".
+        self._tick_endurance(dt)
 
         # 승/패 판정
         self._check_end_conditions()
@@ -1449,10 +1470,35 @@ class BattleScene(BaseScene):
                 self.world[key] = [e for e in lst if getattr(e, "alive", True)]
                 # 적 사망 SFX (1번만 재생 — 동시 다수 사망 시에도 단발)
                 if dead_enemies:
+                    # H7: 누적 처치 수(버티기 게이지 보조 축). castle breach 로 사라진
+                    # 적은 _apply_castle_breaches 가 별도 처리하므로 여기는 전투 사망분.
+                    self._enemies_defeated += len(dead_enemies)
                     try:
                         self.app.sound.play_sfx("sfx.enemy_die")
                     except Exception:  # noqa: BLE001
                         pass
+
+    def _tick_endurance(self, dt: float) -> None:
+        """버티기 게이지 갱신 + 가득 차면 버티기 승리 처리 (H7, 스테이지5).
+
+        게이지 충전 동력: 시간 경과 + 웨이브 진행 + 누적 처치(systems 가 가중합).
+        가득 차면 적 자멸/철수로 간주하고 승리 처리(_end_battle). 게이지가 없으면
+        (스테이지5 외) no-op. 표시는 EnduranceGauge(ui).
+        """
+        if self._endurance is None or self._game_over:
+            return
+        total_waves = max(1, len(self.wave.waves))
+        wave_progress = max(0.0, min(1.0, self.wave.current_wave / total_waves))
+        became_victory = self._endurance.update(
+            dt,
+            wave_progress=wave_progress,
+            kills=self._enemies_defeated,
+        )
+        if self._endurance_gauge is not None:
+            self._endurance_gauge.update(self._endurance.fill, victory=self._endurance.victory)
+        if became_victory:
+            self._log.info("endurance victory (toesan/cold gauge full) — stage=%s", self.stage_id)
+            self._end_battle(victory=True)
 
     def _check_end_conditions(self) -> None:
         """승/패 판정 및 ResultDialog 표시."""

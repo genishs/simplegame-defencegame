@@ -131,6 +131,8 @@ class StageDef:
     reward: StageReward = field(default_factory=StageReward)
     # 교육 통합(H1): 스테이지 도입 1줄 역사 캡션. 비파괴 기본값 None.
     history_caption: str | None = None
+    # 교육 통합(H7): 토산 "버티기 승리" 게이지 메타(스테이지5 전용). 비파괴 기본값 None.
+    endurance: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -268,6 +270,7 @@ def load_stage(stage_id: str, data_root=DATA_ROOT) -> StageDef:  # type: ignore[
         waves=waves,
         reward=_parse_reward(dict(raw.get("reward", {}))),
         history_caption=raw.get("history_caption"),
+        endurance=dict(raw["endurance"]) if isinstance(raw.get("endurance"), dict) else None,
     )
 
 

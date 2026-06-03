@@ -364,6 +364,16 @@ def validate_stage(raw: Any, *, source: str = "<stage>") -> None:
     if "history_caption" in raw and raw["history_caption"] is not None:
         _require_str(raw, "history_caption", path="", source=source)
 
+    # endurance 는 교육 통합(H7) 토산 "버티기 승리" 게이지 옵션 메타(스테이지5 전용).
+    # docs/15 §2.1 H7 / docs/16 Wave4. 존재할 때만 dict + 옵션 수치 필드 검증(전부 옵션).
+    if "endurance" in raw and raw["endurance"] is not None:
+        end = _require_dict(raw, "endurance", path="", source=source)
+        for fkey in ("duration_s", "time_weight", "wave_weight", "kill_weight"):
+            if fkey in end:
+                _require_number(end, fkey, path="endurance", source=source, minimum=0.0)
+        if "kills_for_full" in end:
+            _require_int(end, "kills_for_full", path="endurance", source=source, minimum=1)
+
     # night_vision_radius_multiplier 는 야간 스테이지 전용 옵션 필드.
     # DECISION-PL-P4-014: 0.5~2.0 범위의 float. 존재할 때만 검증.
     if "night_vision_radius_multiplier" in raw:
