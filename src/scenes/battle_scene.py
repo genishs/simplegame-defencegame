@@ -27,6 +27,7 @@ from src.systems.combat import CombatSystem
 from src.systems.economy import EconomySystem
 from src.systems.pathing import PathingSystem
 from src.systems.wave import WaveSystem
+from src.ui.caption_overlay import CaptionOverlay
 from src.ui.dialog import PauseDialog, ResultDialog
 from src.ui.hud import HUD
 
@@ -109,6 +110,8 @@ class BattleScene(BaseScene):
         self.hud = HUD()
         self._pause_dialog: PauseDialog | None = None
         self._result_dialog: ResultDialog | None = None
+        # 교육 통합 H1: 도입 역사 캡션 오버레이 (비모달, 자동 소멸).
+        self._caption_overlay: CaptionOverlay | None = None
 
         # 상태 플래그
         self._paused: bool = False
@@ -307,7 +310,22 @@ class BattleScene(BaseScene):
         for ch in ("q", "Q", "w", "W", "e", "E"):
             self.app.root.bind(ch, self._on_skill_key)
 
+        # 교육 통합 H1: 스테이지 도입 역사 캡션 (비모달 페이드, 자동 소멸).
+        # StageDef.history_caption 이 None/빈 문자열이면 위젯이 no-op (표시 생략).
+        if self.stage is not None and self._stage_load_error is None:
+            self._caption_overlay = CaptionOverlay(
+                canvas,
+                scaler,
+                getattr(self.stage, "history_caption", None),
+                tag=self._tag,
+            )
+            self._caption_overlay.build()
+
     def update(self, dt: float) -> None:
+        # 교육 통합 H1: 캡션은 비모달 — 일시정지/게임오버와 무관하게 페이드 진행.
+        if self._caption_overlay is not None and not self._caption_overlay.done:
+            self._caption_overlay.update(dt)
+
         if self._paused or self._game_over or self.stage is None:
             return
 
@@ -1420,6 +1438,9 @@ class BattleScene(BaseScene):
         self._toggle_pause()
 
     def _on_space(self, _event: Any) -> None:
+        # H1: 캡션이 떠 있으면 스킵(비모달이라 게임은 그대로 진행).
+        if self._caption_overlay is not None and self._caption_overlay.active:
+            self._caption_overlay.dismiss()
         if self._paused and self._pause_dialog and self._pause_dialog.visible:
             return
         if not self._paused:
