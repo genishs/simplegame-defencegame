@@ -111,6 +111,8 @@ class BattleScene(BaseScene):
         self.hud = HUD()
         self._pause_dialog: PauseDialog | None = None
         self._result_dialog: ResultDialog | None = None
+        # 교육 통합 H4: 결과 화면 해금 카드 앞면 위젯.
+        self._result_card: Any = None
         # 교육 통합 H1: 도입 역사 캡션 오버레이 (비모달, 자동 소멸).
         self._caption_overlay: CaptionOverlay | None = None
         # 교육 통합 H2/H6: 적 첫 등장 배너 + 라벨 첫 노출 토스트 매니저.
@@ -1513,6 +1515,86 @@ class BattleScene(BaseScene):
             on_menu=lambda: self.app.goto("stage_select"),
         )
         self._result_dialog.show()
+
+        # 교육 통합 H4: 승리 시 해금 카드 앞면 연출 + 진행도 영속(L2).
+        if victory:
+            self._present_unlocked_card(stars)
+
+    def _stage_number(self) -> int | None:
+        """``stage_05`` → 5. 파싱 실패 시 None."""
+        try:
+            return int(str(self.stage_id).split("_")[-1])
+        except (ValueError, IndexError):
+            return None
+
+    def _present_unlocked_card(self, stars: int) -> None:
+        """클리어로 해금된 코덱스 카드를 결과 화면에 앞면만 노출 + 세이브 반영.
+
+        DECISION-EDU-001: 앞면(라벨칩+제목+1줄+NEW)만 자동, 본문 강제 금지.
+        DECISION-EDU-004: 획득 카드 집합은 로컬 세이브에만 영속(외부 전송 없음).
+        해금/진행 로직은 tk-free systems(codex_progress), 렌더만 본 씬(ResultCard).
+        graceful: 데이터/세이브 실패 시 카드 연출만 생략하고 결과 화면은 유지.
+        """
+        try:
+            from src.core.save_slot import load_save_slot, save_save_slot
+            from src.data.loader import load_codex
+            from src.systems.codex_progress import (
+                cards_unlocked_by_clear,
+                load_unlocked_ids,
+                store_unlocked_ids,
+            )
+            from src.ui.result_card import ResultCard
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("result card imports failed: %s", exc)
+            return
+
+        stage_no = self._stage_number()
+        if stage_no is None:
+            return
+        try:
+            cards = load_codex()
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("load_codex failed (H4): %s", exc)
+            return
+
+        newly = cards_unlocked_by_clear(cards, stage_no, stars)
+        if not newly:
+            return
+
+        # 세이브 슬롯에 획득 집합 병합 영속(graceful).
+        try:
+            slot = load_save_slot()
+            owned = load_unlocked_ids(slot)
+            owned |= newly
+            store_unlocked_ids(slot, owned)
+            save_save_slot(slot)
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("codex unlock persist failed: %s", exc)
+
+        # 대표 카드 1장 앞면 노출 — 해당 스테이지 stage_clear 카드 우선.
+        by_id = {c.id: c for c in cards}
+        primary = None
+        for cid in sorted(newly):
+            card = by_id.get(cid)
+            if card is not None and card.unlock.type == "stage_clear":
+                primary = card
+                break
+        if primary is None:
+            primary = by_id.get(sorted(newly)[0])
+        if primary is None:
+            return
+
+        try:
+            self._result_card = ResultCard(
+                self.app.canvas,
+                self.app.scaler,
+                primary,
+                on_read=lambda: self.app.goto("codex"),
+                tag=ResultDialog.TAG,
+            )
+            self._result_card.show()
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("result card show failed: %s", exc)
 
     def _compute_hero_spawn_xy(self) -> tuple[float, float]:
         """영웅 스폰 좌표 계산 (Issue #12, DECISION-DL-P3-5-003).

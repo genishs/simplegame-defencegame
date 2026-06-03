@@ -267,3 +267,113 @@ def test_notices_auto_dismiss() -> None:
     # 충분히 긴 시간 경과 → 전부 소멸.
     scene._notices.update(10.0)
     assert scene._notices.active_count == 0
+
+
+# ---------------------------------------------------------------------------
+# H4/H5 — codex_progress (systems, tk-free)
+# ---------------------------------------------------------------------------
+def test_auto_unlocked_includes_codex_01() -> None:
+    from src.data.loader import load_codex
+    from src.systems.codex_progress import auto_unlocked_ids
+
+    cards = load_codex()
+    auto = auto_unlocked_ids(cards)
+    assert "codex_01" in auto  # codex_01 unlock=auto
+
+
+def test_stage_clear_unlocks_cards() -> None:
+    from src.data.loader import load_codex
+    from src.systems.codex_progress import cards_unlocked_by_clear
+
+    cards = load_codex()
+    # stage 1 클리어 → codex_02(stage_clear,1) + codex_07(양만춘, stage_clear,1).
+    s1 = cards_unlocked_by_clear(cards, 1, stars=1)
+    assert "codex_02" in s1
+    assert "codex_07" in s1
+    # stage 5 별3개 전용 카드(codex_13)는 stars<3 이면 미해금.
+    s5_low = cards_unlocked_by_clear(cards, 5, stars=1)
+    assert "codex_13" not in s5_low
+    s5_three = cards_unlocked_by_clear(cards, 5, stars=3)
+    assert "codex_13" in s5_three
+
+
+def test_true_ending_unlocks_card_15() -> None:
+    from src.data.loader import load_codex
+    from src.systems.codex_progress import cards_unlocked_by_true_ending
+
+    cards = load_codex()
+    assert "codex_15" in cards_unlocked_by_true_ending(cards)
+
+
+def test_compute_progress_counts_and_milestone() -> None:
+    from src.data.loader import load_codex
+    from src.systems.codex_progress import compute_progress
+
+    cards = load_codex()
+    prog = compute_progress(cards, {"codex_01", "codex_07"})
+    assert prog.total == 15
+    assert prog.unlocked == 2
+    # codex_07 은 legend, codex_01 은 fact.
+    assert prog.fact == 1
+    assert prog.legend == 1
+    assert prog.milestone_reached() is None
+    # 5장이면 milestone 5.
+    five = compute_progress(cards, {c.id for c in cards[:5]})
+    assert five.milestone_reached() == 5
+    full = compute_progress(cards, {c.id for c in cards})
+    assert full.is_complete is True
+    assert full.milestone_reached() == 15
+
+
+def test_save_roundtrip_unlocked_ids(tmp_path: Any) -> None:
+    from src.core.save_slot import SaveSlot
+    from src.systems.codex_progress import load_unlocked_ids, store_unlocked_ids
+
+    slot = SaveSlot()
+    assert load_unlocked_ids(slot) == set()
+    store_unlocked_ids(slot, {"codex_02", "codex_01"})
+    # to_dict/from_dict 라운드트립으로 영속 유지.
+    revived = SaveSlot.from_dict(slot.to_dict())
+    assert load_unlocked_ids(revived) == {"codex_01", "codex_02"}
+
+
+# ---------------------------------------------------------------------------
+# H4 — ResultCard 렌더 + BattleScene 통합
+# ---------------------------------------------------------------------------
+def test_result_card_shows_front_only() -> None:
+    from src.data.loader import load_codex
+    from src.ui.result_card import ResultCard
+
+    cards = load_codex()
+    card = next(c for c in cards if c.id == "codex_07")  # legend
+    rc = ResultCard(FakeCanvas(), FakeScaler(), card, on_read=lambda: None, tag="dialog_result")
+    rc.show()
+    texts = [kw.get("text", "") for (_k, _a, kw) in rc._canvas.items.values()]
+    # 제목/요약은 노출되지만 본문(body)은 노출되지 않는다(DECISION-EDU-001).
+    assert card.title in texts
+    assert card.summary in texts
+    assert card.body not in texts
+    # 라벨 표기 [전승] 포함.
+    assert any("전승" in t for t in texts)
+
+
+def test_battle_victory_unlocks_and_shows_card(tmp_path: Any, monkeypatch: Any) -> None:
+    monkeypatch.setenv("ANSISEONG_HOME", str(tmp_path))
+    scene = _battle("stage_01")
+    scene._end_battle(victory=True)
+    # 결과 카드가 노출되었다.
+    assert scene._result_card is not None
+    assert scene._result_card.visible is True
+    # 세이브에 해금 카드가 영속되었다.
+    from src.core.save_slot import load_save_slot
+    from src.systems.codex_progress import load_unlocked_ids
+
+    owned = load_unlocked_ids(load_save_slot())
+    assert "codex_02" in owned
+
+
+def test_battle_defeat_shows_no_card(tmp_path: Any, monkeypatch: Any) -> None:
+    monkeypatch.setenv("ANSISEONG_HOME", str(tmp_path))
+    scene = _battle("stage_01")
+    scene._end_battle(victory=False)
+    assert scene._result_card is None
