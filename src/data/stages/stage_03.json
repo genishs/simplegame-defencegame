@@ -1,6 +1,7 @@
 {
   "id": "stage_03",
   "title": "개모성의 횃불",
+  "history_caption": "645년 봄, 개모성은 당군의 첫 공격 대상이었습니다. 본 게임은 이를 횃불로 어둠을 견디는 야간 방어전으로 각색했습니다.",
   "background": "bg_stage_03_night",
   "music": "bgm_battle_03_night",
   "starting_gold": 400,

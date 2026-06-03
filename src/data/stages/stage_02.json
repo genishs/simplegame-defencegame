@@ -1,6 +1,7 @@
 {
   "id": "stage_02",
   "title": "백암성의 항복",
+  "history_caption": "645년 6월, 백암성주 손대음이 백성을 살리기 위해 성문을 엽니다. 항복도 하나의 선택이었습니다.",
   "background": "bg_stage_02",
   "music": "bgm_battle_02",
   "starting_gold": 350,

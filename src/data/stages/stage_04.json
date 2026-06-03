@@ -1,6 +1,7 @@
 {
   "id": "stage_04",
   "title": "안시성 외곽",
+  "history_caption": "주필산에서 구원군 15만이 무너진 뒤, 안시성은 홀로 남았습니다. 당군의 공성 무기가 외곽으로 다가옵니다.",
   "background": "bg_stage_04",
   "music": "bgm_battle_04",
   "starting_gold": 450,

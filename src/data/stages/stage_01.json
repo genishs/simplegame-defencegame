@@ -1,6 +1,7 @@
 {
   "id": "stage_01",
   "title": "요동성의 첫눈",
+  "history_caption": "645년 5월, 당군이 요동으로 밀려옵니다. 큰 성 요동성이 화공과 운제에 무너진 그 길목입니다.",
   "background": "bg_stage_01",
   "music": "bgm_battle_01",
   "starting_gold": 300,

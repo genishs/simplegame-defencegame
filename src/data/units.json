@@ -10,7 +10,8 @@
       "range": 320,
       "projectile": "arrow",
       "sprite": "ally_archer",
-      "size": [48, 64]
+      "size": [48, 64],
+      "history_blurb": "고구려는 활의 강국이었습니다. 세 갈래 날 삼익촉(三翼鏃)과 소리 내며 나는 명적(鳴鏑)이 유명했습니다."
     },
     "spear": {
       "name": "고구려 창병",
@@ -20,7 +21,8 @@
       "atk_speed": 0.9,
       "range": 60,
       "sprite": "ally_spear",
-      "size": [48, 64]
+      "size": [48, 64],
+      "history_blurb": "고구려 보병은 미늘을 엮은 찰갑(札甲)을 두르고 산성을 지켰습니다. 창은 가장 기본이 되는 전열 무기였습니다."
     }
   }
 }

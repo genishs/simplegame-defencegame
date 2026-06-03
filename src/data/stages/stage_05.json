@@ -1,6 +1,7 @@
 {
   "id": "stage_05",
   "title": "안시성 토산",
+  "history_caption": "당군은 60일에 걸쳐 흙으로 토산을 쌓았습니다. 88일의 공방, 추위가 다가오는 마지막 길목입니다 — 버티면, 이깁니다.",
   "background": "bg_stage_05",
   "music": "bgm_battle_05_final",
   "starting_gold": 500,
