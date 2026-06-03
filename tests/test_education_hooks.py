@@ -108,3 +108,49 @@ def test_battle_scene_caption_skips_on_space() -> None:
     assert ov is not None and ov.active
     scene._on_space(None)
     assert ov.done is True
+
+
+# ---------------------------------------------------------------------------
+# H3 — 유닛 사료 툴팁
+# ---------------------------------------------------------------------------
+def _tooltip_item(scene: Any) -> dict[str, Any]:
+    """현재 툴팁 텍스트 아이템의 merged kwargs 반환."""
+    cid = scene._unit_tooltip_text_id
+    _kind, _args, kw = scene.app.canvas.items[cid]
+    return kw
+
+
+def test_unit_tooltip_built_hidden_initially() -> None:
+    scene = _battle("stage_01")
+    assert scene._unit_tooltip_text_id is not None
+    assert _tooltip_item(scene)["state"] == "hidden"
+
+
+def test_unit_tooltip_shows_history_blurb_on_hover() -> None:
+    scene = _battle("stage_01")
+    # archer 는 history_blurb 가 채워져 있다(units.json).
+    scene._show_unit_history_tooltip("archer")
+    kw = _tooltip_item(scene)
+    assert kw["state"] == "normal"
+    assert "활의 강국" in kw["text"]
+
+
+def test_unit_tooltip_hides_on_leave() -> None:
+    scene = _battle("stage_01")
+    scene._show_unit_history_tooltip("archer")
+    scene._hide_unit_history_tooltip()
+    assert _tooltip_item(scene)["state"] == "hidden"
+
+
+def test_unit_tooltip_graceful_when_no_blurb() -> None:
+    scene = _battle("stage_01")
+    # blurb 없는 유닛 id (존재하지 않는 키) → 크래시 없이 숨김 유지.
+    scene._show_unit_history_tooltip("__nonexistent__")
+    assert _tooltip_item(scene)["state"] == "hidden"
+
+
+def test_every_loaded_unit_has_history_blurb() -> None:
+    """QA-EDU-04: 배치 가능한 모든 유닛 툴팁에 사료가 있다(존재 유닛 전수)."""
+    scene = _battle("stage_01")
+    for uid, udef in scene._units_db.items():
+        assert getattr(udef, "history_blurb", None), uid

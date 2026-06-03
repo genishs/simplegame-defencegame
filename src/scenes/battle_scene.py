@@ -150,6 +150,11 @@ class BattleScene(BaseScene):
         self._placement_hint_id: int | None = None
         self._placement_btn_state: dict[str, dict[str, Any]] = {}
         self._build_zone_canvas_ids: dict[int, int] = {}
+        # 교육 통합 H3: 유닛 사료 툴팁 (호버 시 history_blurb 한 줄).
+        # 패널 위에 떠 있는 단일 캔버스 텍스트(+배경) 아이템. 호버 진입 시 채우고
+        # 이탈 시 비운다. 비-호버 상태에서는 빈 문자열로 숨긴다.
+        self._unit_tooltip_bg_id: int | None = None
+        self._unit_tooltip_text_id: int | None = None
 
     # ------------------------------------------------------------------
     # lifecycle
@@ -1051,9 +1056,23 @@ class BattleScene(BaseScene):
                 return _h
 
             handler = _make_select(unit_id)
+
+            # 교육 통합 H3: 호버 시 사료 한 줄 툴팁 표시 / 이탈 시 숨김.
+            def _make_hover(uid: str) -> tuple[Any, Any]:
+                def _enter(_e: Any) -> None:
+                    self._show_unit_history_tooltip(uid)
+
+                def _leave(_e: Any) -> None:
+                    self._hide_unit_history_tooltip()
+
+                return _enter, _leave
+
+            on_enter, on_leave = _make_hover(unit_id)
             for iid in (rect_id, name_id, cost_id):
                 try:
                     canvas.tag_bind(iid, "<ButtonRelease-1>", handler)
+                    canvas.tag_bind(iid, "<Enter>", on_enter)
+                    canvas.tag_bind(iid, "<Leave>", on_leave)
                 except Exception:  # noqa: BLE001
                     pass
 
@@ -1062,6 +1081,9 @@ class BattleScene(BaseScene):
                 "name_id": name_id,
                 "cost_id": cost_id,
             }
+
+        # H3 툴팁 아이템 (패널 위쪽). 기본 빈 문자열(숨김 상태).
+        self._build_unit_history_tooltip()
 
     def _draw_placement_hint(self) -> None:
         """배치 안내 텍스트 (패널 위 또는 하단)."""
@@ -1114,6 +1136,71 @@ class BattleScene(BaseScene):
             outline = "#d4a84a" if selected else "#a88a5c"
             try:
                 canvas.itemconfig(state["rect_id"], fill=fill, outline=outline)
+            except Exception:  # noqa: BLE001
+                pass
+
+    # ------------------------------------------------------------------
+    # 교육 통합 H3 — 유닛 사료 툴팁
+    # ------------------------------------------------------------------
+    def _build_unit_history_tooltip(self) -> None:
+        """유닛 선택 패널 위에 사료 툴팁 아이템을 한 번 생성(기본 숨김).
+
+        docs/15 §3.1 H3 / docs/16 Wave1 1-2. 패널(좌하단) 바로 위에 배치해
+        호버 시에만 history_blurb 한 줄을 노출한다(EP1: 사용자 호버 시에만).
+        """
+        canvas = self.app.canvas
+        scaler = self.app.scaler
+        bx1, by1 = scaler.to_screen(28, 760)
+        bx2, by2 = scaler.to_screen(720, 836)
+        self._unit_tooltip_bg_id = canvas.create_rectangle(
+            bx1,
+            by1,
+            bx2,
+            by2,
+            fill="#12100a",
+            outline="#7a5c3a",
+            width=2,
+            state="hidden",
+            tags=(self._tag, "unit_history_tooltip"),
+        )
+        tx, ty = scaler.to_screen(40, 798)
+        self._unit_tooltip_text_id = canvas.create_text(
+            tx,
+            ty,
+            text="",
+            fill="#e8d8b0",
+            font=(_family_regular(), 13),
+            anchor="w",
+            width=int(bx2 - bx1 - 24),
+            state="hidden",
+            tags=(self._tag, "unit_history_tooltip"),
+        )
+
+    def _show_unit_history_tooltip(self, unit_id: str) -> None:
+        """호버 진입 — 해당 유닛 history_blurb 가 있으면 툴팁 노출."""
+        if self._unit_tooltip_text_id is None or self._unit_tooltip_bg_id is None:
+            return
+        udef = self._units_db.get(unit_id)
+        blurb = getattr(udef, "history_blurb", None) if udef is not None else None
+        if not blurb:
+            # 사료가 없는 유닛은 툴팁 생략(graceful).
+            self._hide_unit_history_tooltip()
+            return
+        canvas = self.app.canvas
+        try:
+            canvas.itemconfig(self._unit_tooltip_text_id, text=blurb, state="normal")
+            canvas.itemconfig(self._unit_tooltip_bg_id, state="normal")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _hide_unit_history_tooltip(self) -> None:
+        """호버 이탈 — 툴팁 숨김."""
+        canvas = self.app.canvas
+        for iid in (self._unit_tooltip_text_id, self._unit_tooltip_bg_id):
+            if iid is None:
+                continue
+            try:
+                canvas.itemconfig(iid, state="hidden")
             except Exception:  # noqa: BLE001
                 pass
 
