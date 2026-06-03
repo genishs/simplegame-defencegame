@@ -18,6 +18,7 @@ from typing import Any
 from src.core.settings import DATA_ROOT
 from src.data.schema import (
     StageSchemaError,
+    validate_codex,
     validate_enemies,
     validate_stage,
     validate_units,
@@ -26,6 +27,8 @@ from src.data.schema import (
 # ``loader`` 에서 re-export 하여 호출자가 ``from src.data.loader import
 # StageSchemaError`` 형태로도 import 할 수 있게 한다 (ruff F401 회피).
 __all__ = [
+    "CodexCard",
+    "CodexUnlock",
     "EnemyDef",
     "PathDef",
     "StageDef",
@@ -33,6 +36,7 @@ __all__ = [
     "UnitDef",
     "WaveDef",
     "WaveSpawn",
+    "load_codex",
     "load_enemies",
     "load_stage",
     "load_units",
@@ -55,6 +59,8 @@ class UnitDef:
     size: tuple[int, int]
     projectile: str | None = None
     splash_radius: int | None = None
+    # 교육 통합(H3): 유닛 사료 한 줄. 비파괴 기본값 None.
+    history_blurb: str | None = None
 
 
 @dataclass(frozen=True)
@@ -68,6 +74,8 @@ class EnemyDef:
     gold_drop: int
     sprite: str
     is_boss: bool = False
+    # 교육 통합(H2): 첫 등장 배너 문구 + 약점 힌트. 비파괴 기본값 None.
+    intro_banner: str | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +129,39 @@ class StageDef:
     build_zones: tuple[dict[str, int], ...]
     waves: tuple[WaveDef, ...]
     reward: StageReward = field(default_factory=StageReward)
+    # 교육 통합(H1): 스테이지 도입 1줄 역사 캡션. 비파괴 기본값 None.
+    history_caption: str | None = None
+
+
+@dataclass(frozen=True)
+class CodexUnlock:
+    """코덱스 카드 해금 조건 (docs/15 §6.1).
+
+    ``type`` 이 ``stage_clear`` / ``stage_three_stars`` 일 때만 ``stage`` 가 의미 있다.
+    """
+
+    type: str
+    stage: int | None = None
+
+
+@dataclass(frozen=True)
+class CodexCard:
+    """코덱스 카드 메타 (교육 통합 H4/H5, docs/15 §6.1).
+
+    본문 텍스트(``body``)는 ``09_codex.md`` 정본 콘텐츠를 그대로 담는다.
+    옵션 한문 3필드는 (사실) 라벨 카드 우선 (DECISION-EDU-003).
+    """
+
+    id: str
+    title: str
+    label: str
+    summary: str
+    body: str
+    source: str
+    unlock: CodexUnlock
+    source_original: str | None = None
+    source_reading: str | None = None
+    source_translation: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -149,6 +190,7 @@ def load_units(data_root=DATA_ROOT) -> dict[str, UnitDef]:  # type: ignore[no-un
             size=(int(u["size"][0]), int(u["size"][1])),
             projectile=u.get("projectile"),
             splash_radius=u.get("splash_radius"),
+            history_blurb=u.get("history_blurb"),
         )
     return out
 
@@ -169,6 +211,7 @@ def load_enemies(data_root=DATA_ROOT) -> dict[str, EnemyDef]:  # type: ignore[no
             gold_drop=int(e["gold_drop"]),
             sprite=e["sprite"],
             is_boss=bool(e.get("is_boss", False)),
+            intro_banner=e.get("intro_banner"),
         )
     return out
 
@@ -224,4 +267,33 @@ def load_stage(stage_id: str, data_root=DATA_ROOT) -> StageDef:  # type: ignore[
         build_zones=tuple(dict(z) for z in raw.get("build_zones", [])),
         waves=waves,
         reward=_parse_reward(dict(raw.get("reward", {}))),
+        history_caption=raw.get("history_caption"),
     )
+
+
+def load_codex(data_root=DATA_ROOT) -> tuple[CodexCard, ...]:  # type: ignore[no-untyped-def]
+    """``codex.json`` 을 로드해 ``CodexCard`` 튜플로 반환 (교육 통합 H4/H5).
+
+    검증 통과 후 dataclass 매핑. 카드 순서는 JSON 파일 순서를 보존한다.
+    """
+    src = str(data_root / "codex.json")
+    raw = _read_json(data_root / "codex.json")
+    validate_codex(raw, source=src)
+    out: list[CodexCard] = []
+    for c in raw["cards"]:
+        uc = c["unlock_condition"]
+        out.append(
+            CodexCard(
+                id=c["id"],
+                title=c["title"],
+                label=c["label"],
+                summary=c["summary"],
+                body=c["body"],
+                source=c["source"],
+                unlock=CodexUnlock(type=uc["type"], stage=uc.get("stage")),
+                source_original=c.get("source_original"),
+                source_reading=c.get("source_reading"),
+                source_translation=c.get("source_translation"),
+            )
+        )
+    return tuple(out)

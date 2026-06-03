@@ -359,6 +359,11 @@ def validate_stage(raw: Any, *, source: str = "<stage>") -> None:
         reward = _require_dict(raw, "reward", path="", source=source)
         _validate_reward(reward, path="reward", source=source)
 
+    # history_caption 은 교육 통합(H1) 도입 캡션 옵션 필드.
+    # docs/15 §2.2 / docs/16: 스테이지 시작 시 1줄 역사 캡션. 존재할 때만 non-empty str 검증.
+    if "history_caption" in raw and raw["history_caption"] is not None:
+        _require_str(raw, "history_caption", path="", source=source)
+
     # night_vision_radius_multiplier 는 야간 스테이지 전용 옵션 필드.
     # DECISION-PL-P4-014: 0.5~2.0 범위의 float. 존재할 때만 검증.
     if "night_vision_radius_multiplier" in raw:
@@ -409,6 +414,10 @@ def validate_units(raw: Any, *, source: str = "<units>") -> None:
                     path=f"{path}.size[{idx}]",
                     source=source,
                 )
+        # history_blurb 는 교육 통합(H3) 사료 한 줄 옵션 필드.
+        # docs/15 §6.2 / docs/16. 존재할 때만 non-empty str 검증.
+        if "history_blurb" in u and u["history_blurb"] is not None:
+            _require_str(u, "history_blurb", path=path, source=source)
 
 
 def validate_enemies(raw: Any, *, source: str = "<enemies>") -> None:
@@ -441,11 +450,110 @@ def validate_enemies(raw: Any, *, source: str = "<enemies>") -> None:
                 path=f"{path}.is_boss",
                 source=source,
             )
+        # intro_banner 는 교육 통합(H2) 첫 등장 배너 옵션 필드.
+        # docs/15 §6.3 / docs/16. 존재할 때만 non-empty str 검증.
+        if "intro_banner" in e and e["intro_banner"] is not None:
+            _require_str(e, "intro_banner", path=path, source=source)
+
+
+# ---------------------------------------------------------------------------
+# Codex (교육 통합 H4/H5 — docs/15 §6.1, docs/16)
+# ---------------------------------------------------------------------------
+# 라벨 enum (EP2 라벨 무결성). docs/15 §4.1 + 09_codex.md §4.
+#   fact         — (사실) 1차 사료 근거
+#   fact_adapted — (사실 + 게임 각색). 별도 4번째 라벨 아님(R5); 배지는 (사실), 본문에 각색 고지
+#   legend       — [전승] 후대 야사
+#   fiction      — [픽션] 본 게임 창작
+CODEX_LABELS: frozenset[str] = frozenset({"fact", "fact_adapted", "legend", "fiction"})
+
+# unlock_condition.type enum. docs/15 §6.1.
+#   auto              — 게임 시작 시 자동 해금
+#   stage_clear       — 특정 스테이지 클리어 (stage 필드 필수)
+#   stage_three_stars — 특정 스테이지 별 3개 (stage 필드 필수)
+#   true_ending       — 진엔딩 (5스테이지 모두 별 3개)
+CODEX_UNLOCK_TYPES: frozenset[str] = frozenset({"auto", "stage_clear", "stage_three_stars", "true_ending"})
+_CODEX_UNLOCK_NEEDS_STAGE: frozenset[str] = frozenset({"stage_clear", "stage_three_stars"})
+
+
+def _validate_codex_unlock(raw: Any, *, path: str, source: str) -> None:
+    _require_type(raw, dict, path=path, source=source)
+    assert isinstance(raw, dict)
+    utype = _require_str(raw, "type", path=path, source=source)
+    if utype not in CODEX_UNLOCK_TYPES:
+        allowed = " | ".join(sorted(CODEX_UNLOCK_TYPES))
+        raise StageSchemaError(
+            f"unlock_condition.type must be one of [{allowed}], got '{utype}'",
+            path=f"{path}.type",
+            source=source,
+        )
+    if utype in _CODEX_UNLOCK_NEEDS_STAGE:
+        # stage 필드 필수 (1~5).
+        _require_int(raw, "stage", path=path, source=source, minimum=1, maximum=5)
+    elif "stage" in raw and raw["stage"] is not None:
+        # auto / true_ending 에는 stage 가 무의미 — 들어 있으면 타입만 가볍게 검증.
+        _require_int(raw, "stage", path=path, source=source, minimum=1, maximum=5)
+
+
+def validate_codex(raw: Any, *, source: str = "<codex>") -> None:
+    """``codex.json`` 검증 (교육 통합 H4/H5).
+
+    검증 항목:
+        - root 는 dict, ``cards`` 는 비어있지 않은 list.
+        - 각 카드: ``id``/``title``/``label``/``summary``/``body``/``source`` non-empty str.
+        - ``label`` 은 :data:`CODEX_LABELS` enum 중 하나 (EP2 라벨 무결성).
+        - ``unlock_condition`` 은 dict, ``type`` 은 enum, stage_* 면 ``stage`` (1~5) 필수.
+        - 옵션 ``source_original``/``source_reading``/``source_translation`` 은 있으면 non-empty str.
+        - 카드 ``id`` 중복 금지.
+    """
+    if not isinstance(raw, dict):
+        raise StageSchemaError(
+            f"codex root must be a dict, got {type(raw).__name__}",
+            source=source,
+        )
+    cards = _require_list(raw, "cards", path="", source=source, min_items=1)
+    seen_ids: set[str] = set()
+    for idx, c in enumerate(cards):
+        path = f"cards[{idx}]"
+        if not isinstance(c, dict):
+            raise StageSchemaError(
+                f"card entry must be a dict, got {type(c).__name__}",
+                path=path,
+                source=source,
+            )
+        cid = _require_str(c, "id", path=path, source=source)
+        if cid in seen_ids:
+            raise StageSchemaError(
+                f"duplicate card id '{cid}'",
+                path=f"{path}.id",
+                source=source,
+            )
+        seen_ids.add(cid)
+        _require_str(c, "title", path=path, source=source)
+        _require_str(c, "summary", path=path, source=source)
+        _require_str(c, "body", path=path, source=source)
+        _require_str(c, "source", path=path, source=source)
+        label = _require_str(c, "label", path=path, source=source)
+        if label not in CODEX_LABELS:
+            allowed = " | ".join(sorted(CODEX_LABELS))
+            raise StageSchemaError(
+                f"label must be one of [{allowed}], got '{label}'",
+                path=f"{path}.label",
+                source=source,
+            )
+        unlock = _require_key(c, "unlock_condition", path, source)
+        _validate_codex_unlock(unlock, path=f"{path}.unlock_condition", source=source)
+        # 옵션 한문 원문 3필드 (H9, DECISION-EDU-003). 있으면 non-empty str.
+        for opt_key in ("source_original", "source_reading", "source_translation"):
+            if opt_key in c and c[opt_key] is not None:
+                _require_str(c, opt_key, path=path, source=source)
 
 
 __all__ = [
+    "CODEX_LABELS",
+    "CODEX_UNLOCK_TYPES",
     "StageSchemaError",
+    "validate_codex",
+    "validate_enemies",
     "validate_stage",
     "validate_units",
-    "validate_enemies",
 ]
