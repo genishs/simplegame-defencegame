@@ -63,6 +63,68 @@
       "sprite": "enemy_night_raider",
       "is_boss": true,
       "intro_banner": "당군 야간 기습대가 어둠을 타고 옵니다. 횃불로 시야를 확보하고 성문 앞을 두텁게 지키십시오."
+    },
+    "tang_heavy_infantry": {
+      "name": "당군 중장보병",
+      "hp": 120,
+      "speed": 42,
+      "armor": 2,
+      "damage_to_castle": 2,
+      "gold_drop": 16,
+      "sprite": "enemy_heavy_infantry",
+      "intro_banner": "당군 중장보병이 두꺼운 갑옷으로 밀고 옵니다. 느리지만 단단합니다 — 장창병과 집중 사격으로 무너뜨리십시오."
+    },
+    "tang_cavalry": {
+      "name": "당군 기병",
+      "hp": 80,
+      "speed": 105,
+      "armor": 1,
+      "damage_to_castle": 2,
+      "gold_drop": 12,
+      "sprite": "enemy_cavalry",
+      "intro_banner": "당군 기병이 빠르게 돌격합니다. 발이 빠르니 길목을 막고, 장창병으로 맞서면 효과적입니다."
+    },
+    "tang_siege_tower": {
+      "name": "당군 공성탑",
+      "hp": 210,
+      "speed": 26,
+      "armor": 2,
+      "damage_to_castle": 3,
+      "gold_drop": 28,
+      "sprite": "enemy_siege_tower",
+      "intro_banner": "당군 공성탑(운제)이 성벽으로 다가옵니다. 아주 느리지만 단단합니다 — 일찍부터 화력을 모아 막으십시오."
+    },
+    "tang_elite_guard": {
+      "name": "당군 엘리트 친위대",
+      "hp": 160,
+      "speed": 58,
+      "armor": 2,
+      "damage_to_castle": 3,
+      "gold_drop": 24,
+      "sprite": "enemy_elite_guard",
+      "intro_banner": "당 태종의 정예 친위대가 마지막 결전에 나섭니다. 방어력이 높으니 가장 강한 화력으로 맞서십시오."
+    },
+    "tang_elite_battering_ram": {
+      "name": "이세적의 정예 충차",
+      "hp": 400,
+      "speed": 24,
+      "armor": 2,
+      "damage_to_castle": 6,
+      "gold_drop": 80,
+      "sprite": "enemy_battering_ram",
+      "is_boss": true,
+      "intro_banner": "이세적의 정예 충차가 성문을 노립니다. 측면이 약점입니다 — 기병 출격이나 투석으로 옆구리를 치십시오."
+    },
+    "tang_taizong": {
+      "name": "당 태종",
+      "hp": 650,
+      "speed": 34,
+      "armor": 3,
+      "damage_to_castle": 6,
+      "gold_drop": 200,
+      "sprite": "enemy_taizong",
+      "is_boss": true,
+      "intro_banner": "당 태종이 친히 토산에 오릅니다. 무너뜨리려 하기보다 버티십시오 — 추위와 보급난이 그들을 물러가게 합니다."
     }
   }
 }
